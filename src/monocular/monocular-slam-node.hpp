@@ -3,6 +3,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "../shared/slam-publisher.hpp"
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -16,7 +17,7 @@
 class MonocularSlamNode : public rclcpp::Node
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, std::shared_ptr<SLAMPublisher> publisher_node);
 
     ~MonocularSlamNode();
 
@@ -26,10 +27,14 @@ private:
     void GrabImage(const sensor_msgs::msg::Image::SharedPtr msg);
 
     ORB_SLAM3::System* m_SLAM;
-
+ 
     cv_bridge::CvImagePtr m_cvImPtr;
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr m_image_subscriber;
+    
+    std::string savePath;
+
+    std::shared_ptr<SLAMPublisher> publisher_node_;
 };
 
 #endif

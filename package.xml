@@ -4,9 +4,9 @@
   <name>orbslam3</name>
   <version>1.0.0</version>
   <description>ROS2 wrapper for ORB_SLAM3 library</description>
-  <maintainer email="zang09@naver.com">Haebeom Jung</maintainer>
+  <maintainer email="jussi.kalliola@tuni.fi">Jussi Kalliola</maintainer>
   <license>MIT</license>
-  <author>Haebeom Jung</author>
+  <author>Jussi Kalliola</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -14,6 +14,7 @@
   <depend>sensor_msgs</depend>
   <depend>cv_bridge</depend>
   <depend>message_filters</depend>
+  <depend>orbslam3_interfaces</depend>
   <depend>Pangolin</depend>
 
   <export>

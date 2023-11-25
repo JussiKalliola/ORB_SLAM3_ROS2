@@ -4,14 +4,16 @@
 
 using std::placeholders::_1;
 
-RgbdSlamNode::RgbdSlamNode(ORB_SLAM3::System* pSLAM)
+RgbdSlamNode::RgbdSlamNode(ORB_SLAM3::System* pSLAM, const std::string path)
 :   Node("ORB_SLAM3_ROS2"),
     m_SLAM(pSLAM)
 {
+    savePath = path;
+
     rgb_sub = std::make_shared<message_filters::Subscriber<ImageMsg> >(shared_ptr<rclcpp::Node>(this), "camera/rgb");
     depth_sub = std::make_shared<message_filters::Subscriber<ImageMsg> >(shared_ptr<rclcpp::Node>(this), "camera/depth");
 
-    syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy> >(approximate_sync_policy(10), *rgb_sub, *depth_sub);
+    syncApproximate = std::make_shared<message_filters::Synchronizer<approximate_sync_policy>>(approximate_sync_policy(10), *rgb_sub, *depth_sub);
     syncApproximate->registerCallback(&RgbdSlamNode::GrabRGBD, this);
 
 }
@@ -21,8 +23,9 @@ RgbdSlamNode::~RgbdSlamNode()
     // Stop all threads
     m_SLAM->Shutdown();
 
+    std::cout << "Saving data to the path=" + savePath + "KeyFrameTrajectory.txt" << std::endl; 
     // Save camera trajectory
-    m_SLAM->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + "KeyFrameTrajectory.txt");
 }
 
 void RgbdSlamNode::GrabRGBD(const ImageMsg::SharedPtr msgRGB, const ImageMsg::SharedPtr msgD)

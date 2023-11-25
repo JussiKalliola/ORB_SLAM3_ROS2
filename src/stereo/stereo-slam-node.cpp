@@ -5,12 +5,14 @@
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify)
+StereoSlamNode::StereoSlamNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify, const string path)
 :   Node("ORB_SLAM3_ROS2"),
     m_SLAM(pSLAM)
 {
     stringstream ss(strDoRectify);
     ss >> boolalpha >> doRectify;
+
+    savePath=path;
 
     if (doRectify){
 
@@ -61,7 +63,7 @@ StereoSlamNode::~StereoSlamNode()
     m_SLAM->Shutdown();
 
     // Save camera trajectory
-    m_SLAM->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + "KeyFrameTrajectory.txt");
 }
 
 void StereoSlamNode::GrabStereo(const ImageMsg::SharedPtr msgLeft, const ImageMsg::SharedPtr msgRight)

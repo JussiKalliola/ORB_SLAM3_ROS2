@@ -20,7 +20,7 @@
 class StereoSlamNode : public rclcpp::Node
 {
 public:
-    StereoSlamNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify);
+    StereoSlamNode(ORB_SLAM3::System* pSLAM, const string &strSettingsFile, const string &strDoRectify, const string path);
 
     ~StereoSlamNode();
 
@@ -42,6 +42,8 @@ private:
     std::shared_ptr<message_filters::Subscriber<sensor_msgs::msg::Image> > right_sub;
 
     std::shared_ptr<message_filters::Synchronizer<approximate_sync_policy> > syncApproximate;
+
+    std::string savePath;
 };
 
 #endif

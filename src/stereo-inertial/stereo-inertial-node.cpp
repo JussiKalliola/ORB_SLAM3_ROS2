@@ -4,17 +4,21 @@
 
 using std::placeholders::_1;
 
-StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *SLAM, const string &strSettingsFile, const string &strDoRectify, const string &strDoEqual) :
+StereoInertialNode::StereoInertialNode(ORB_SLAM3::System *SLAM, const string &strSettingsFile, const bool &doRectify, const bool &doEqual, const string &strSaveToPath) :
     Node("ORB_SLAM3_ROS2"),
     SLAM_(SLAM)
 {
-    stringstream ss_rec(strDoRectify);
-    ss_rec >> boolalpha >> doRectify_;
+    strSaveToPath_ = strSaveToPath;
+    //stringstream ss_rec(strDoRectify);
+    //ss_rec >> boolalpha >> doRectify_;
+    doRectify_ = doRectify;
 
-    stringstream ss_eq(strDoEqual);
-    ss_eq >> boolalpha >> doEqual_;
-
+    //stringstream ss_eq(strDoEqual);
+    //ss_eq >> boolalpha >> doEqual_;
+    
+    doEqual_ = doEqual;
     bClahe_ = doEqual_;
+
     std::cout << "Rectify: " << doRectify_ << std::endl;
     std::cout << "Equal: " << doEqual_ << std::endl;
 
@@ -74,7 +78,7 @@ StereoInertialNode::~StereoInertialNode()
     SLAM_->Shutdown();
 
     // Save camera trajectory
-    SLAM_->SaveKeyFrameTrajectoryTUM("KeyFrameTrajectory.txt");
+    SLAM_->SaveKeyFrameTrajectoryTUM(strSaveToPath_ + "KeyFrameTrajectory.txt");
 }
 
 void StereoInertialNode::GrabImu(const ImuMsg::SharedPtr msg)
