@@ -15,10 +15,19 @@ int main(int argc, char **argv)
 {
     if(argc < 4)
     {
-        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization" << std::endl;
+        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization result_file_name" << std::endl;
         exit(1);
     }
+
+    string strResultFileName = "KeyFrameTrajectory.txt";
+
+    // Check if user has provided filename for the result file
+    if (argc >= 5)
+    {
+      strResultFileName = argv[5];
+    }
    
+    
 
     string strSaveToPath = argv[3]; 
     // First create the base directory and then sub directory
@@ -37,6 +46,14 @@ int main(int argc, char **argv)
 
     bool visualization = Utility::checkTrueFalse(argv[4]);
     
+    std::cout << "===================" << std::endl; 
+    std::cout << "Given parameters" << std::endl; 
+    std::cout << " - Results path=" + strSaveToPath + strResultFileName << std::endl;
+    std::cout << " - Visualization=" + visualization << std::endl;
+    std::cout << std::string(" - Voc path=") + argv[1] << std::endl; 
+    std::cout << std::string(" - Settings path=") + argv[2] << std::endl; 
+    std::cout << "===================" << std::endl;
+
     rclcpp::init(argc, argv); 
 
     auto observer_impl_ = std::make_shared<ObserverImpl>();
@@ -49,7 +66,7 @@ int main(int argc, char **argv)
     
     auto publisher_node_ = std::make_shared<SLAMPublisher>();
     
-    auto node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, publisher_node_);
+    auto node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, publisher_node_, strResultFileName);
     std::cout << "============================ " << std::endl;\
 
     rclcpp::spin(node);

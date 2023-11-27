@@ -5,11 +5,12 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path,  std::shared_ptr<SLAMPublisher> publisher_node)
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path,  std::shared_ptr<SLAMPublisher> publisher_node, const std::string strResultFilename)
 : Node("ORB_SLAM3_ROS2") 
 {
     m_SLAM = pSLAM;
     savePath = path;
+    mstrResultFilename = strResultFilename;
 
     publisher_node_ = publisher_node;
     
@@ -28,8 +29,8 @@ MonocularSlamNode::~MonocularSlamNode()
     // Stop all threads
     m_SLAM->Shutdown();
     // Save camera trajectory
-    std::cout << "Saving data to the path=" + savePath + "KeyFrameTrajectory.txt" << std::endl; 
-    m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + "KeyFrameTrajectory.txt");
+    std::cout << "Saving data to the path=" + savePath + mstrResultFilename << std::endl; 
+    m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
 }
 
 void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
