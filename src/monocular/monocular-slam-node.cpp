@@ -47,7 +47,6 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
     }
 
     // publisher_node_->publishMessage("Was able to grab image.");
-    
     //std::cout<<"one frame has been sent"<<std::endl;
     m_SLAM->TrackMonocular(m_cvImPtr->image, Utility::StampToSec(msg->header.stamp));
 }

@@ -11,13 +11,15 @@ class ObserverImpl : public ORB_SLAM3::Observer {
     }
 
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* kf) override {
-      std::cout << "ObserverImpl : KeyFrame added." << std::endl;
+      //std::cout << "ObserverImpl : KeyFrame added." << std::endl;
+      publisher_node_->publishKeyFrame(kf); 
     }
 
     void onKeyframeChanged(int keyframeId) override {
-      publisher_node_->publishMessage("onKeyframeChanged function noticed difference.");
-      std::cout << "This is from ObserverImpl" << std::endl;
-      std::cout << keyframeId << std::endl;
+      //publisher_node_->publishMessage("onKeyframeChanged function noticed difference.");
+
+      // std::cout << "This is from ObserverImpl" << std::endl;
+      // std::cout << keyframeId << std::endl;
     }
 
   private:
