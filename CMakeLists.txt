@@ -26,6 +26,15 @@ find_package(Pangolin REQUIRED)
 find_package(ORB_SLAM3 REQUIRED)
 find_package(orbslam3_interfaces REQUIRED)
 
+#Jussi: Switch to OpenCV 4.2 from 4.4 to make it work with ros2 wrapper
+find_package(OpenCV 4.2)
+if(NOT OpenCV_FOUND)
+  message(FATAL_ERROR "OpenCV > 4.2 not found.")
+endif()
+
+MESSAGE("OPENCV VERSION:")
+MESSAGE(${OpenCV_VERSION})
+
 include_directories(
   include
   ${ORB_SLAM3_ROOT_DIR}/include

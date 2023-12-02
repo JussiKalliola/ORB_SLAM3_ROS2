@@ -29,10 +29,11 @@ class SLAMPublisher : public rclcpp::Node
     ~SLAMPublisher();
 
   private:  
-    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
-    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_publisher_;
-  
+    void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
 
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
+    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_publisher_;  
+    rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_subscriber_;
 
 
     std::vector<geometry_msgs::msg::Pose2D> CVKeyPointVectorArrayToPose2DArray(std::vector<cv::KeyPoint> kps);
