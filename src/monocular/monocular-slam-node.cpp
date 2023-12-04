@@ -5,15 +5,13 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path,  std::shared_ptr<SLAMPublisher> publisher_node, const std::string strResultFilename)
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, const std::string strResultFilename)
 : Node("ORB_SLAM3_ROS2") 
 {
     m_SLAM = pSLAM;
     savePath = path;
     mstrResultFilename = strResultFilename;
 
-    publisher_node_ = publisher_node;
-    
     // std::cout << "slam changed" << std::endl;
     m_image_subscriber = this->create_subscription<ImageMsg>(
         "camera",

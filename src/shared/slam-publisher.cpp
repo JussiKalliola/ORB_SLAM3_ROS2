@@ -39,7 +39,9 @@ void SLAMPublisher::publishMessage(const std::string& message_text) {
 
 void SLAMPublisher::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf) {
   std::cout << "Got a new keyframe" << std::endl;
+  RCLCPP_INFO(this->get_logger(), "Got a new keyframe");
   ORB_SLAM3::KeyFrame* oKf = MsgConverter::ROSKeyFrameToORBSLAM3(rKf);
+  RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%s is converted.", rKf->mn_id);
   std::cout << "Converted ros keyframe to orbslam3." << std::endl;
 }
 

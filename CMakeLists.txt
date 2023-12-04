@@ -45,17 +45,13 @@ link_directories(
   include
 )
 
-add_library(slam_publisher SHARED
-  src/shared/ObserverImpl.cpp
-  src/shared/slam-publisher.cpp
-)
-ament_target_dependencies(slam_publisher rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
+
 
 add_executable(mono
   src/monocular/mono.cpp
   src/monocular/monocular-slam-node.cpp
 )
-ament_target_dependencies(mono rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin)
+ament_target_dependencies(mono rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
 
 add_executable(rgbd
   src/rgbd/rgbd.cpp
@@ -76,14 +72,25 @@ add_executable(stereo-inertial
 )
 ament_target_dependencies(stereo-inertial rclcpp sensor_msgs cv_bridge ORB_SLAM3 Pangolin)
 
-# add_executable(slam_publisher
-#  src/shared/slam-publisher.cpp
-# )
-# ament_target_dependencies(slam_publisher rclcpp std_msgs)
+add_library(slam_wrapper SHARED
+  src/slam/slam-wrapper-node.cpp
+)
+ament_target_dependencies(slam_wrapper rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
 
-target_link_libraries(mono slam_publisher)
 
-install(TARGETS mono rgbd stereo stereo-inertial slam_publisher
+add_library(slam_observer SHARED
+  src/shared/ObserverImpl.cpp
+)
+ament_target_dependencies(slam_observer rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
+
+
+
+target_link_libraries(mono 
+  slam_observer 
+  slam_wrapper
+)
+
+install(TARGETS slam_wrapper mono rgbd stereo stereo-inertial slam_observer 
   DESTINATION lib/${PROJECT_NAME})
 
 # Install launch files.

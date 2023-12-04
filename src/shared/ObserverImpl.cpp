@@ -1,18 +1,19 @@
 #include "Observer.h"
+#include "Atlas.h"
 //#include "KeyFrame.h"
-#include "slam-publisher.hpp"
+#include "../src/slam/slam-wrapper-node.hpp"
+
 
 class ObserverImpl : public ORB_SLAM3::Observer {
 
   public:
     ObserverImpl() {
-      // m_SLAM = pSLAM;
-      publisher_node_ = std::make_shared<SLAMPublisher>();
+      //publisher_node_ = std::make_shared<SlamWrapperNode>();
     }
 
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* kf) override {
-      //std::cout << "ObserverImpl : KeyFrame added." << std::endl;
-      publisher_node_->publishKeyFrame(kf); 
+      std::cout << "ObserverImpl : KeyFrame added." << std::endl;
+      slam_node_->publishKeyFrame(kf); 
     }
 
     void onKeyframeChanged(int keyframeId) override {
@@ -22,9 +23,11 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       // std::cout << keyframeId << std::endl;
     }
 
+    void attachSlamNode(std::shared_ptr<SlamWrapperNode> slam_node) {
+      slam_node_ = slam_node;
+    }
+
   private:
-    // ORB_SLAM3::System* m_SLAM;
-    
-    std::shared_ptr<SLAMPublisher> publisher_node_;
+    std::shared_ptr<SlamWrapperNode> slam_node_;
 
 };

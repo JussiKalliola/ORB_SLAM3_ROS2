@@ -3,7 +3,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
-#include "../shared/slam-publisher.hpp"
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -14,10 +13,12 @@
 
 #include "utility.hpp"
 
+
+
 class MonocularSlamNode : public rclcpp::Node
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, std::shared_ptr<SLAMPublisher> publisher_node, const std::string strResultFilename);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, const std::string strResultFilename);
 
     ~MonocularSlamNode();
 
@@ -34,8 +35,6 @@ private:
     
     std::string savePath;
     std::string mstrResultFilename;
-
-    std::shared_ptr<SLAMPublisher> publisher_node_;
 };
 
 #endif

@@ -8,8 +8,8 @@
 
 #include "System.h"
 
+#include "../slam/slam-wrapper-node.hpp"
 #include "../shared/ObserverImpl.cpp"
-
 
 int main(int argc, char **argv)
 {
@@ -62,14 +62,25 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_);
 
-    // SLAM.attachObserver(observer_impl_);
-    
-    auto publisher_node_ = std::make_shared<SLAMPublisher>();
-    
-    auto node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, publisher_node_, strResultFileName);
-    std::cout << "============================ " << std::endl;\
+    auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM); 
+    auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, strResultFileName);
 
-    rclcpp::spin(node);
+    observer_impl_->attachSlamNode(slam_node);
+   
+    // Spin monocular slam node
+    std::thread spin_mono([&]() {
+      rclcpp::spin(mono_node);
+    });
+    
+    // Spin SLAM publisher&Subscriber
+    std::thread spin_slam([&]() {
+      rclcpp::spin(slam_node);
+    });
+
+    // Join threads
+    spin_mono.join();
+    spin_slam.join();
+
     rclcpp::shutdown();
 
     return 0;
