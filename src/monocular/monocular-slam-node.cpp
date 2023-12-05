@@ -5,30 +5,28 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, const std::string strResultFilename)
-: Node("ORB_SLAM3_ROS2") 
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, const std::string strResultFilename) : Node("MonocularSlamNode") 
 {
-    m_SLAM = pSLAM;
-    savePath = path;
-    mstrResultFilename = strResultFilename;
+  RCLCPP_INFO(this->get_logger(), "Initializing Monocular SLAM node.");
+  m_SLAM = pSLAM;
+  savePath = path;
+  mstrResultFilename = strResultFilename;
 
     // std::cout << "slam changed" << std::endl;
-    m_image_subscriber = this->create_subscription<ImageMsg>(
-        "camera",
-        10,
-        std::bind(&MonocularSlamNode::GrabImage, this, std::placeholders::_1));
-    std::cout << "slam changed" << std::endl;
-
-
+  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /camera");
+  m_image_subscriber = this->create_subscription<ImageMsg>(
+      "camera",
+      10,
+      std::bind(&MonocularSlamNode::GrabImage, this, std::placeholders::_1));
 }
 
 MonocularSlamNode::~MonocularSlamNode()
 {
-    // Stop all threads
-    m_SLAM->Shutdown();
-    // Save camera trajectory
-    std::cout << "Saving data to the path=" + savePath + mstrResultFilename << std::endl; 
-    m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
+  // Stop all threads
+  m_SLAM->Shutdown();
+  // Save camera trajectory
+  RCLCPP_INFO(this->get_logger(),  "Saving data to the path=" + savePath + mstrResultFilename);
+  m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
 }
 
 void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)

@@ -15,18 +15,32 @@ int main(int argc, char **argv)
 {
     if(argc < 4)
     {
-        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization result_file_name" << std::endl;
+        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization [OPTIONAL] result_file_name [OPTIONAL] subscribe [OPTIONAL]" << std::endl;
         exit(1);
     }
 
     string strResultFileName = "KeyFrameTrajectory.txt";
+    bool visualization = true;
+    bool subscribe_to_slam = false;
 
-    // Check if user has provided filename for the result file
-    if (argc >= 5)
+
+    // Check visualization 
+    if (argc > 4)
     {
-      strResultFileName = argv[5];
+      visualization = Utility::checkTrueFalse(argv[4]);
+      // Check if user has provided filename for the result file
+      if (argc > 5)
+      {
+        strResultFileName = argv[5];
+        // Check for subscription to slam system
+        if (argc > 6)
+        {
+          subscribe_to_slam = Utility::checkTrueFalse(argv[6]);
+        }
+      }
     }
-   
+
+    
     
 
     string strSaveToPath = argv[3]; 
@@ -44,15 +58,15 @@ int main(int argc, char **argv)
     strSaveToPath += "monocular/";
 
 
-    bool visualization = Utility::checkTrueFalse(argv[4]);
     
-    std::cout << "===================" << std::endl; 
+    std::cout << "\n===================" << std::endl; 
     std::cout << "Given parameters" << std::endl; 
     std::cout << " - Results path=" + strSaveToPath + strResultFileName << std::endl;
-    std::cout << " - Visualization=" + visualization << std::endl;
+    std::cout << " - Visualization=" << visualization << std::endl;
+    std::cout << " - Subscribe to SLAM=" << subscribe_to_slam << std::endl;
     std::cout << std::string(" - Voc path=") + argv[1] << std::endl; 
     std::cout << std::string(" - Settings path=") + argv[2] << std::endl; 
-    std::cout << "===================" << std::endl;
+    std::cout << "===================\n" << std::endl;
 
     rclcpp::init(argc, argv); 
 
@@ -62,7 +76,7 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_);
 
-    auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM); 
+    auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
     auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, strResultFileName);
 
     observer_impl_->attachSlamNode(slam_node);
