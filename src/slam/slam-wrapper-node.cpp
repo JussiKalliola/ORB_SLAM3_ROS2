@@ -3,7 +3,8 @@
 SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_slam) : Node("SlamWrapperNode") {
   RCLCPP_INFO(this->get_logger(), "Initializing SLAM Wrapper Node.");
   m_SLAM = pSLAM;
-    
+  mpLocalMapper_ = m_SLAM->GetMapperPtr();
+
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
   keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
       "/KeyFrame", 
@@ -39,6 +40,6 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf);
   RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted.", rKf->mn_id);
    
-  m_SLAM->GetAtlas()->AddKeyframeFromRos(oKf);
+  mpLocalMapper_->InsertKeyframeFromRos(oKf);
 }
 

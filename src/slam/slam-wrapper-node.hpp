@@ -29,7 +29,8 @@ class SlamWrapperNode : public rclcpp::Node
 
   private:
     ORB_SLAM3::System* m_SLAM;
-
+    ORB_SLAM3::LocalMapping* mpLocalMapper_;
+    
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
 
     //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;

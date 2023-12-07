@@ -29,5 +29,4 @@ class ObserverImpl : public ORB_SLAM3::Observer {
 
   private:
     std::shared_ptr<SlamWrapperNode> slam_node_;
-
 };
