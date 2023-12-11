@@ -30,12 +30,15 @@ class SlamWrapperNode : public rclcpp::Node
   private:
     ORB_SLAM3::System* m_SLAM;
     ORB_SLAM3::LocalMapping* mpLocalMapper_;
-    
+    ORB_SLAM3::Atlas* mpAtlas_;    
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
 
     //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
     rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_publisher_;  
     rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_subscriber_;
+    
+    std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mpOrbKeyFrames;
+    //std::map<long unsigned int, orbslam3_interfaces::msg::KeyFrame*> mpRosKeyFrames;
 };
 
 #endif
