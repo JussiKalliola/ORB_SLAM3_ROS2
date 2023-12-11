@@ -11,6 +11,11 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       //publisher_node_ = std::make_shared<SlamWrapperNode>();
     }
 
+    void onMapAdded(ORB_SLAM3::Map* pM) override {
+      std::cout << "ObserverImpl : Map added." << std::endl;
+      slam_node_->publishMap(pM); 
+    }
+    
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* kf) override {
       std::cout << "ObserverImpl : KeyFrame added." << std::endl;
       slam_node_->publishKeyFrame(kf); 
