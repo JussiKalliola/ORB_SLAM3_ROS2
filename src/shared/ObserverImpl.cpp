@@ -20,28 +20,48 @@ class ObserverImpl : public ORB_SLAM3::Observer {
     //  slam_node_->publishMap(pM); 
     //}
 
-    void onKFActionAddChild(unsigned long int hostKfId, unsigned long int targetKfId) override {
-      orbslam3_interfaces::msg::KeyFrameActions kfMsg;
-      
-      kfMsg.system_id = std::getenv("SLAM_SYSTEM_ID");    
-      kfMsg.kf_id = hostKfId;
+    /* KEYFRAME ACTION FUNCTIONS*/
+    void onKFAction(unsigned long int hostKfId, int actionId, unsigned long int id) {
+      orbslam3_interfaces::msg::KeyFrameActions kfAMsg = Parser::Action::FormKFActionRosMsg(actionId, id);
+      kfAMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 
+      kfAMsg.kf_id = hostKfId; 
 
-      kfMsg.add_connection_id = -1;
-      kfMsg.add_map_point_mp_id = -1;
-      kfMsg.erase_map_point_vector_idx = -1;
-      kfMsg.erase_map_point_id = -1;
-      kfMsg.replace_map_point_id = -1;
-      kfMsg.add_child_id = targetKfId;
-      kfMsg.erase_child_id = -1;
-      kfMsg.change_parent_id = -1;
-      kfMsg.add_loop_edge_id = -1;
-      kfMsg.add_merge_edge_id = -1;
-      kfMsg.erase_connection_id = -1;
-      kfMsg.update_map_id = -1;
-
-      slam_node_->publishKFAction(kfMsg);
+      slam_node_->publishKFAction(kfAMsg);
     }
 
+    void onKFAction(unsigned long int hostKfId, int actionId, bool boolAction) {
+      orbslam3_interfaces::msg::KeyFrameActions kfAMsg = Parser::Action::FormKFActionRosMsg(actionId, boolAction);
+      kfAMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 
+      kfAMsg.kf_id = hostKfId; 
+      
+      slam_node_->publishKFAction(kfAMsg);
+    }
+
+    void onKFAction(unsigned long int hostKfId, int actionId, unsigned long int id, long int vectorIdx) {
+      orbslam3_interfaces::msg::KeyFrameActions kfAMsg = Parser::Action::FormKFActionRosMsg(actionId, id, vectorIdx);
+      kfAMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 
+      kfAMsg.kf_id = hostKfId; 
+      
+      slam_node_->publishKFAction(kfAMsg);
+    }
+
+    void onKFAction(int actionId, Eigen::Vector3f t) {
+      orbslam3_interfaces::msg::KeyFrameActions kfAMsg = Parser::Action::FormKFActionRosMsg(actionId, t);
+      kfAMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 
+      kfAMsg.kf_id = hostKfId; 
+      
+      slam_node_->publishKFAction(kfAMsg);
+    }
+
+    void onKFAction(unsigned long int hostKfId, int actionId, Sophus::SE3<float> p) {
+      orbslam3_interfaces::msg::KeyFrameActions kfAMsg = Parser::Action::FormKFActionRosMsg(actionId, p);
+      kfAMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 
+      kfAMsg.kf_id = hostKfId; 
+      
+      slam_node_->publishKFAction(kfAMsg);
+    }
+
+    /* ATLAS ACTION FUNCTIONS */
     void onAtlasAction(int actionId, unsigned long int id) override {
       orbslam3_interfaces::msg::AtlasActions aMsg = Parser::Action::FormAtlasActionRosMsg(actionId, id);
       aMsg.system_id = std::getenv("SLAM_SYSTEM_ID"); 

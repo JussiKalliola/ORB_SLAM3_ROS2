@@ -104,7 +104,7 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
 
   RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted.", rKf->mn_id); 
   //mpLocalMapper_->InsertKeyframeFromRos(oKf);
-  //mpAtlas_->AddKeyFrame(oKf, true);
+  mpAtlas_->AddKeyFrame(oKf, true);
 }
 
 // Callback for /Map
@@ -133,57 +133,56 @@ void SlamWrapperNode::GrabAtlasAction(const orbslam3_interfaces::msg::AtlasActio
 
   if (actionId == 0) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> MapPoint found already.");
-    mpAtlas_->AddMapPoint(mpOrbMapPoints[rAA->add_map_point_id]);
+    mpAtlas_->AddMapPoint(mpOrbMapPoints[rAA->add_map_point_id], true);
   }     
   
   if (actionId==1) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Map found.");
-    mpAtlas_->ChangeMap(mpOrbMaps[rAA->change_map_to_id]);
+    mpAtlas_->ChangeMap(mpOrbMaps[rAA->change_map_to_id], true);
   }
 
   if (actionId==2) {
-    //RCLCPP_INFO(this->get_logger(), "AtlasAction >> KeyFrame found.");
-    mpAtlas_->AddKeyFrame(mpOrbKeyFrames[rAA->add_kf_id]);
+    mpAtlas_->AddKeyFrame(mpOrbKeyFrames[rAA->add_kf_id], true);
   }
 
   if (actionId==3) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Map found.");
-    mpAtlas_->SetMapBad(mpOrbMaps[rAA->set_map_bad_id]);
+    mpAtlas_->SetMapBad(mpOrbMaps[rAA->set_map_bad_id], true);
   }
   
   if (actionId==4) { 
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Create new Map");
-    mpAtlas_->CreateNewMap();
+    mpAtlas_->CreateNewMap(true);
   }
 
   if (actionId==5) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Inform new big change.");
-    mpAtlas_->InformNewBigChange();
+    mpAtlas_->InformNewBigChange(true);
   }
 
   if (actionId==6) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Clear current map.");
-    mpAtlas_->clearMap();
+    mpAtlas_->clearMap(true);
   }
 
   if (actionId==7) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Clear Atlas.");
-    mpAtlas_->clearAtlas();
+    mpAtlas_->clearAtlas(true);
   }
 
   if (actionId==8) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Remove bad maps.");
-    mpAtlas_->RemoveBadMaps();
+    mpAtlas_->RemoveBadMaps(true);
   }
 
   if (actionId==9) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Set Inertial Sensor.");
-    mpAtlas_->SetInertialSensor();
+    mpAtlas_->SetInertialSensor(true);
   }
   
   if (actionId==10) {
     //RCLCPP_INFO(this->get_logger(), "AtlasAction >> Set IMU initialized.");
-    mpAtlas_->SetImuInitialized();
+    mpAtlas_->SetImuInitialized(true);
   }
         
 }
