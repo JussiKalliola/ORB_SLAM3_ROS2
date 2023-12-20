@@ -15,14 +15,14 @@ int main(int argc, char **argv)
 {
     if(argc < 4)
     {
-        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization [OPTIONAL] result_file_name [OPTIONAL] subscribe [OPTIONAL]" << std::endl;
+        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization [OPTIONAL] result_file_name [OPTIONAL] subscribe [OPTIONAL] main [OPTIONAL]" << std::endl;
         exit(1);
     }
 
     string strResultFileName = "KeyFrameTrajectory.txt";
-    bool visualization = true;
-    bool subscribe_to_slam = false;
-
+    bool visualization = false;
+    bool subscribe_to_slam = true;
+    bool main_system = true;
 
     // Check visualization 
     if (argc > 4)
@@ -36,6 +36,9 @@ int main(int argc, char **argv)
         if (argc > 6)
         {
           subscribe_to_slam = Utility::checkTrueFalse(argv[6]);
+          if (argc > 7) {
+            main_system = Utility::checkTrueFalse(argv[7]);
+          }
         }
       }
     }
@@ -64,8 +67,10 @@ int main(int argc, char **argv)
     std::cout << " - Results path=" + strSaveToPath + strResultFileName << std::endl;
     std::cout << " - Visualization=" << visualization << std::endl;
     std::cout << " - Subscribe to SLAM=" << subscribe_to_slam << std::endl;
-    std::cout << std::string(" - Voc path=") + argv[1] << std::endl; 
-    std::cout << std::string(" - Settings path=") + argv[2] << std::endl; 
+    std::cout << " - Voc path=" << argv[1] << std::endl; 
+    std::cout << " - Settings path=" << argv[2] << std::endl;
+    std::cout << " - Main system=" << main_system << std::endl;
+    std::cout << " - SLAM_SYSTEM_ID=" << std::getenv("SLAM_SYSTEM_ID") << std::endl;
     std::cout << "===================\n" << std::endl;
 
     rclcpp::init(argc, argv); 
@@ -77,23 +82,30 @@ int main(int argc, char **argv)
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_);
 
     auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
-    auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, strResultFileName);
-
-    observer_impl_->attachSlamNode(slam_node);
-   
-    // Spin monocular slam node
-    std::thread spin_mono([&]() {
-      rclcpp::spin(mono_node);
-    });
     
-    // Spin SLAM publisher&Subscriber
-    std::thread spin_slam([&]() {
-      rclcpp::spin(slam_node);
-    });
+    
+    observer_impl_->attachSlamNode(slam_node);
 
-    // Join threads
-    spin_mono.join();
-    spin_slam.join();
+    // If this system needs to subscribe to sensor data stream.
+    if(main_system) {
+      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, strResultFileName);
+      
+      // Spin SLAM publisher&Subscriber
+      std::thread spin_slam([&]() {
+        rclcpp::spin(slam_node);
+      });
+      
+      // Spin monocular slam node
+      std::thread spin_mono([&]() {
+        rclcpp::spin(mono_node);
+      });
+      
+      // Join threads
+      spin_mono.join();
+      spin_slam.join();
+    } else {
+      rclcpp::spin(slam_node);
+    }
 
     rclcpp::shutdown();
 
