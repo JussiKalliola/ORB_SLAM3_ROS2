@@ -1,6 +1,11 @@
 #include "slam-wrapper-node.hpp"
 #include <cstdlib>
 
+
+// TODO:
+// - Keyframedb actions (crashes because of that one, current kf is not in the db)
+
+
 SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_slam) : Node("SlamWrapperNode") {
   
   const char* systemId = std::getenv("SLAM_SYSTEM_ID");
@@ -26,9 +31,15 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
   
   CreatePublishers();
 
+
   /* Init subscribers */
   if (subscribe_to_slam) { 
-    CreateSubscribers(); 
+    CreateSubscribers();
+
+    action_check_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(1000),
+        std::bind(&SlamWrapperNode::checkForNewActions, this)
+    );
   }
   
   //unsigned long int mnLastInitKFidMap = mpAtlas_->GetLastInitKFid();
@@ -40,6 +51,88 @@ SlamWrapperNode::~SlamWrapperNode() {
   // Stop all threads
   RCLCPP_FATAL(this->get_logger(), "SlamWrapperNode is destroyed");
 }
+
+
+void SlamWrapperNode::checkForNewActions() {
+  if (!mRosActionMap.empty()) {
+    RCLCPP_INFO(get_logger(), "Action buffer contains items, try to perform actions.");
+    
+    // Perform action if there are new keyframes
+    size_t numOfActions = mRosActionMap.size();
+    
+    std::vector<int> kfIdsToRemove;
+    std::vector<int> rosActionIdsToRemove;
+    std::vector<int> atlasIdsToRemove;
+    
+
+    for(size_t i = 0; i < numOfActions; ++i) 
+    { 
+      int categoryIdx = std::get<0>(mRosActionMap[i]);
+      int vecIdx = std::get<1>(mRosActionMap[i]);
+
+
+      if(categoryIdx==0)
+      {
+        
+        orbslam3_interfaces::msg::AtlasActions::SharedPtr mAtlasRosMsg = mvpAtlasRosActions[vecIdx];
+        if(mAtlasRosMsg==nullptr) continue;
+        bool success = PerformAtlasAction(mAtlasRosMsg);
+          
+        //RCLCPP_INFO(get_logger(), "%d %d %d", vecIdx, mAtlasRosMsg->add_kf_id, success);
+        if(success) 
+        {
+          atlasIdsToRemove.push_back(vecIdx);
+          rosActionIdsToRemove.push_back(i);
+        }
+        
+      } else if(categoryIdx==1)
+      {
+        orbslam3_interfaces::msg::KeyFrameActions::SharedPtr mKfRosMsg = mvpKfRosActions[vecIdx];
+        
+        if(mKfRosMsg==nullptr) continue;
+        
+        if(mpOrbKeyFrames.find(mKfRosMsg->kf_id) != mpOrbKeyFrames.end()) {
+          bool success = PerformKeyFrameAction(mKfRosMsg);
+          
+          if(success) 
+          {
+            kfIdsToRemove.push_back(vecIdx);
+            rosActionIdsToRemove.push_back(i);
+          }
+        }
+      }
+
+    }
+
+    RCLCPP_INFO(get_logger(), "All : Action performed=%d, total number of actions=%d", rosActionIdsToRemove.size(), numOfActions);
+    for(const auto& id : rosActionIdsToRemove)
+    {
+      mRosActionMap.erase(mRosActionMap.begin() + id);
+    }
+
+    RCLCPP_INFO(get_logger(), "Atlas : Action performed=%d, total number of actions=%d", atlasIdsToRemove.size(), mvpAtlasRosActions.size());
+    for(const auto& id : atlasIdsToRemove)
+    {
+      mvpAtlasRosActions[id] = nullptr;
+      //mvpAtlasRosActions.erase(mvpAtlasRosActions.begin() + id);
+    }
+
+    RCLCPP_INFO(get_logger(), "KeyFrame : Action performed=%d, total number of actions=%d", kfIdsToRemove.size(), mvpKfRosActions.size());
+    for(const auto& id : kfIdsToRemove)
+    {
+      mvpKfRosActions[id] = nullptr;
+      //mvpKfRosActions.erase(mvpKfRosActions.begin() + id);
+    }
+
+
+  } else {
+    RCLCPP_INFO(get_logger(), "No new keyframes. Checking again after delay...");
+    action_check_timer_->reset(); // Reschedule the timer to check after a delay
+    //keyframe_check_timer_->change_period(std::chrono::milliseconds(check_delay_ms_));
+  }
+}
+
+
 
 /* Publish functions */
 
@@ -67,12 +160,12 @@ void SlamWrapperNode::publishMapAction() {
 
 
 void SlamWrapperNode::publishAtlasAction(orbslam3_interfaces::msg::AtlasActions aMsg) {
-  RCLCPP_INFO(this->get_logger(), "Publishing Atlas Action.");
+  //RCLCPP_INFO(this->get_logger(), "Publishing Atlas Action.");
   atlas_action_publisher_->publish(aMsg);
 }
 
 void SlamWrapperNode::publishKFAction(orbslam3_interfaces::msg::KeyFrameActions kfMsg) {
-  RCLCPP_INFO(this->get_logger(), "Publishing KeyFrame Action.");
+  //RCLCPP_INFO(this->get_logger(), "Publishing KeyFrame Action %d.", kfMsg.kf_id);
   kf_action_publisher_->publish(kfMsg);
 }
 
@@ -101,23 +194,22 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   
   oKf->SetORBVocabulary(mpAtlas_->GetORBVocabulary());
   oKf->SetKeyFrameDatabase(mpAtlas_->GetKeyFrameDatabase());
+  oKf->UpdateMap(mpAtlas_->GetCurrentMap()); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
 
-  std::set<ORB_SLAM3::MapPoint*> mvpMapPoints = oKf->GetMapPoints();
-
-  // Iterate through the set
-  for (ORB_SLAM3::MapPoint* mapPointPtr : mvpMapPoints) {
-    unsigned long int idToCheck = mapPointPtr->mnId;
-
-    // Check if the id exists in the map
-    if (mpOrbMapPoints.find(idToCheck) != mpOrbMapPoints.end()) {
-      // If it doesn't exist, add it to the map
-      mpOrbMapPoints[idToCheck] = mapPointPtr;
-    }
+  //std::set<ORB_SLAM3::MapPoint*> mvpMapPoints = oKf->GetMapPoints();
+  
+  for(size_t i; i < rKf->mvp_map_points.size(); ++i)
+  {
+    orbslam3_interfaces::msg::MapPoint mp = rKf->mvp_map_points[i];
+    ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(&mp, oKf, mpOrbKeyFrames);
+    oMP->UpdateMap(mpAtlas_->GetCurrentMap()); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();   
+    oKf->AddMapPoint(oMP, i);
+    mpOrbMapPoints[mp.mn_id] = oMP;
   }
+  
 
   mpOrbKeyFrames.insert(std::make_pair(oKf->mnId, oKf));
-
-  RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted.", rKf->mn_id); 
+  RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted.", oKf->mnId); 
   //mpLocalMapper_->InsertKeyframeFromRos(oKf);
   //mpAtlas_->AddKeyFrame(oKf, true);
   
@@ -143,16 +235,25 @@ void SlamWrapperNode::GrabKeyFrameAction(const orbslam3_interfaces::msg::KeyFram
   
   if(rKF->system_id == std::getenv("SLAM_SYSTEM_ID")) 
     return;
+
+  //PerformKeyFrameAction(rKF);
+  mvpKfRosActions.push_back(rKF);
+  mRosActionMap.push_back(std::make_tuple(1, mvpKfRosActions.size()-1));
   
+}
+
+bool SlamWrapperNode::PerformKeyFrameAction(const orbslam3_interfaces::msg::KeyFrameActions::SharedPtr rKF) {
+
   int actionId = Parser::Action::parseKFAction(rKF, mpOrbMaps, mpOrbKeyFrames, mpOrbMapPoints);
   if(actionId == -1) 
-    return;
+    return false;
   
   RCLCPP_INFO(this->get_logger(), "Got new KeyFrame action=%d with kf id=%d", actionId, rKF->kf_id);
   
   ORB_SLAM3::KeyFrame* kf_ = mpOrbKeyFrames[rKF->kf_id];
-  RCLCPP_INFO(this->get_logger(), "kf id=%d", kf_->mnId);
-
+  //RCLCPP_INFO(this->get_logger(), "kf id=%d", kf_->mnId);
+  
+  // Change to switch statement and create enum for the actionids
   if (actionId==0)  kf_->SetPose(Converter::RosToCpp::PoseToSophusSE3f(rKF->set_pose), true);
   if (actionId==1)  kf_->SetVelocity(Converter::RosToCpp::Vector3ToEigenVector3f(rKF->set_velocity), true);
   if (actionId==2)  kf_->AddConnection(mpOrbKeyFrames[rKF->add_connection_id], rKF->add_connection_weight, true);
@@ -166,7 +267,7 @@ void SlamWrapperNode::GrabKeyFrameAction(const orbslam3_interfaces::msg::KeyFram
   if (actionId==10) kf_->AddLoopEdge(mpOrbKeyFrames[rKF->add_loop_edge_id], true);
   if (actionId==11) kf_->AddMergeEdge(mpOrbKeyFrames[rKF->add_merge_edge_id], true);
   if (actionId==12) kf_->EraseConnection(mpOrbKeyFrames[rKF->erase_connection_id], true);
-  if (actionId==13) kf_->SetNewBias(Converter::RosToOrb::RosBiasToOrbImuBias(rKF->set_new_bias), true);
+  //if (actionId==13) kf_->SetNewBias(Converter::RosToOrb::RosBiasToOrbImuBias(rKF->set_new_bias), true);
   if (actionId==14) kf_->UpdateMap(mpOrbMaps[rKF->update_map_id], true);
   if (actionId==15) kf_->ComputeBoW(true);
   if (actionId==16) kf_->UpdateBestCovisibles(true);
@@ -175,23 +276,32 @@ void SlamWrapperNode::GrabKeyFrameAction(const orbslam3_interfaces::msg::KeyFram
   if (actionId==19) kf_->SetNotErase(true);
   if (actionId==20) kf_->SetErase(true);
   if (actionId==21) kf_->SetBadFlag(true);
+
+  return true;
 }
 
 
-
-// Callback for /Map
 void SlamWrapperNode::GrabAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rAA) {
   
 
   if(rAA->system_id == std::getenv("SLAM_SYSTEM_ID")) 
     return;
+  
+  mvpAtlasRosActions.push_back(rAA);
+  mRosActionMap.push_back(std::make_tuple(0, mvpAtlasRosActions.size()-1));
+  
+}
+
+
+bool SlamWrapperNode::PerformAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rAA) {
 
   int actionId = Parser::Action::parseAtlasAction(rAA, mpOrbMaps, mpOrbKeyFrames, mpOrbMapPoints);
 
-  if(actionId == -1) 
-    return;
   
-  RCLCPP_INFO(this->get_logger(), "Got new atlas action.");
+  if(actionId == -1) 
+    return false;
+  
+  //RCLCPP_INFO(this->get_logger(), "Got new atlas action %d, map point %d, mpOrbMapPoints.size()=%d.", actionId, rAA->add_map_point_id, mpOrbMapPoints.size());
   
   if (actionId==0)  mpAtlas_->AddMapPoint(mpOrbMapPoints[rAA->add_map_point_id], true);
   if (actionId==1)  mpAtlas_->ChangeMap(mpOrbMaps[rAA->change_map_to_id], true);
@@ -204,10 +314,9 @@ void SlamWrapperNode::GrabAtlasAction(const orbslam3_interfaces::msg::AtlasActio
   if (actionId==8)  mpAtlas_->RemoveBadMaps(true);
   if (actionId==9)  mpAtlas_->SetInertialSensor(true);  
   if (actionId==10) mpAtlas_->SetImuInitialized(true);
-        
+  
+  return true;
 }
-
-
 
 void SlamWrapperNode::CreatePublishers() {
   /* Init publishers */

@@ -42,13 +42,19 @@ class SlamWrapperNode : public rclcpp::Node
     ORB_SLAM3::LocalMapping* mpLocalMapper_;
     ORB_SLAM3::Atlas* mpAtlas_;    
    
+    void checkForNewActions();
+    
     void CreatePublishers();
     void CreateSubscribers();
+    
+    rclcpp::TimerBase::SharedPtr action_check_timer_;
 
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
     void GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM);
     void GrabAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rM);
     void GrabKeyFrameAction(const orbslam3_interfaces::msg::KeyFrameActions::SharedPtr rM);
+    bool PerformKeyFrameAction(const orbslam3_interfaces::msg::KeyFrameActions::SharedPtr rKF);
+    bool PerformAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rAA);
 
     // Publishers
     //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
@@ -70,8 +76,14 @@ class SlamWrapperNode : public rclcpp::Node
     std::map<long unsigned int, ORB_SLAM3::Map*> mpOrbMaps;
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mpOrbKeyFrames;
     std::map<long unsigned int, ORB_SLAM3::MapPoint*> mpOrbMapPoints;
-    
 
+
+    std::vector<unsigned long int> mvNewKFIds;
+    
+    // Store ROS Action messages for later prosessing
+    std::vector<std::tuple<int, int>> mRosActionMap; // First is the action idx 0=Atlas, 1=KeyFrame, ..., and second is the idx in the corresponding vector
+    std::vector<orbslam3_interfaces::msg::KeyFrameActions::SharedPtr> mvpKfRosActions; 
+    std::vector<orbslam3_interfaces::msg::AtlasActions::SharedPtr> mvpAtlasRosActions; 
 
     //std::map<long unsigned int, orbslam3_interfaces::msg::KeyFrame*> mpRosKeyFrames;
 };

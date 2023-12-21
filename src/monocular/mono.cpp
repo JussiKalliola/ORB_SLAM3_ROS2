@@ -75,7 +75,7 @@ int main(int argc, char **argv)
 
     rclcpp::init(argc, argv); 
 
-    auto observer_impl_ = std::make_shared<ObserverImpl>();
+    std::shared_ptr<ObserverImpl> observer_impl_ = std::make_shared<ObserverImpl>();
     
     // malloc error using new.. try shared ptr
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
@@ -83,8 +83,10 @@ int main(int argc, char **argv)
 
     auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
     
-    
-    observer_impl_->attachSlamNode(slam_node);
+    if(observer_impl_ != nullptr) 
+    {
+      observer_impl_->attachSlamNode(slam_node);
+    }
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
