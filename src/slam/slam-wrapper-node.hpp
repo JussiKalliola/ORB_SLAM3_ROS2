@@ -22,6 +22,7 @@
 #include "MapPoint.h"
 #include "Tracking.h"
 #include "Converter.h"
+#include "KeyFrameDatabase.h"
 
 class SlamWrapperNode : public rclcpp::Node 
 {
@@ -31,30 +32,38 @@ class SlamWrapperNode : public rclcpp::Node
     //void publishMessage(const std::string& message_text);
     void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf);
     void publishMap(ORB_SLAM3::Map* pM);
+    
     void publishMapAction();
     void publishAtlasAction(orbslam3_interfaces::msg::AtlasActions aMsg);
     void publishKFAction(orbslam3_interfaces::msg::KeyFrameActions kfMsg);   
-    
+    void publishKFDBAction(orbslam3_interfaces::msg::KeyFrameDatabaseActions kfdbMsg);
+
+
      ~SlamWrapperNode();
 
   private:
     ORB_SLAM3::System* m_SLAM;
     ORB_SLAM3::LocalMapping* mpLocalMapper_;
     ORB_SLAM3::Atlas* mpAtlas_;    
-   
+    ORB_SLAM3::KeyFrameDatabase* mpKfDb_; 
     void checkForNewActions();
     
     void CreatePublishers();
     void CreateSubscribers();
     
     rclcpp::TimerBase::SharedPtr action_check_timer_;
-
+    
+    // Action callbacks
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
     void GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM);
     void GrabAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rM);
     void GrabKeyFrameAction(const orbslam3_interfaces::msg::KeyFrameActions::SharedPtr rM);
+    void GrabKFDBAction(const orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr rKfdbA);
+    
+    // Action Executors
     bool PerformKeyFrameAction(const orbslam3_interfaces::msg::KeyFrameActions::SharedPtr rKF);
     bool PerformAtlasAction(const orbslam3_interfaces::msg::AtlasActions::SharedPtr rAA);
+    bool PerformKFDBAction(const orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr rKfdb);
 
     // Publishers
     //rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher_;
@@ -64,6 +73,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Publisher<orbslam3_interfaces::msg::MapActions>::SharedPtr map_action_publisher_; 
     rclcpp::Publisher<orbslam3_interfaces::msg::AtlasActions>::SharedPtr atlas_action_publisher_; 
     rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrameActions>::SharedPtr kf_action_publisher_; 
+    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrameDatabaseActions>::SharedPtr kf_db_action_publisher_; 
     
 
     // Subscribers
@@ -71,6 +81,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Subscription<orbslam3_interfaces::msg::Map>::SharedPtr m_map_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::AtlasActions>::SharedPtr m_atlas_action_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrameActions>::SharedPtr m_kf_action_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrameDatabaseActions>::SharedPtr m_kfdb_action_subscriber_;
     
     // Store SLAM data
     std::map<long unsigned int, ORB_SLAM3::Map*> mpOrbMaps;
@@ -84,6 +95,7 @@ class SlamWrapperNode : public rclcpp::Node
     std::vector<std::tuple<int, int>> mRosActionMap; // First is the action idx 0=Atlas, 1=KeyFrame, ..., and second is the idx in the corresponding vector
     std::vector<orbslam3_interfaces::msg::KeyFrameActions::SharedPtr> mvpKfRosActions; 
     std::vector<orbslam3_interfaces::msg::AtlasActions::SharedPtr> mvpAtlasRosActions; 
+    std::vector<orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr> mvpKFDBRosActions; 
 
     //std::map<long unsigned int, orbslam3_interfaces::msg::KeyFrame*> mpRosKeyFrames;
 };
