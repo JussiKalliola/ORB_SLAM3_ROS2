@@ -11,6 +11,19 @@
 #include "../slam/slam-wrapper-node.hpp"
 #include "../shared/ObserverImpl.cpp"
 
+
+std::shared_ptr<SlamWrapperNode> slam_node;
+
+void signalHandler(int signum) {
+    if (signum == SIGINT) {
+      slam_node->publishEndMsg();
+      //keepRunning = false;
+      rclcpp::shutdown(); // Ensure proper shutdown of ROS nodes
+    }
+}
+
+
+
 int main(int argc, char **argv)
 {
     if(argc < 4)
@@ -73,6 +86,8 @@ int main(int argc, char **argv)
     std::cout << " - SLAM_SYSTEM_ID=" << std::getenv("SLAM_SYSTEM_ID") << std::endl;
     std::cout << "===================\n" << std::endl;
 
+
+    std::signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv); 
 
     std::shared_ptr<ObserverImpl> observer_impl_ = std::make_shared<ObserverImpl>();
@@ -81,7 +96,7 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_);
 
-    auto slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
+    slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
     
     if(observer_impl_ != nullptr) 
     {
@@ -90,26 +105,36 @@ int main(int argc, char **argv)
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
-      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, strResultFileName);
+      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName);
       
-      // Spin SLAM publisher&Subscriber
-      std::thread spin_slam([&]() {
-        rclcpp::spin(slam_node);
-      });
       
       // Spin monocular slam node
       std::thread spin_mono([&]() {
         rclcpp::spin(mono_node);
       });
       
+      // Spin SLAM publisher&Subscriber
+      std::thread spin_slam([&]() {
+        rclcpp::spin(slam_node);
+      });
+      
       // Join threads
       spin_mono.join();
       spin_slam.join();
+      
     } else {
       rclcpp::spin(slam_node);
     }
 
-    rclcpp::shutdown();
+    //slam_node_->publishEndMsg();
+    //rclcpp::sleep_for(std::chrono::seconds(1));
+    // Stop all threads
+    SLAM.Shutdown();
+    // Save camera trajectory
+    std::cout << "Saving data to the path=" << strSaveToPath  << strResultFileName << std::endl;
+    SLAM.SaveKeyFrameTrajectoryTUM(strSaveToPath + strResultFileName);
+    
+    //rclcpp::shutdown();
 
     return 0;
 }

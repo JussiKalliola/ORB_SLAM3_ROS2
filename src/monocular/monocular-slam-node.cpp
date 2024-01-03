@@ -1,14 +1,15 @@
 #include "monocular-slam-node.hpp"
-//#include "../shared/slam-publisher.hpp"
 
 #include<opencv2/core/core.hpp>
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, const std::string strResultFilename) : Node("MonocularSlamNode") 
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename) : Node("MonocularSlamNode") 
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Monocular SLAM node.");
   m_SLAM = pSLAM;
+  slam_node_ = slam_node;
+
   savePath = path;
   mstrResultFilename = strResultFilename;
 
@@ -22,11 +23,14 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string
 
 MonocularSlamNode::~MonocularSlamNode()
 {
+  RCLCPP_FATAL(this->get_logger(),  "~MonocularSlamNode");
+  
+  //rclcpp::sleep_for(std::chrono::seconds(1));
   // Stop all threads
-  m_SLAM->Shutdown();
+  //m_SLAM->Shutdown();
   // Save camera trajectory
-  RCLCPP_INFO(this->get_logger(),  "Saving data to the path=" + savePath + mstrResultFilename);
-  m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
+  //RCLCPP_INFO(this->get_logger(),  "Saving data to the path=" + savePath + mstrResultFilename);
+  //m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
 }
 
 void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)

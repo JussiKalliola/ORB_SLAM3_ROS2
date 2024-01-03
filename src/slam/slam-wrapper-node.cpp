@@ -4,15 +4,12 @@
 
 // TODO:
 // - From the functions which are used e.g., in loop closing or local mapping, only send the information about modified objects (DetectNBestCandidates->placerecognitionscore ++ etc.).
-// - Create few different threads if the whole function needs to be executed
-// - Send new keyframe from the constructor, not from Atlas::AddKeyFrame
-// - Create MapPoint publisher/subscriber and actions
 // - Checking in another thread? So one node is continuosuly receiving and storing data and another one is processing it.
 // - Add headers to the messages so that timestamp can be used.
-// - Use deque instead of vector?
 // - Save data when destroyed in the subscription side (also print stuff)
-  
-}
+// - Create separate thread (similar way as in SLAM with local mapping etc.) where the new actions and data is checked and performed.
+//    - One thread for checking the stuff inside of while loop?
+//    - OR one main thread which then sends the data to other threads where computations are performed?
 
 SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_slam) : Node("SlamWrapperNode") {
   
@@ -31,8 +28,22 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
   mpAtlas_ = m_SLAM->GetAtlas();
   mpKfDb_ = m_SLAM->GetKeyFrameDatabase();
 
+
+  // Initialize maps for the SLAM data, unprocessed and processed
+  mpUnprocOrbKeyFrames=std::map<long unsigned int, std::tuple<ORB_SLAM3::KeyFrame*, orbslam3_interfaces::msg::KeyFrame::SharedPtr>>();
+  mpUnprocOrbMapPoints=std::map<long unsigned int, std::tuple<ORB_SLAM3::MapPoint*, orbslam3_interfaces::msg::MapPoint::SharedPtr>>();
+  mpUnprocOrbMaps=std::map<long unsigned int, std::tuple<ORB_SLAM3::Map*, orbslam3_interfaces::msg::Map::SharedPtr>>();
+
   mpOrbKeyFrames=std::map<long unsigned int, ORB_SLAM3::KeyFrame*>();
-  
+  mpOrbMapPoints=std::map<long unsigned int, ORB_SLAM3::MapPoint*>();
+  mpOrbMaps=std::map<long unsigned int, ORB_SLAM3::Map*>();
+ 
+  // Add the current map to the maps
+  std::vector<ORB_SLAM3::Map*> mpAtlasMaps = mpAtlas_->GetAllMaps();
+  for(const auto& map : mpAtlasMaps) {
+    mpOrbMaps.insert(std::make_pair(map->GetId(), map));
+  }
+
   CreatePublishers();
 
 
@@ -41,29 +52,75 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
     CreateSubscribers();
 
     action_check_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(100),
+        std::chrono::milliseconds(500),
         std::bind(&SlamWrapperNode::checkForNewActions, this)
     );
   }
-  
+
   //unsigned long int mnLastInitKFidMap = mpAtlas_->GetLastInitKFid();
   //publishNewMapId(mnLastInitKFidMap);
 }
 
 
 SlamWrapperNode::~SlamWrapperNode() {
+
+  RCLCPP_FATAL(this->get_logger(), "Destroying SlamWrapperNode...");
+  m_SLAM->Shutdown();
   // Stop all threads
-  RCLCPP_FATAL(this->get_logger(), "SlamWrapperNode is destroyed");
+//  std_msgs::msg::Bool endMsg;
+  //endMsg.data = true;
+  //end_publisher_->publish(endMsg);
+  //RCLCPP_FATAL(this->get_logger(), "Sent msg to destroy other nodes in the network... Shutting down..");
+
 }
-
-
-
 
 
 void SlamWrapperNode::checkForNewActions() {
   if (!mRosActionMap.empty()) {
     RCLCPP_INFO(get_logger(), "Action buffer contains items, try to perform actions.");
+    RCLCPP_INFO(get_logger(), "Number of maps=%d", mpOrbMaps.size());
     
+    // Check if variables can be filled with new data
+    std::cout << "Number of unprocessed KeyFrames before=" << mpUnprocOrbKeyFrames.size() << ", ";
+    for (auto it = mpUnprocOrbKeyFrames.begin(); it != mpUnprocOrbKeyFrames.end();)
+    {
+
+      bool bUnprocessed = false;
+      auto& mtORKf = it->second;
+      ORB_SLAM3::KeyFrame* mopKf = std::get<0>(mtORKf);
+      orbslam3_interfaces::msg::KeyFrame::SharedPtr mrpKf = std::get<1>(mtORKf);
+      Converter::KeyFrameConverter::FillKeyFrameData(mopKf, mrpKf, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
+
+      if(!bUnprocessed)
+      {
+        it = mpUnprocOrbKeyFrames.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    std::cout << "and after=" << mpUnprocOrbKeyFrames.size() << std::endl;
+   
+    // Check map points
+    std::cout << "Number of unprocessed MapPoints before=" << mpUnprocOrbMapPoints.size() << ", ";
+    for (auto it = mpUnprocOrbMapPoints.begin(); it != mpUnprocOrbMapPoints.end();)
+    {
+
+      bool bUnprocessed = false;
+      auto& mtORMP = it->second;
+      ORB_SLAM3::MapPoint* mopMp = std::get<0>(mtORMP);
+      orbslam3_interfaces::msg::MapPoint::SharedPtr mrpMp = std::get<1>(mtORMP);
+      Converter::MapPointConverter::FillMapPointData(mopMp, mrpMp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
+
+      if(!bUnprocessed)
+      {
+        it = mpUnprocOrbMapPoints.erase(it);
+      } else {
+        ++it;
+      }
+    }
+    std::cout << "and after=" << mpUnprocOrbMapPoints.size() << std::endl;
+
+
     // Perform action if there are new keyframes
     size_t numOfActions = mRosActionMap.size();
     
@@ -71,6 +128,7 @@ void SlamWrapperNode::checkForNewActions() {
     std::vector<int> kfdbIdsToRemove;
     std::vector<int> rosActionIdsToRemove;
     std::vector<int> atlasIdsToRemove;
+    std::vector<int> mpIdsToRemove;
     
 
     for(size_t i = 0; i < numOfActions; ++i) 
@@ -119,10 +177,23 @@ void SlamWrapperNode::checkForNewActions() {
           kfdbIdsToRemove.push_back(vecIdx);
           rosActionIdsToRemove.push_back(i);
         }
+      } else if(categoryIdx==3) {
+        orbslam3_interfaces::msg::MapPointActions::SharedPtr mMpRosMsg = mvpMpRosActions[vecIdx];
+        
+        if(mMpRosMsg==nullptr) continue;
+        
+        bool success = PerformMapPointAction(mMpRosMsg);
+          
+        if(success) 
+        {
+          mpIdsToRemove.push_back(vecIdx);
+          rosActionIdsToRemove.push_back(i);
+        }
       }
-
     }
 
+    
+    std::cout << std::endl;
     RCLCPP_INFO(get_logger(), "All : Action performed=%d, total number of actions=%d", rosActionIdsToRemove.size(), numOfActions);
     for(const auto& id : rosActionIdsToRemove)
     {
@@ -150,6 +221,14 @@ void SlamWrapperNode::checkForNewActions() {
       //mvpKfRosActions.erase(mvpKfRosActions.begin() + id);
     }
 
+    RCLCPP_INFO(get_logger(), "MapPoint : Action performed=%d, total number of actions=%d", mpIdsToRemove.size(), mvpMpRosActions.size());
+    for(const auto& id : mpIdsToRemove)
+    {
+      mvpMpRosActions[id] = nullptr;
+      //mvpKfRosActions.erase(mvpKfRosActions.begin() + id);
+    }
+
+    std::cout << std::endl;
   } else {
     RCLCPP_INFO(get_logger(), "No new keyframes. Checking again after delay...");
     action_check_timer_->reset(); // Reschedule the timer to check after a delay
@@ -169,7 +248,7 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKf) {
 
   msgKf.system_id = std::getenv("SLAM_SYSTEM_ID");
   
-  RCLCPP_INFO(this->get_logger(), "Publishing keyframe with id: %d", pKf->mnId);
+  //RCLCPP_INFO(this->get_logger(), "Publishing keyframe with id: %d", pKf->mnId);
   keyframe_publisher_->publish(msgKf);
 }
 
@@ -182,6 +261,15 @@ void SlamWrapperNode::publishMap(ORB_SLAM3::Map* pM) {
   map_publisher_->publish(msgM);
 }
 
+/*        MapPoint        */
+void SlamWrapperNode::publishMapPoint(ORB_SLAM3::MapPoint* pMp) {
+  //RCLCPP_INFO(this->get_logger(), "Publishing a new mappoint with id: %d", pMp->mnId);
+  orbslam3_interfaces::msg::MapPoint msgMp = Converter::MapPointConverter::ORBSLAM3MapPointToROS(pMp);
+  msgMp.system_id = std::getenv("SLAM_SYSTEM_ID");
+  
+  map_point_publisher_->publish(msgMp);
+}
+
 
 
 /* ACTION PUBLISHERS */
@@ -191,21 +279,25 @@ void SlamWrapperNode::publishMapAction() {
   //map_action_publisher_->publish(msg);
 }
 
-void SlamWrapperNode::publishAtlasAction(orbslam3_interfaces::msg::AtlasActions aMsg) {
+void SlamWrapperNode::publishAtlasAction(orbslam3_interfaces::msg::AtlasActions::SharedPtr aMsg) {
   //RCLCPP_INFO(this->get_logger(), "Publishing Atlas Action.");
-  atlas_action_publisher_->publish(aMsg);
+  atlas_action_publisher_->publish(*aMsg);
 }
 
-void SlamWrapperNode::publishKFAction(orbslam3_interfaces::msg::KeyFrameActions kfMsg) {
+void SlamWrapperNode::publishKFAction(orbslam3_interfaces::msg::KeyFrameActions::SharedPtr kfMsg) {
   //RCLCPP_INFO(this->get_logger(), "Publishing KeyFrame Action %d.", kfMsg.kf_id);
-  kf_action_publisher_->publish(kfMsg);
+  kf_action_publisher_->publish(*kfMsg);
 }
 
-void SlamWrapperNode::publishKFDBAction(orbslam3_interfaces::msg::KeyFrameDatabaseActions kfdbMsg) {
-  RCLCPP_INFO(this->get_logger(), "Publishing KeyFrame Database Action.");
-  kf_db_action_publisher_->publish(kfdbMsg);
+void SlamWrapperNode::publishKFDBAction(orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr kfdbMsg) {
+  //RCLCPP_INFO(this->get_logger(), "Publishing KeyFrame Database Action.");
+  kf_db_action_publisher_->publish(*kfdbMsg);
 }
 
+void SlamWrapperNode::publishMapPointAction(orbslam3_interfaces::msg::MapPointActions::SharedPtr mpMsg) {
+  //RCLCPP_INFO(this->get_logger(), "Publishing Atlas Action.");
+  mp_action_publisher_->publish(*mpMsg);
+}
 
 
 
@@ -220,26 +312,38 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     return;
  
   //RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d", rKf->mn_id);
-  ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf, mpOrbKeyFrames, mpOrbMaps);
+  bool bUnprocessed = false;
+  ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf, mpOrbKeyFrames, mpOrbMaps, &bUnprocessed);
   
-  oKf->SetORBVocabulary(mpAtlas_->GetORBVocabulary());
+  oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
   oKf->SetKeyFrameDatabase(mpKfDb_);
-  oKf->UpdateMap(mpAtlas_->GetCurrentMap()); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
+  oKf->UpdateMap(mpOrbMaps[oKf->mnOriginMapId]); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
   oKf->mpImuPreintegrated = new ORB_SLAM3::IMU::Preintegrated();
   //std::set<ORB_SLAM3::MapPoint*> mvpMapPoints = oKf->GetMapPoints();
   
+  if(bUnprocessed){
+    RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* Keyframe with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oKf->mnId);
+    mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+  } 
+  
+  mpOrbKeyFrames[oKf->mnId] = oKf;
+  
   for(size_t i; i < rKf->mvp_map_points.size(); ++i)
   {
-    orbslam3_interfaces::msg::MapPoint mp = rKf->mvp_map_points[i];
-    ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(&mp, oKf, mpOrbKeyFrames);
+    bool bUnprocessed = false;
+    orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKf->mvp_map_points[i]);
+    ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
     oMP->UpdateMap(mpAtlas_->GetCurrentMap()); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();   
     oKf->AddMapPoint(oMP, i);
-    mpOrbMapPoints[mp.mn_id] = oMP;
+    if(bUnprocessed) {
+      RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oMP->mnId);
+      mpUnprocOrbMapPoints[oMP->mnId] = std::make_tuple(oMP, mp);
+    }
+    mpOrbMapPoints[oMP->mnId] = oMP;
   }
   
 
-  mpOrbKeyFrames.insert(std::make_pair(oKf->mnId, oKf));
-  RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted.", oKf->mnId); 
+  RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted, with map id=%d.", oKf->mnId, oKf->mnOriginMapId); 
   //mpLocalMapper_->InsertKeyframeFromRos(oKf);
   //mpAtlas_->AddKeyFrame(oKf, true);
   
@@ -255,11 +359,28 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   ORB_SLAM3::Map* opM = Converter::MapConverter::RosMapToOrbMap(rM, mpOrbKeyFrames);
   mpOrbMaps.insert(std::make_pair(opM->GetId(), opM));
 
-  RCLCPP_INFO(this->get_logger(), "Map with ID '%d is converted.", opM->GetId()); 
+  //RCLCPP_INFO(this->get_logger(), "Map with ID '%d is converted.", opM->GetId()); 
   //mpLocalMapper_->InsertKeyframeFromRos(oKf);
   //mpAtlas_->AddKeyFrame(oKf, true);
 }
 
+/*        MapPoint        */
+void SlamWrapperNode::GrabMapPoint(const orbslam3_interfaces::msg::MapPoint::SharedPtr rpMp) {
+  if(rpMp->system_id == std::getenv("SLAM_SYSTEM_ID")) 
+    return;
+  
+  //RCLCPP_INFO(this->get_logger(), "Got a new mappoint, id: %d", rpMp->mn_id);
+  bool bUnprocessed = false;
+  ORB_SLAM3::MapPoint* opMp = Converter::MapPointConverter::RosMapPointToOrb(rpMp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
+
+  if(bUnprocessed) {
+    RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", opMp->mnId);
+    mpUnprocOrbMapPoints[opMp->mnId] = std::make_tuple(opMp, rpMp);
+  }
+  mpOrbMapPoints.insert(std::make_pair(opMp->mnId, opMp));
+
+  //RCLCPP_INFO(this->get_logger(), "MapPoint with ID '%d is converted.", opMp->mnId); 
+}
 
 /* ACTION SUBSCRIPTION CALLBACKS */
 
@@ -295,6 +416,16 @@ void SlamWrapperNode::GrabKFDBAction(const orbslam3_interfaces::msg::KeyFrameDat
 }
 
 
+/*        MapPoint - ACTION        */
+void SlamWrapperNode::GrabMapPointAction(const orbslam3_interfaces::msg::MapPointActions::SharedPtr rMpA) { 
+  //RCLCPP_INFO(this->get_logger(), "Received new MapPoint action.");
+  if(rMpA->system_id == std::getenv("SLAM_SYSTEM_ID")) 
+    return;
+  
+  mvpMpRosActions.push_back(rMpA);
+  mRosActionMap.push_back(std::make_tuple(3, mvpMpRosActions.size()-1));
+  
+}
 
 /* ORB ACTION EXECUTORS */
 
@@ -307,13 +438,13 @@ bool SlamWrapperNode::PerformAtlasAction(const orbslam3_interfaces::msg::AtlasAc
   if(actionId == -1) 
     return false;
   
-  RCLCPP_INFO(this->get_logger(), "Got new atlas action %d.", actionId);
+  //RCLCPP_INFO(this->get_logger(), "Got new atlas action %d.", actionId);
   
   if (actionId==0)  mpAtlas_->AddMapPoint(mpOrbMapPoints[rAA->add_map_point_id], true);
   if (actionId==1)  mpAtlas_->ChangeMap(mpOrbMaps[rAA->change_map_to_id], true);
   if (actionId==2)  mpAtlas_->AddKeyFrame(mpOrbKeyFrames[rAA->add_kf_id], true);
   if (actionId==3)  mpAtlas_->SetMapBad(mpOrbMaps[rAA->set_map_bad_id], true);
-  if (actionId==4)  mpAtlas_->CreateNewMap(true);
+  //if (actionId==4)  mpAtlas_->CreateNewMap(true);
   if (actionId==5)  mpAtlas_->InformNewBigChange(true);
   if (actionId==6)  mpAtlas_->clearMap(true);
   if (actionId==7)  mpAtlas_->clearAtlas(true);
@@ -331,7 +462,7 @@ bool SlamWrapperNode::PerformKeyFrameAction(const orbslam3_interfaces::msg::KeyF
   if(actionId == -1) 
     return false;
   
-  RCLCPP_INFO(this->get_logger(), "Got new KeyFrame action=%d", actionId);
+  //RCLCPP_INFO(this->get_logger(), "Got new KeyFrame action=%d", actionId);
   
   ORB_SLAM3::KeyFrame* kf_ = mpOrbKeyFrames[rKF->kf_id];
   //RCLCPP_INFO(this->get_logger(), "kf id=%d", kf_->mnId);
@@ -370,7 +501,7 @@ bool SlamWrapperNode::PerformKFDBAction(const orbslam3_interfaces::msg::KeyFrame
   if(actionId == -1) 
     return false;
   
-  RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d", actionId);
+  //RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d", actionId);
   
   if(actionId==0) {
     ORB_SLAM3::KeyFrame* pKf = mpOrbKeyFrames[rKfdb->add_kf_id];
@@ -467,57 +598,131 @@ bool SlamWrapperNode::PerformKFDBAction(const orbslam3_interfaces::msg::KeyFrame
   
     int nNumCands = rKfdb->detect_n_best_candidates_n_num_cands;
 
-    RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d Just before function", actionId);
+    //RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d Just before function", actionId);
     mpKfDb_->DetectNBestCandidates(pKf, mvpLoopCands, mvpMergeCands, nNumCands, true);
-    RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d Just after function", actionId);
+    //RCLCPP_INFO(this->get_logger(), "Got new KF DB action=%d Just after function", actionId);
   }
 
   return true;
 }
 
 
+/*    MAPPOINT - ACTION    */
+bool SlamWrapperNode::PerformMapPointAction(const orbslam3_interfaces::msg::MapPointActions::SharedPtr rMpA) {
+
+  int actionId = Parser::Action::parseMapPointAction(rMpA, mpOrbMaps, mpOrbKeyFrames, mpOrbMapPoints);
+  if(actionId == -1) 
+    return false;
+  
+  //RCLCPP_INFO(this->get_logger(), "Got new MapPoint action=%d", actionId);
+  
+  ORB_SLAM3::MapPoint* pMp = mpOrbMapPoints[rMpA->mp_id];
+  //RCLCPP_INFO(this->get_logger(), "kf id=%d", kf_->mnId);
+  
+  // Change to switch statement and create enum for the actionids
+  if (actionId==0)  pMp->SetWorldPos(Converter::RosToCpp::Vector3ToEigenVector3f(rMpA->set_pose), true);
+  if (actionId==1)  pMp->AddObservation(mpOrbKeyFrames[rMpA->add_observation_kf_id], rMpA->add_observation_vector_idx, true);
+  if (actionId==2)  pMp->EraseObservation(mpOrbKeyFrames[rMpA->erase_observation_kf_id], true);
+  if (actionId==3)  pMp->SetBadFlag(true);
+  if (actionId==4)  pMp->Replace(mpOrbMapPoints[rMpA->replace_id], true);
+  if (actionId==5)  pMp->IncreaseVisible(rMpA->increase_visibility_n, true);
+  if (actionId==6)  pMp->IncreaseFound(rMpA->increase_found_n, true);
+  if (actionId==7)  pMp->ComputeDistinctiveDescriptors(true);
+  if (actionId==8)  pMp->UpdateNormalAndDepth(true);
+  if (actionId==9)  pMp->SetNormalVector(Converter::RosToCpp::Vector3ToEigenVector3f(rMpA->set_normal_vector), true);
+  if (actionId==10) pMp->UpdateMap(mpOrbMaps[rMpA->update_map_id], true);  
+
+  return true;
+
+
+}
+
+void SlamWrapperNode::publishEndMsg() 
+{
+  std_msgs::msg::Bool endMsg;
+  endMsg.data = true;
+  
+  end_publisher_->publish(endMsg);
+  RCLCPP_INFO(this->get_logger(), "Publishing to /Destroy");
+}
+
+void SlamWrapperNode::endCallback(std_msgs::msg::Bool::SharedPtr bMsg) {
+  RCLCPP_INFO(this->get_logger(), "Received msg from /destroy");
+  rclcpp::shutdown();
+}
 
 
 
-
-
-
-
-
+/*    INIT PUBLISHERS    */
 
 void SlamWrapperNode::CreatePublishers() {
-  /* Init publishers */
+  /* KEYFRAME */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
   keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
       "/KeyFrame", 
-      10);
+      500);
   
-
+  /* MAP */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
   map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
       "/Map", 
       10);
   
+  /* MAPPOINT */
+  RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
+  map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
+      "/MapPoint", 
+      1000);
+  
+
+
+
+  /* MAP ACTIONS */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map/Actions");
   map_action_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapActions>(
       "/Map/Actions", 
       10);
 
+  /* ATLAS ACTIONS */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas/Actions");
   atlas_action_publisher_ = this->create_publisher<orbslam3_interfaces::msg::AtlasActions>(
       "/Atlas/Actions", 
-      10);
+      500);
   
+  /* KEYFRAME ACTIONS */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame/Actions");
   kf_action_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameActions>(
       "/KeyFrame/Actions", 
-      10);
+      2000);
   
+  /* KEYFRAME DATABASE ACTIONS */
   RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrameDatabase/Actions");
   kf_db_action_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameDatabaseActions>(
       "/KeyFrameDatabase/Actions", 
+      500);
+  
+  /* MAP POINT ACTIONS */
+  RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint/Actions");
+  mp_action_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPointActions>(
+      "/MapPoint/Actions", 
+      5000);
+
+
+  /* Destroy */
+  RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /destroy");
+  end_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
+      "/destroy", 
       10);
+
 }
+
+
+
+
+
+
+
+/*   INIT SUBSCRIBERS   */
 
 void SlamWrapperNode::CreateSubscribers() {
     
@@ -525,28 +730,38 @@ void SlamWrapperNode::CreateSubscribers() {
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
   m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
       "KeyFrame",
-      50,
+      100,
       std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));
   
   /* Map */
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
   m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
       "Map",
-      50,
+      10,
       std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));
+
+  /* Map */
+  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
+  m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
+      "MapPoint",
+      1000,
+      std::bind(&SlamWrapperNode::GrabMapPoint, this, std::placeholders::_1));
+  
+
+
 
   /* KF Actions */
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame/Actions");
   m_kf_action_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameActions>(
       "KeyFrame/Actions",
-      500,
+      1000,
       std::bind(&SlamWrapperNode::GrabKeyFrameAction, this, std::placeholders::_1));
   
   /* KeyFrame Database Actions */
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrameDatabase/Actions");
   m_kfdb_action_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameDatabaseActions>(
       "KeyFrameDatabase/Actions",
-      500,
+      50,
       std::bind(&SlamWrapperNode::GrabKFDBAction, this, std::placeholders::_1));
   
   /* Atlas Actions */
@@ -556,4 +771,19 @@ void SlamWrapperNode::CreateSubscribers() {
       500,
       std::bind(&SlamWrapperNode::GrabAtlasAction, this, std::placeholders::_1));
   
+  /* MapPoint Actions */
+  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint/Actions");
+  m_mp_action_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPointActions>(
+      "MapPoint/Actions",
+      5000,
+      std::bind(&SlamWrapperNode::GrabMapPointAction, this, std::placeholders::_1));
+  
+
+
+  /* Destroy node */
+  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /destroy");
+  end_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
+      "/destroy", 
+      10, 
+      std::bind(&SlamWrapperNode::endCallback, this, std::placeholders::_1));
 }
