@@ -74,6 +74,7 @@ ament_target_dependencies(stereo-inertial rclcpp sensor_msgs cv_bridge ORB_SLAM3
 
 add_library(slam_wrapper SHARED
   src/slam/slam-wrapper-node.cpp
+  src/slam/ActionChecker.cpp
 )
 ament_target_dependencies(slam_wrapper rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
 

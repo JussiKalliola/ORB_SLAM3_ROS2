@@ -29,7 +29,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
 
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
 
     void onKFAction(unsigned long int hostKfId, int actionId, bool boolAction) {
@@ -37,7 +37,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
       
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
 
     void onKFAction(unsigned long int hostKfId, int actionId, unsigned long int id, long int vectorIdx) {
@@ -45,7 +45,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
       
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
 
     void onKFAction(unsigned long int hostKfId, int actionId, Eigen::Vector3f t) {
@@ -53,7 +53,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
       
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
 
     void onKFAction(unsigned long int hostKfId, int actionId, Sophus::SE3<float> p) {
@@ -61,7 +61,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
       
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
 
     void onKFAction(unsigned long int hostKfId, int actionId, ORB_SLAM3::IMU::Bias b) {
@@ -69,7 +69,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       kfAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       kfAMsg->kf_id = hostKfId; 
       
-      slam_node_->publishKFAction(kfAMsg);
+      //slam_node_->publishKFAction(kfAMsg);
     }
     
 
@@ -80,14 +80,14 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       orbslam3_interfaces::msg::AtlasActions::SharedPtr aMsg = Parser::Action::FormAtlasActionRosMsg(actionId, id);
       aMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
     
-      slam_node_->publishAtlasAction(aMsg);
+      //slam_node_->publishAtlasAction(aMsg);
     }
 
     void onAtlasAction(int actionId, bool boolAction) override {
       orbslam3_interfaces::msg::AtlasActions::SharedPtr aMsg = Parser::Action::FormAtlasActionRosMsg(actionId, boolAction);
       aMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
     
-      slam_node_->publishAtlasAction(aMsg);
+      //slam_node_->publishAtlasAction(aMsg);
     }
 
 
@@ -100,7 +100,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr kfdbMsg = Parser::Action::FormKFDBActionRosMsg(actionId, boolAction);
       kfdbMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       
-      slam_node_->publishKFDBAction(kfdbMsg);
+      //slam_node_->publishKFDBAction(kfdbMsg);
     }
 
     void onKFDBAction(int actionId, unsigned long int id)
@@ -108,7 +108,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr kfdbMsg = Parser::Action::FormKFDBActionRosMsg(actionId, id);
       kfdbMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       
-      slam_node_->publishKFDBAction(kfdbMsg);
+      //slam_node_->publishKFDBAction(kfdbMsg);
     }
 
     void onKFDBAction(int actionId, unsigned long int id, float minScore, std::vector<unsigned long int> vpLoopCandId, std::vector<unsigned long int> vpMergeCandId)
@@ -116,7 +116,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr kfdbMsg = Parser::Action::FormKFDBActionRosMsg(actionId, id, minScore, vpLoopCandId, vpMergeCandId);
       kfdbMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       
-      slam_node_->publishKFDBAction(kfdbMsg);
+      //slam_node_->publishKFDBAction(kfdbMsg);
     }
     
     void onKFDBAction(int actionId, unsigned long int id, std::vector<unsigned long int> vpLoopCandId, std::vector<unsigned long int> vpMergeCandId, int n)
@@ -124,7 +124,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr kfdbMsg = Parser::Action::FormKFDBActionRosMsg(actionId, id, vpLoopCandId, vpMergeCandId, n);
       kfdbMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       
-      slam_node_->publishKFDBAction(kfdbMsg);
+      //slam_node_->publishKFDBAction(kfdbMsg);
     }
 
 
@@ -141,7 +141,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       mpAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       mpAMsg->mp_id = hostMpId; 
       
-      slam_node_->publishMapPointAction(mpAMsg);
+      //slam_node_->publishMapPointAction(mpAMsg);
     }
 
     void onMapPointAction(unsigned long int hostMpId, int actionId, unsigned long int id, int idx)
@@ -150,7 +150,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       mpAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       mpAMsg->mp_id = hostMpId; 
       
-      slam_node_->publishMapPointAction(mpAMsg);
+      //slam_node_->publishMapPointAction(mpAMsg);
     }
 
     void onMapPointAction(unsigned long int hostMpId, int actionId, unsigned long int id)
@@ -159,7 +159,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       mpAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       mpAMsg->mp_id = hostMpId; 
       
-      slam_node_->publishMapPointAction(mpAMsg);
+      //slam_node_->publishMapPointAction(mpAMsg);
     }
     
     void onMapPointAction(unsigned long int hostMpId, int actionId, int n)
@@ -168,7 +168,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       mpAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       mpAMsg->mp_id = hostMpId; 
       
-      slam_node_->publishMapPointAction(mpAMsg);
+      //slam_node_->publishMapPointAction(mpAMsg);
     }
 
     void onMapPointAction(unsigned long int hostMpId, int actionId, Eigen::Vector3f vec)
@@ -177,7 +177,7 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       mpAMsg->system_id = std::getenv("SLAM_SYSTEM_ID"); 
       mpAMsg->mp_id = hostMpId; 
       
-      slam_node_->publishMapPointAction(mpAMsg);
+      //slam_node_->publishMapPointAction(mpAMsg);
     }
 
 
@@ -201,6 +201,9 @@ class ObserverImpl : public ORB_SLAM3::Observer {
       slam_node_->publishMapPoint(pMp); 
     }
     
+    void onLocalMapUpdated(ORB_SLAM3::Map* pM) override {
+      slam_node_->publishMap(pM);
+    }
 
     void onKeyframeChanged(int keyframeId) override {
       //publisher_node_->publishMessage("onKeyframeChanged function noticed difference.");
