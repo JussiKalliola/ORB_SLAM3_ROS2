@@ -188,7 +188,9 @@ class ObserverImpl : public ORB_SLAM3::Observer {
 
 
     void onChangeLMActive(bool bActive) override {
-      slam_node_->publishLMActivityChange(bActive);
+      if(slam_node_) {
+        slam_node_->publishLMActivityChange(bActive);
+      } 
     }
 
     void onMapAddedById(unsigned long int id) override {
@@ -197,15 +199,24 @@ class ObserverImpl : public ORB_SLAM3::Observer {
     }
 
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* kf) override {
-      slam_node_->publishKeyFrame(kf); 
+      if(slam_node_) {
+        slam_node_->publishKeyFrame(kf);
+      }
     }
 
     void onMapPointAdded(ORB_SLAM3::MapPoint* pMp) override {
-      slam_node_->publishMapPoint(pMp); 
+      if(slam_node_) {
+        slam_node_->publishMapPoint(pMp);
+      }
     }
     
     void onLocalMapUpdated(ORB_SLAM3::Map* pM) override {
-      slam_node_->publishMap(pM);
+      std::mutex mMutexNewMP;
+      std::lock_guard<std::mutex> lock(mMutexNewMP);
+      
+      if(slam_node_) {
+        slam_node_->publishMap(pM);
+      }
     }
 
     void onKeyframeChanged(int keyframeId) override {
