@@ -187,6 +187,9 @@ class ObserverImpl : public ORB_SLAM3::Observer {
 
 
 
+    void onChangeLMActive(bool bActive) override {
+      slam_node_->publishLMActivityChange(bActive);
+    }
 
     void onMapAddedById(unsigned long int id) override {
       std::cout << "ObserverImpl : Map added by id " << id << "." << std::endl;
