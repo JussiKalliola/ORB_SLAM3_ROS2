@@ -50,6 +50,7 @@ class SlamWrapperNode : public rclcpp::Node
     std::thread* mptActionChecker;
     
     ORB_SLAM3::System* m_SLAM;
+    ORB_SLAM3::Tracking* mpTracker_;
     ORB_SLAM3::LocalMapping* mpLocalMapper_;
     ORB_SLAM3::Atlas* mpAtlas_;    
     ORB_SLAM3::KeyFrameDatabase* mpKfDb_; 
@@ -112,6 +113,12 @@ class SlamWrapperNode : public rclcpp::Node
     std::map<long unsigned int, ORB_SLAM3::Map*> mpOrbMaps;
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mpOrbKeyFrames;
     std::map<long unsigned int, ORB_SLAM3::MapPoint*> mpOrbMapPoints;
+    std::map<unsigned int, ORB_SLAM3::GeometricCamera*> mpOrbCameras;
+    
+      
+    std::set<ORB_SLAM3::KeyFrame*> mspKeyFrames;
+    std::set<ORB_SLAM3::MapPoint*> mspMapPoints;
+    std::set<ORB_SLAM3::GeometricCamera*> mspCameras;
 
     std::vector<unsigned long int> mvNewKFIds;
     

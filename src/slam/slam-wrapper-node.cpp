@@ -32,9 +32,16 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
   }
 
   m_SLAM = pSLAM;
+  mpTracker_ = m_SLAM->GetTrackerPtr();
   mpLocalMapper_ = m_SLAM->GetMapperPtr();
   mpAtlas_ = m_SLAM->GetAtlas();
   mpKfDb_ = m_SLAM->GetKeyFrameDatabase();
+  
+  for(const auto& mpCam : mpAtlas_->GetAllCameras())
+  {
+    mpOrbCameras[mpCam->GetId()] = mpCam;
+  }
+
   
   mbLocalMappingIsIdle = true;
 
@@ -60,7 +67,7 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
     
 
     action_check_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(100),
+        std::chrono::milliseconds(500),
         std::bind(&SlamWrapperNode::checkForNewActions, this)
     );
   
@@ -127,19 +134,58 @@ void SlamWrapperNode::checkForNewActions() {
 
   if(!mpUnprocOrbKeyFrames.empty()) {
     // Check if variables can be filled with new data
+    std::cout << "# KF ptrs=" << mpOrbKeyFrames.size() << ", # MP ptrs=" << mpOrbMapPoints.size() << ", # CAM ptrs=" << mpOrbCameras.size() << std::endl;
     std::cout << "Number of unprocessed KeyFrames before=" << mpUnprocOrbKeyFrames.size() << ", ";
     for (auto it = mpUnprocOrbKeyFrames.begin(); it != mpUnprocOrbKeyFrames.end();)
     {
 
       //unique_lock<mutex> lock(mMutexNewKF);
-      bool bUnprocessed = false;
+      bool bKFUnprocessed = false;
       auto& mtORKf = it->second;
-      //ORB_SLAM3::KeyFrame* mopKf = std::get<0>(mtORKf);
+      ORB_SLAM3::KeyFrame* mopKf = std::get<0>(mtORKf);
       orbslam3_interfaces::msg::KeyFrame::SharedPtr mrpKf = std::get<1>(mtORKf);
-      GrabKeyFrame(mrpKf);
+      
+      std::cout << "Before mp postloads" << std::endl; 
+      for(const long int mnId : mrpKf->mv_backup_map_points_id)
+      {
+        if(mnId == -1) continue; 
+        mpOrbMapPoints[static_cast<unsigned long int>(mnId)]->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, &bKFUnprocessed);
+        if(bKFUnprocessed) {
+          std::cout << "Map Point is unprocessed, continuing..." << std::endl;
+          //mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+          break;
+        }
+      }
+
+      if(bKFUnprocessed) 
+      {
+        ++it;
+        continue;
+      }
+      
+      mopKf->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
+      if(!bKFUnprocessed){
+        mpAtlas_->AddKeyFrame(mopKf);
+        mpKfDb_->add(mopKf);
+
+        for(const auto& mpMP : mopKf->GetMapPoints()) {
+          mpAtlas_->AddMapPoint(mpMP);
+        }
+
+        if(mpLocalMapper_->AcceptKeyFrames()) {
+          mpLocalMapper_->InsertKeyframeFromRos(mopKf);
+          it = mpUnprocOrbKeyFrames.erase(it);
+        } else {
+          ++it;
+        }
+        
+      } else {
+        std::cout << "KeyFrame is unprocessed (All MPs are good), continuing..." << std::endl;
+        ++it;
+      }
+      //GrabKeyFrame(mrpKf);
       //Converter::KeyFrameConverter::FillKeyFrameData(mopKf, mrpKf, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
 
-      ++it;
     }
     std::cout << "and after=" << mpUnprocOrbKeyFrames.size() << std::endl;
   }
@@ -157,18 +203,42 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKf) {
   unique_lock<mutex> lock(mMutexNewKF);
   
   std::cout << "##### publish kf: number of map points " << pKf->GetMap()->GetAllMapPoints().size() << " and in kf " << pKf->GetMapPoints().size() << " and matches " << pKf->GetMapPointMatches().size() << std::endl;
-  mpOrbKeyFrames[pKf->mnId] = pKf; 
+  
+
+  std::cout << "#KFs=" << mpAtlas_->GetAllKeyFrames().size() << ", #MPs=" << mpAtlas_->GetAllMapPoints().size() << ", #CAMs=" << mpAtlas_->GetAllCameras().size() << std::endl;
+
+  for(const auto& kf : mpAtlas_->GetAllKeyFrames())
+  {
+    mspKeyFrames.insert(kf);
+  }
+  
+  for(const auto& mp : mpAtlas_->GetAllMapPoints())
+  {
+    mspMapPoints.insert(mp);
+  }
+  
+  for(const auto& cam : mpAtlas_->GetAllCameras())
+  {
+    mspCameras.insert(cam);
+  }
+  
+  pKf->PreSave(mspKeyFrames, mspMapPoints, mspCameras);
+  
+  mpOrbKeyFrames[pKf->mnId] = pKf;
+
   for(ORB_SLAM3::MapPoint* pMP : pKf->GetMapPoints())
   {
+    pMP->PreSave(mspKeyFrames, mspMapPoints);
     mpOrbMapPoints[pMP->mnId] = pMP;
   }
 
   orbslam3_interfaces::msg::KeyFrame msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROS(pKf);
-
+  
   msgKf.system_id = std::getenv("SLAM_SYSTEM_ID");
   
   //RCLCPP_INFO(this->get_logger(), "Publishing keyframe with id: %d", pKf->mnId);
   keyframe_publisher_->publish(msgKf);
+  
 }
 
 /*        Map        */
@@ -227,85 +297,189 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d", rKf->mn_id);
   
 
-  bool bKFUnprocessed = false;
-  ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf, mpOrbKeyFrames, mpOrbMaps, &bKFUnprocessed);
+  ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf); 
+  mpOrbKeyFrames[oKf->mnId] = oKf;
+
+  
+  for(size_t i = 0; i < rKf->mvp_map_points.size(); i++)
+  {
+    orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKf->mvp_map_points[i]);
+    if(mpOrbMapPoints.find(mp->mn_id) == mpOrbMapPoints.end())
+    {
+      ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId));
+      
+      mpOrbMapPoints[oMP->mnId] = oMP;
+      oMP->UpdateMap(mpOrbMaps[mp->mp_map_id]);
+    }
+  }
+
   std::cout << "after converting" << std::endl; 
   
   oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
   oKf->SetKeyFrameDatabase(mpKfDb_);
   oKf->UpdateMap(mpOrbMaps[rKf->mp_map_id]); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
-  std::cout << "after assigning values" << std::endl; 
-  //oKf->mpImuPreintegrated = new ORB_SLAM3::IMU::Preintegrated();
-  std::vector<ORB_SLAM3::GeometricCamera*> mpCameras = mpAtlas_->GetAllCameras();
-  oKf->mpCamera = mpAtlas_->GetAllCameras()[0];
-  if(mpCameras.size() > 1) oKf->mpCamera2 = mpAtlas_->GetAllCameras()[1];
+  
+  bool bKFUnprocessed = false;
+
+  std::cout << "Before mp postloads #MPs=" << rKf->mv_backup_map_points_id.size() << ", [0]=" << rKf->mv_backup_map_points_id[0]<< std::endl; 
+  for(const auto& mnId : rKf->mv_backup_map_points_id)
+  {
+    if(mnId == -1) continue;
+    mpOrbMapPoints[static_cast<unsigned long int>(mnId)]->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, &bKFUnprocessed);
+    if(bKFUnprocessed) {
+      std::cout << "Map Point if unprocessed, continuing..." << std::endl;
+      mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+      return;
+    }
+  }
+
+  std::cout << "after mp postloads" << std::endl;
+  
+  oKf->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
+  if(!bKFUnprocessed){
+    mpAtlas_->AddKeyFrame(oKf);
+    mpKfDb_->add(oKf);
+
+    for(const auto& mpMP : oKf->GetMapPoints()) {
+      if(!mpAtlas_->CheckIfMapPointInMap(mpMP)) mpAtlas_->AddMapPoint(mpMP);
+    }
+  } else {
+    std::cout << "KeyFrame is unprocessed (All MPs are good), continuing..." << std::endl;
+
+  }
+
   //std::set<ORB_SLAM3::MapPoint*> mvpMapPoints = oKf->GetMapPoints();
   std::cout << "after cameras" << std::endl; 
 
-  mpOrbKeyFrames[oKf->mnId] = oKf;
 
-  auto itLowerBound = mpUnprocOrbKeyFrames.lower_bound(oKf->mnId); 
+  //auto itLowerBound = mpUnprocOrbKeyFrames.lower_bound(oKf->mnId); 
 
-  if(bKFUnprocessed || itLowerBound != mpUnprocOrbKeyFrames.begin()){
-    RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* Keyframe with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oKf->mnId);
-    mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
-    //mpActionChecker->InsertUnprocessedKeyFrame(oKf, rKf);
-  } else {
+  //if(bKFUnprocessed || itLowerBound != mpUnprocOrbKeyFrames.begin()){
+  //  RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* Keyframe with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oKf->mnId);
+  //  mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+  //  //mpActionChecker->InsertUnprocessedKeyFrame(oKf, rKf);
+  //} else {
 
-    bool bMPUnprocessed = false;
+  //  bool bMPUnprocessed = false;
 
-    
-    std::cout << "number of map points in kf " << rKf->mvp_map_points.size() << std::endl;
-    ORB_SLAM3::Map* kfMap;
-    for(size_t i = 0; i < rKf->mvp_map_points.size(); i++)
-    {
-      orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKf->mvp_map_points[i]);
-      ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bMPUnprocessed);
-      
-      oMP->UpdateMap(mpOrbMaps[mp->mp_map_id]);
-      oKf->AddMapPoint(oMP, i);
-      
-      if(bMPUnprocessed) {
-        RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oMP->mnId);
-        mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
-        bKFUnprocessed=true;
-      }
+  //  
+  //  std::cout << "number of map points in kf " << rKf->mvp_map_points.size() << std::endl;
+  //  ORB_SLAM3::Map* kfMap;
+  //  for(size_t i = 0; i < rKf->mvp_map_points.size(); i++)
+  //  {
+  //    orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKf->mvp_map_points[i]);
+  //    ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bMPUnprocessed);
+  //    
+  //    oMP->UpdateMap(mpOrbMaps[mp->mp_map_id]);
+  //    oKf->AddMapPoint(oMP, i);
+  //    
+  //    if(bMPUnprocessed) {
+  //      RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", oMP->mnId);
+  //      mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+  //      bKFUnprocessed=true;
+  //    }
 
-      mpOrbMapPoints[oMP->mnId] = oMP;
-    }
+  //    mpOrbMapPoints[oMP->mnId] = oMP;
+  //  }
 
-    
-    if(!bKFUnprocessed) 
-    {
-      //mpAtlas_->AddKeyFrame(oKf); 
-      for(const auto& mp : oKf->GetMapPoints())
-      {
-        mpAtlas_->AddMapPoint(mp);
-      }
+  //  
+  //  if(!bKFUnprocessed) 
+  //  {
+  //    //mpAtlas_->AddKeyFrame(oKf); 
+  //    for(const auto& mp : oKf->GetMapPoints())
+  //    {
+  //      mpAtlas_->AddMapPoint(mp);
+  //    }
 
-      std::cout << "##################### number of map points in map " << mpOrbMaps[oKf->mnOriginMapId]->GetAllMapPoints().size() << ", " << mpOrbMaps[oKf->mnOriginMapId]->MapPointsInMap() << ", map id=" << oKf->mnOriginMapId  << std::endl; 
-      std::cout << "map points in map " << mpAtlas_->MapPointsInMap() << std::endl; 
-      RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted, with map id=%d.", oKf->mnId, oKf->mnOriginMapId); 
-      mpUnprocOrbKeyFrames.erase(oKf->mnId);
+  //    std::cout << "##################### number of map points in map " << mpOrbMaps[oKf->mnOriginMapId]->GetAllMapPoints().size() << ", " << mpOrbMaps[oKf->mnOriginMapId]->MapPointsInMap() << ", map id=" << oKf->mnOriginMapId  << std::endl; 
+  //    std::cout << "map points in map " << mpAtlas_->MapPointsInMap() << std::endl; 
+  //    RCLCPP_INFO(this->get_logger(), "Keyframe with ID '%d is converted, with map id=%d.", oKf->mnId, oKf->mnOriginMapId); 
+  //    mpUnprocOrbKeyFrames.erase(oKf->mnId);
 
-      if(mpLocalMapper_->AcceptKeyFrames()) {
-        mpLocalMapper_->InsertKeyframeFromRos(oKf);
-      }
-  
-    } 
+  //    if(mpLocalMapper_->AcceptKeyFrames()) {
+  //      mpLocalMapper_->InsertKeyframeFromRos(oKf);
+  //    }
+  //
+  //  } 
 
-  }
+  //}
 }
 /*        Map        */
 void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM) {
   if(rM->system_id == std::getenv("SLAM_SYSTEM_ID")) 
     return;
   
-  //unique_lock<mutex> lock(mMutexUpdateMap);
+  unique_lock<mutex> lock(mMutexUpdateMap);
 
-  //RCLCPP_INFO(this->get_logger(), "\n ¤%&¤%&¤%&¤%&¤%&¤%&%¤& Got a new map, id: %d", rM->mn_id);
+  RCLCPP_INFO(this->get_logger(), "Got a new map, id=%d", rM->mn_id);
   //bool bUnprocessed = false;
-  //ORB_SLAM3::Map* opM = Converter::MapConverter::RosMapToOrbMap(rM, mpOrbKeyFrames, mpOrbMapPoints, mpOrbMaps, &bUnprocessed);
+  ORB_SLAM3::Map* opM = Converter::MapConverter::RosMapToOrbMap(rM);
+
+  std::cout << "After creating map" << std::endl;
+  std::vector<unsigned long int> mvpMPsDone;
+  std::cout << "Before loop" << std::endl;
+  for(size_t j = 0; j < rM->msp_keyframes.size(); j++)
+  {
+    orbslam3_interfaces::msg::KeyFrame::SharedPtr rKF = std::make_shared<orbslam3_interfaces::msg::KeyFrame>(rM->msp_keyframes[j]);
+    std::cout << "Processing KF=" << rKF->mn_id << std::endl; 
+    ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKF); 
+    mpOrbKeyFrames[oKf->mnId] = oKf;
+    
+    for(size_t i = 0; i < rKF->mvp_map_points.size(); i++)
+    {
+      orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKF->mvp_map_points[i]);
+      std::cout << "Processing MP=" << mp->mn_id << std::endl; 
+      ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId));
+      
+      mpOrbMapPoints[oMP->mnId] = oMP;
+      oMP->UpdateMap(opM);
+      mvpMPsDone.push_back(oMP->mnId);
+    }
+    
+    std::cout << "Done with MPs" << std::endl; 
+    oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
+    oKf->SetKeyFrameDatabase(mpKfDb_);
+    oKf->UpdateMap(opM); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();  
+  }
+  std::cout << "Done with KFs" << std::endl; 
+
+  for(size_t j = 0; j < rM->msp_map_points.size(); j++)
+  {
+    unsigned long int targetId = rM->msp_map_points[j].mn_id;
+    
+    auto it = std::find(mvpMPsDone.begin(), mvpMPsDone.end(), targetId);
+
+    if(it != mvpMPsDone.end())
+    {
+      std::cout << "MapPoint is not processed." << std::endl;
+      orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rM->msp_map_points[j]);
+      
+      ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp);
+      
+      mpOrbMapPoints[oMP->mnId] = oMP;
+      oMP->UpdateMap(opM);
+      mvpMPsDone.push_back(oMP->mnId);
+    } else {
+      std::cout << "MapPoint is already processed." << std::endl;
+    }
+
+  }
+
+  opM->PostLoad(mpKfDb_, m_SLAM->GetORBVocabulary(), mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras);
+  
+  std::cout << "Map ID=" << opM->GetId() << std::endl;
+
+  if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
+  {
+    std::cout << "Map found, replacing it .. " << std::endl;
+    mpAtlas_->ReplaceMap(opM);
+    mpOrbMaps[opM->GetId()] = opM;
+  }
+  std::cout << "Done with GrabMap" << std::endl;
+
+
+  mpTracker_->UpdateFromLocalMapping(opM);
+
   
   // Get Map Mutex -> Map cannot be changed
   //unique_lock<mutex> lock2(mpMap->mMutexCallBackUpdate);
@@ -669,7 +843,7 @@ void SlamWrapperNode::GrabMapPoint(const orbslam3_interfaces::msg::MapPoint::Sha
   
   //RCLCPP_INFO(this->get_logger(), "Got a new mappoint, id: %d", rpMp->mn_id);
   bool bUnprocessed = false;
-  ORB_SLAM3::MapPoint* opMp = Converter::MapPointConverter::RosMapPointToOrb(rpMp, mpOrbKeyFrames, mpOrbMaps, mpOrbMapPoints, &bUnprocessed);
+  ORB_SLAM3::MapPoint* opMp = Converter::MapPointConverter::RosMapPointToOrb(rpMp);
 
   if(bUnprocessed) {
     RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%d is unprocessed. *#*####*#*#*#**#*#*#*#*#", opMp->mnId);
