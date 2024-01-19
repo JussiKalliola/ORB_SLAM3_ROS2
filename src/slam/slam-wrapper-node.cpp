@@ -18,7 +18,7 @@
 // - Modify in a way that the current mpOrbKeyFrames etc. are removed and add vector where keyframes which are ready to be added are located. E.g., keyframe is unprocessed, wait till all the data is stored, process, add it to vector, loop through vector and add to local mapper when suitable
 // - Everywhere where the mpOrbKeyFrames etc. are used, use SLAM original variables where the keyframes are stored.
 // - Try to fix the lock problem between local mapping and ros threads.
-//
+// - If map not found when kf received, create it.
 SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_slam) : Node("SlamWrapperNode") {
   
   const char* systemId = std::getenv("SLAM_SYSTEM_ID");
@@ -67,10 +67,11 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
     
 
     action_check_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(500),
+        std::chrono::milliseconds(100),
         std::bind(&SlamWrapperNode::checkForNewActions, this)
     );
-  
+    
+    action_check_timer_->cancel(); 
     //mpActionChecker = new ActionChecker(mpAtlas_, mpKfDb_);
     //mptActionChecker = new thread(&ActionChecker::Run, mpActionChecker);
     // Add the current map to the maps
@@ -94,7 +95,7 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
 SlamWrapperNode::~SlamWrapperNode() {
 
   RCLCPP_FATAL(this->get_logger(), "Destroying SlamWrapperNode...");
-  m_SLAM->Shutdown();
+  //m_SLAM->Shutdown();
   // Stop all threads
 //  std_msgs::msg::Bool endMsg;
   //endMsg.data = true;
@@ -133,8 +134,14 @@ void SlamWrapperNode::checkForNewActions() {
 
 
   if(!mpUnprocOrbKeyFrames.empty()) {
+    
+    std::mutex mMutex;
+    std::lock_guard<std::mutex> lock(mMutex);
     // Check if variables can be filled with new data
-    std::cout << "# KF ptrs=" << mpOrbKeyFrames.size() << ", # MP ptrs=" << mpOrbMapPoints.size() << ", # CAM ptrs=" << mpOrbCameras.size() << std::endl;
+    std::cout << "STATS: # KF ptrs=" << mpOrbKeyFrames.size() << ", # MP ptrs=" << mpOrbMapPoints.size() << ", # CAM ptrs=" << mpOrbCameras.size()  << ", #Map ptrs=" << mpOrbMaps.size() << std::endl;
+    std::cout << "Current Map: ID=" << mpAtlas_->GetCurrentMap()->GetId() << ", #KFs=" << mpAtlas_->GetCurrentMap()->KeyFramesInMap() << ", #MPs=" << mpAtlas_->GetCurrentMap()->MapPointsInMap() << std::endl;
+    std::cout << std::endl;
+
     std::cout << "Number of unprocessed KeyFrames before=" << mpUnprocOrbKeyFrames.size() << ", ";
     for (auto it = mpUnprocOrbKeyFrames.begin(); it != mpUnprocOrbKeyFrames.end();)
     {
@@ -145,7 +152,7 @@ void SlamWrapperNode::checkForNewActions() {
       ORB_SLAM3::KeyFrame* mopKf = std::get<0>(mtORKf);
       orbslam3_interfaces::msg::KeyFrame::SharedPtr mrpKf = std::get<1>(mtORKf);
       
-      std::cout << "Before mp postloads" << std::endl; 
+      //std::cout << "Before mp postloads" << std::endl; 
       for(const long int mnId : mrpKf->mv_backup_map_points_id)
       {
         if(mnId == -1) continue; 
@@ -165,19 +172,15 @@ void SlamWrapperNode::checkForNewActions() {
       
       mopKf->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
       if(!bKFUnprocessed){
-        mpAtlas_->AddKeyFrame(mopKf);
+        //mpAtlas_->AddKeyFrame(mopKf);
         mpKfDb_->add(mopKf);
 
-        for(const auto& mpMP : mopKf->GetMapPoints()) {
-          mpAtlas_->AddMapPoint(mpMP);
-        }
+        //for(const auto& mpMP : mopKf->GetMapPoints()) {
+        //  mpAtlas_->AddMapPoint(mpMP);
+        //}
 
-        if(mpLocalMapper_->AcceptKeyFrames()) {
-          mpLocalMapper_->InsertKeyframeFromRos(mopKf);
-          it = mpUnprocOrbKeyFrames.erase(it);
-        } else {
-          ++it;
-        }
+        mspKFsReadyForLM.insert(mopKf->mnId);
+        it = mpUnprocOrbKeyFrames.erase(it);
         
       } else {
         std::cout << "KeyFrame is unprocessed (All MPs are good), continuing..." << std::endl;
@@ -189,6 +192,26 @@ void SlamWrapperNode::checkForNewActions() {
     }
     std::cout << "and after=" << mpUnprocOrbKeyFrames.size() << std::endl;
   }
+
+  //TODO: Add somekind of logic so that there can be unprocessed keyframes but not any relevant ones.
+  if(!mspKFsReadyForLM.empty() && mpLocalMapper_->AcceptKeyFrames() && mpUnprocOrbKeyFrames.empty())
+  {
+    std::mutex mMutex;
+    std::lock_guard<std::mutex> lock(mMutex);
+    
+    while(!mspKFsReadyForLM.empty())
+    {
+      if(!mpLocalMapper_->AcceptKeyFrames())
+        break;
+      long unsigned int id=*mspKFsReadyForLM.begin();
+      mpLocalMapper_->InsertKeyframeFromRos(mpOrbKeyFrames[id]);
+      mspKFsReadyForLM.erase(mspKFsReadyForLM.begin());
+
+    }
+  }
+
+  if(mspKFsReadyForLM.empty() && mpUnprocOrbKeyFrames.empty()) 
+    action_check_timer_->cancel();
 
  
 }
@@ -202,33 +225,20 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKf) {
   
   unique_lock<mutex> lock(mMutexNewKF);
   
-  std::cout << "##### publish kf: number of map points " << pKf->GetMap()->GetAllMapPoints().size() << " and in kf " << pKf->GetMapPoints().size() << " and matches " << pKf->GetMapPointMatches().size() << std::endl;
-  
+  RCLCPP_INFO(this->get_logger(), "Publishing a new KeyFrame with id: %d. Stats: #MPs=%d, Map ID=%d", pKf->mnId, pKf->GetMapPoints().size(), pKf->GetMap()->GetId());
 
-  std::cout << "#KFs=" << mpAtlas_->GetAllKeyFrames().size() << ", #MPs=" << mpAtlas_->GetAllMapPoints().size() << ", #CAMs=" << mpAtlas_->GetAllCameras().size() << std::endl;
-
-  for(const auto& kf : mpAtlas_->GetAllKeyFrames())
-  {
-    mspKeyFrames.insert(kf);
-  }
-  
-  for(const auto& mp : mpAtlas_->GetAllMapPoints())
-  {
-    mspMapPoints.insert(mp);
-  }
-  
   for(const auto& cam : mpAtlas_->GetAllCameras())
   {
-    mspCameras.insert(cam);
+    if(cam && cam != nullptr)
+      mspCameras.insert(cam);
   }
   
-  pKf->PreSave(mspKeyFrames, mspMapPoints, mspCameras);
+  pKf->GetMap()->PreSave(mspCameras);
   
   mpOrbKeyFrames[pKf->mnId] = pKf;
 
   for(ORB_SLAM3::MapPoint* pMP : pKf->GetMapPoints())
   {
-    pMP->PreSave(mspKeyFrames, mspMapPoints);
     mpOrbMapPoints[pMP->mnId] = pMP;
   }
 
@@ -236,9 +246,8 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKf) {
   
   msgKf.system_id = std::getenv("SLAM_SYSTEM_ID");
   
-  //RCLCPP_INFO(this->get_logger(), "Publishing keyframe with id: %d", pKf->mnId);
+  RCLCPP_INFO(this->get_logger(), "Publishing keyframe with id: %d. KF Map Id=%d == Current Map Id=%d", pKf->mnId, pKf->GetMap()->GetId(), mpAtlas_->GetCurrentMap()->GetId());
   keyframe_publisher_->publish(msgKf);
-  
 }
 
 /*        Map        */
@@ -247,6 +256,8 @@ void SlamWrapperNode::publishMap(ORB_SLAM3::Map* pM) {
   unique_lock<mutex> lock(mMutexUpdateMap);
 
   RCLCPP_INFO(this->get_logger(), "Publishing a new map (full object) with id: %d", pM->GetId());
+  RCLCPP_INFO(this->get_logger(), "Map Stats : #KFs=%d, #MPs=%d, #RefMPs=%d", pM->KeyFramesInMap(), pM->MapPointsInMap(), pM->GetReferenceMapPoints().size());
+  
   auto msgM = Converter::MapConverter::OrbMapToRosMap(pM);
   msgM.system_id = std::getenv("SLAM_SYSTEM_ID");
   
@@ -264,6 +275,7 @@ void SlamWrapperNode::publishMapPoint(ORB_SLAM3::MapPoint* pMp) {
   msgMp.system_id = std::getenv("SLAM_SYSTEM_ID");
   
   map_point_publisher_->publish(msgMp);
+  delete pMp;
 }
 
 /*        Local Mapping - Active        */
@@ -291,13 +303,35 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   if(rKf->system_id == std::getenv("SLAM_SYSTEM_ID")) 
     return;
 
-  if(!mpLocalMapper_->AcceptKeyFrames())
-    return;
+  //if(!mpLocalMapper_->AcceptKeyFrames())
+  //  return;
 
-  RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d", rKf->mn_id);
+  RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d, for a map: %d", rKf->mn_id, rKf->mp_map_id);
   
+  if(mpOrbMaps.find(rKf->mp_map_id) == mpOrbMaps.end())
+  {
+    RCLCPP_INFO(this->get_logger(), "NEW map created w/ KF.");
+    
+    mpAtlas_->CreateNewMap();
+    for(ORB_SLAM3::Map* pM : mpAtlas_->GetAllMaps())
+    {
+      mpOrbMaps[pM->GetId()] = pM;
+    }
+  }
 
   ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf); 
+  
+  oKf->UpdateMap(mpOrbMaps[rKf->mp_map_id]); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
+  
+  //if((oKf->mnId >= 1 || mpOrbMaps[rKf->mp_map_id]->KeyFramesInMap() >= 1))
+  //{
+  //  if(!mpLocalMapper_->NeedNewKeyFrame(oKf))
+  //  {
+  //    delete oKf;
+  //    return;
+  //  }
+  //}
+
   mpOrbKeyFrames[oKf->mnId] = oKf;
 
   
@@ -313,7 +347,7 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     }
   }
 
-  std::cout << "after converting" << std::endl; 
+  //std::cout << "after converting" << std::endl; 
   
   oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
   oKf->SetKeyFrameDatabase(mpKfDb_);
@@ -321,35 +355,61 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   
   bool bKFUnprocessed = false;
 
-  std::cout << "Before mp postloads #MPs=" << rKf->mv_backup_map_points_id.size() << ", [0]=" << rKf->mv_backup_map_points_id[0]<< std::endl; 
+  //std::cout << "Before mp postloads #MPs=" << rKf->mv_backup_map_points_id.size() << ", [0]=" << rKf->mv_backup_map_points_id[0]<< std::endl; 
   for(const auto& mnId : rKf->mv_backup_map_points_id)
   {
     if(mnId == -1) continue;
     mpOrbMapPoints[static_cast<unsigned long int>(mnId)]->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, &bKFUnprocessed);
     if(bKFUnprocessed) {
       std::cout << "Map Point if unprocessed, continuing..." << std::endl;
+      
+      if (action_check_timer_->is_canceled())
+      {
+        // Timer is not active
+        // Perform actions or start the timer if needed
+        action_check_timer_->reset();
+      
+      }
       mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
       return;
     }
   }
 
-  std::cout << "after mp postloads" << std::endl;
+  //std::cout << "after mp postloads" << std::endl;
   
   oKf->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
+  
   if(!bKFUnprocessed){
-    mpAtlas_->AddKeyFrame(oKf);
+    //mpAtlas_->AddKeyFrame(oKf);
     mpKfDb_->add(oKf);
 
-    for(const auto& mpMP : oKf->GetMapPoints()) {
-      if(!mpAtlas_->CheckIfMapPointInMap(mpMP)) mpAtlas_->AddMapPoint(mpMP);
+    //for(const auto& mpMP : oKf->GetMapPoints()) {
+    //  if(!mpAtlas_->CheckIfMapPointInMap(mpMP) && !mpMP->isBad()) mpAtlas_->AddMapPoint(mpMP);
+    //}
+
+    if (action_check_timer_->is_canceled())
+    {
+      // Timer is not active
+      // Perform actions or start the timer if needed
+      action_check_timer_->reset();
     }
+    mspKFsReadyForLM.insert(oKf->mnId);
   } else {
     std::cout << "KeyFrame is unprocessed (All MPs are good), continuing..." << std::endl;
-
+    
+    if (action_check_timer_->is_canceled())
+    {
+      // Timer is not active
+      // Perform actions or start the timer if needed
+      action_check_timer_->reset();
+    }
+    mpUnprocOrbKeyFrames[oKf->mnId] = std::make_tuple(oKf, rKf);
+    return;
   }
 
+  RCLCPP_INFO(this->get_logger(), "Got a new keyframe. ID=%d. Stats: #MPs=%d, Map ID=%d == Current Map ID=%d", oKf->mnId, oKf->GetNumberMPs(), oKf->GetMap()->GetId(), mpAtlas_->GetCurrentMap()->GetId());
   //std::set<ORB_SLAM3::MapPoint*> mvpMapPoints = oKf->GetMapPoints();
-  std::cout << "after cameras" << std::endl; 
+  //std::cout << "after cameras" << std::endl; 
 
 
   //auto itLowerBound = mpUnprocOrbKeyFrames.lower_bound(oKf->mnId); 
@@ -411,7 +471,23 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   
   unique_lock<mutex> lock(mMutexUpdateMap);
 
-  RCLCPP_INFO(this->get_logger(), "Got a new map, id=%d", rM->mn_id);
+  RCLCPP_INFO(this->get_logger(), "Got a new map, id=%d. Stats: #KFs=%d, #MPs=%d", rM->mn_id, rM->msp_keyframes.size(), rM->msp_map_points.size());
+  
+  if(mpTracker_->IsMapUpToDate())
+  {
+    std::cout << "Map is up to date, skipping update.." << std::endl;
+    return;
+  }
+  
+  
+  RCLCPP_INFO(this->get_logger(), "Inform tracking that Map update is being executed.");
+  mpTracker_->LocalMapIsUpdating(true); 
+  //if(mpOrbMaps[rM->mn_id]->KeyFramesInMap() < 2)
+  //{
+  //  std::cout << "Map is still initializing, skipping update.." << std::endl;
+  //  return;
+  //}
+  
   //bool bUnprocessed = false;
   ORB_SLAM3::Map* opM = Converter::MapConverter::RosMapToOrbMap(rM);
 
@@ -423,13 +499,20 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
     orbslam3_interfaces::msg::KeyFrame::SharedPtr rKF = std::make_shared<orbslam3_interfaces::msg::KeyFrame>(rM->msp_keyframes[j]);
     std::cout << "Processing KF=" << rKF->mn_id << std::endl; 
     ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKF); 
+    
+    if(mpOrbKeyFrames.find(oKf->mnId) != mpOrbKeyFrames.end())
+      mpOrbKeyFrames.erase(oKf->mnId);
+    
     mpOrbKeyFrames[oKf->mnId] = oKf;
     
     for(size_t i = 0; i < rKF->mvp_map_points.size(); i++)
     {
       orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKF->mvp_map_points[i]);
-      std::cout << "Processing MP=" << mp->mn_id << std::endl; 
+      //std::cout << "Processing MP=" << mp->mn_id << std::endl; 
       ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId));
+      
+      if(mpOrbMapPoints.find(oMP->mnId) != mpOrbMapPoints.end())
+        mpOrbMapPoints.erase(oMP->mnId);
       
       mpOrbMapPoints[oMP->mnId] = oMP;
       oMP->UpdateMap(opM);
@@ -451,10 +534,13 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
 
     if(it != mvpMPsDone.end())
     {
-      std::cout << "MapPoint is not processed." << std::endl;
+      //std::cout << "MapPoint is not processed." << std::endl;
       orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rM->msp_map_points[j]);
       
       ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp);
+      
+      if(mpOrbMapPoints.find(oMP->mnId) != mpOrbMapPoints.end())
+        mpOrbMapPoints.erase(oMP->mnId);
       
       mpOrbMapPoints[oMP->mnId] = oMP;
       oMP->UpdateMap(opM);
@@ -464,376 +550,34 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
     }
 
   }
-
-  opM->PostLoad(mpKfDb_, m_SLAM->GetORBVocabulary(), mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras);
   
-  std::cout << "Map ID=" << opM->GetId() << std::endl;
-
+  if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
+  {
+    ORB_SLAM3::Map* mpPrevMap = mpOrbMaps[opM->GetId()];
+    
+    std::cout << "Reseting Database..." << std::endl;;
+    mpKfDb_->clearMap(mpPrevMap);
+  }
+  
+  bool bKFUnprocessed = false;
+  opM->PostLoad(mpKfDb_, m_SLAM->GetORBVocabulary(), mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
+  
+  if(bKFUnprocessed) std::cout << "Map with ID=" << opM->GetId() << " is unprocessed!!" << std::endl;
+  
   if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
   {
     std::cout << "Map found, replacing it .. " << std::endl;
     mpAtlas_->ReplaceMap(opM);
+    
     mpOrbMaps[opM->GetId()] = opM;
   }
+
   std::cout << "Done with GrabMap" << std::endl;
 
 
-  mpTracker_->UpdateFromLocalMapping(opM);
+  mpTracker_->UpdateFromLocalMapping(opM, mpOrbKeyFrames);
 
   
-  // Get Map Mutex -> Map cannot be changed
-  //unique_lock<mutex> lock2(mpMap->mMutexCallBackUpdate);
-
-  //if(!msRelocStatus)
-  //{
-  //    if(mpMap->KeyFramesInMap() < LOCAL_MAP_SIZE)
-  //    {
-  //        cout << "log,Tracking::mapCallback,map is still initializing. skip update" << endl;
-  //        return;
-  //    }
-
-  //    if(mapUpToDate)
-  //    {
-  //        cout << "log,Tracking::mapCallback,map is up to date. skip update" << endl;
-  //        return;
-  //    }
-
-  //    // Check if high rate of keyframes are being created
-  //    {
-  //        // Edge-SLAM: measure
-  //        msLastKeyFrameStop = std::chrono::high_resolution_clock::now();
-  //        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(msLastKeyFrameStop - msLastKeyFrameStart);
-  //        auto dCount = duration.count();
-
-  //        // As the map adds more than LOCAL_MAP_SIZE keyframes, decrease TIME_KF to accept the update sooner
-  //        unsigned int divRate = (unsigned)(TIME_KF/((mpMap->KeyFramesInMap()/LOCAL_MAP_SIZE)+1));
-  //        if(divRate < 50)
-  //            divRate = 0;
-
-  //        if(dCount < divRate)
-  //        {
-  //            cout << "log,Tracking::mapCallback,map update rejected due to high keyframe rate " << dCount << "ms; KFs in map " << mpMap->KeyFramesInMap() << "; divRate " << divRate << "ms" << endl;
-  //            return;
-  //        }
-  //    }
-  //}
-
-  // Receive local-map update from server
-  //mapVec.clear();
-  //try
-  //{
-  //    std::stringstream is(msg);
-  //    boost::archive::text_iarchive ia(is);
-  //    ia >> mapVec;
-  //    is.clear();
-  //}
-  //catch(boost::archive::archive_exception e)
-  //{
-  //    cout << "log,Tracking::mapCallback,map error: " << e.what() << endl;
-  //    return;
-  //}
-
-  //// If not in relocalization mode, then discard relocalization map update
-  //if((!msRelocStatus) && (mpMap->KeyFramesInMap()>=LOCAL_MAP_SIZE) && (mnMapUpdateLastKFId>10) && (mapVec.size()!=LOCAL_MAP_SIZE))
-  //{
-  //    cout << "log,Tracking::mapCallback,relocalization map received after successfully relocalizing. map rejected. keyframes in map " << mpMap->KeyFramesInMap() << ". last MU KF id " << mnMapUpdateLastKFId << ". map size " << mapVec.size() << endl;
-  //    return;
-  //}
-
-  //// Edge-SLAM: debug
-  //cout << "log,Tracking::mapCallback,accept and process map update " << ++mapCallbackCount << endl;
-
-
-
-
-  /* ############################################################ */
-
-
-
-
-
-  //// Keep current reference keyframe Id, and reset refKFSet
-  //long unsigned int refId = mpReferenceKF->mnId; // mpReferenceKF is from tarcking
-  //// refKFSet = false; Edge-slam variable
-
-  //// Before clearing the map, we should retrieve the ids of map points within last frame
-  //vector<unsigned long int> lastFrame_points_ids;
-  //vector<bool> lastFrame_points_availability;
-  //vector<unsigned long int> mvpLocalMapPoints_ids;
-  //for(int i =0; i<mLastFrame.N; i++) // mLastFrame is from tracking
-  //{
-  //    MapPoint* pMP = mLastFrame.mvpMapPoints[i];
-
-  //    if(pMP)
-  //    {
-  //        lastFrame_points_ids.push_back(pMP->mnId);
-  //        lastFrame_points_availability.push_back(true);
-  //    }
-  //    else
-  //    {
-  //        lastFrame_points_availability.push_back(false);
-  //    }
-  //}
-  //for (unsigned int i = 0 ; i < mvpLocalMapPoints.size(); i++)
-  //{
-  //    mvpLocalMapPoints_ids.push_back(mvpLocalMapPoints[i]->mnId);
-  //}
-
-  //
-
-  //// Reset tracking thread to update it using a new local-map
-  //MUReset(); // From tracking
-
-  //// Reconstruct keyframes loop
-  //// For every keyframe, check its mappoints, then add them to tracking local-map
-  //// Add keyframe to tracking local-map
-  //for(int i=0; i<(int)mapVec.size(); i++) // mapVec is the data, in this case ros2 msg
-  //{
-  //    // Reconstruct keyframe
-  //    KeyFrame *tKF = new KeyFrame();
-  //    //{
-  //    //    try
-  //    //    {
-  //    //        std::stringstream iis(mapVec[i]);
-  //    //        boost::archive::text_iarchive iia(iis);
-  //    //        iia >> tKF;
-  //    //        iis.clear();
-  //    //    }
-  //    //    catch(boost::archive::archive_exception e)
-  //    //    {
-  //    //        cout << "log,Tracking::mapCallback,keyframe error: " << e.what() << endl;
-
-  //    //        // Clear
-  //    //        tKF = static_cast<KeyFrame*>(NULL);
-  //    //        continue;
-  //    //    }
-  //    //}
-
-  //    // Set keyframe fields
-  //    tKF->setORBVocab(mpORBVocabulary);
-  //    tKF->setMapPointer(mpMap);
-  //    tKF->setKeyFrameDatabase(mpKeyFrameDB);
-  //    tKF->ComputeBoW();
-
-  //    // Get keyframe's mappoints
-  //    vector<MapPoint*> vpMapPointMatches = tKF->GetMapPointMatches();
-
-  //    // Iterate through current keyframe's mappoints and double check them
-  //    for(size_t i=0; i<vpMapPointMatches.size(); i++)
-  //    {
-  //        MapPoint* pMP = vpMapPointMatches[i];
-  //        if(pMP)
-  //        {
-  //            if(!pMP->isBad())
-  //            {
-  //                // If tracking id is set
-  //                if(pMP->trSet)
-  //                {
-  //                    MapPoint* pMPMap = mpMap->RetrieveMapPoint(pMP->mnId, true);
-
-  //                    if(pMPMap != NULL)
-  //                    {
-  //                        // Replace keyframe's mappoint pointer to the existing one in tracking local-map
-  //                        tKF->AddMapPoint(pMPMap, i);
-
-  //                        // Add keyframe observation to the mappoint
-  //                        pMPMap->AddObservation(tKF, i);
-
-  //                        // Delete duplicate mappoint
-  //                        delete pMP;
-  //                    }
-  //                    else
-  //                    {
-  //                        // Add keyframe's mappoint to tracking local-map
-  //                        mpMap->AddMapPoint(pMP); // mpMap needs to be selected from Atlas
-
-  //                        // Add keyframe observation to the mappoint
-  //                        pMP->AddObservation(tKF, i);
-  //                        pMP->setMapPointer(mpMap); // We are not sending the map pointer in marshalling
-  //                        pMP->SetReferenceKeyFrame(tKF);
-  //                    }
-  //                }
-  //                else if(pMP->lmSet)     // If tracking id is not set, but local-mapping id is set
-  //                {
-  //                    MapPoint* pMPMap = mpMap->RetrieveMapPoint(pMP->lmMnId, false);
-
-  //                    if(pMPMap != NULL)
-  //                    {
-  //                        // Replace keyframe's mappoint pointer to the existing one in tracking local-map
-  //                        tKF->AddMapPoint(pMPMap, i);
-
-  //                        // Add keyframe observation to the mappoint
-  //                        pMPMap->AddObservation(tKF, i);
-
-  //                        // Delete duplicate mappoint
-  //                        delete pMP;
-  //                    }
-  //                    else
-  //                    {
-  //                        // Assign tracking id
-  //                        pMP->AssignId(true);
-
-  //                        // Add keyframe's mappoint to tracking local-map
-  //                        mpMap->AddMapPoint(pMP);
-
-  //                        // Add keyframe observation to the mappoint
-  //                        pMP->AddObservation(tKF, i);
-  //                        pMP->setMapPointer(mpMap); // We are not sending the map pointer in marshalling
-  //                        pMP->SetReferenceKeyFrame(tKF);
-  //                    }
-  //                }
-  //            }
-  //        }
-  //    }
-
-  //    // Add keyframe to tracking local-map
-  //    mpMap->AddKeyFrame(tKF);
-
-  //    // Add Keyframe to database
-  //    mpKeyFrameDB->add(tKF);
-
-  //    // Set RefKF to previous RefKF if it is part of the map update
-  //    if(tKF->mnId == refId)
-  //    {
-  //        mpReferenceKF = tKF; //mpReferenceKF is from tracking
-  //        mLastFrame.mpReferenceKF = tKF; // mLastFrame is from tracking
-  //        refKFSet = true; // Edge-slam var in tracking
-  //    }
-
-  //    // Clear
-  //    tKF = static_cast<KeyFrame*>(NULL);
-  //    vpMapPointMatches.clear();
-  //}
-
-  //// Get all keyframes in tracking local-map
-  //vector<KeyFrame*> vpKeyFrames = mpMap->GetAllKeyFrames();
-
-  //// Initialize Reference KeyFrame and other KF variables
-  //if(vpKeyFrames.size() > 0)
-  //{
-  //    if(!refKFSet)
-  //        mpReferenceKF = vpKeyFrames[0]; // from tracking
-  //    else
-  //    {
-  //        if(mpReferenceKF->mnId < vpKeyFrames[0]->mnId) // from tracking
-  //        {
-  //            mpReferenceKF = vpKeyFrames[0]; // from tracking
-  //            refKFSet = false; // edge-slam tracking
-  //        }
-  //    }
-
-  //    mnLastKeyFrameId = vpKeyFrames[0]->mnFrameId; // from tracking
-  //    mpLastKeyFrame = vpKeyFrames[0]; // from tracking 
-  //    mnMapUpdateLastKFId = vpKeyFrames[0]->mnId; // edge-slam tracking
-  //}
-
-  //// Edge-SLAM: debug
-  //cout << "log,Tracking::mapCallback,keyframes in update: ";
-
-  //// Iterate through keyframes and reconstruct connections
-  //for (std::vector<KeyFrame*>::iterator it=vpKeyFrames.begin(); it!=vpKeyFrames.end(); ++it)
-  //{
-  //    KeyFrame* pKFCon = *it;
-
-  //    pKFCon->ReconstructConnections();
-
-  //    // Edge-SLAM: debug
-  //    cout << pKFCon->mnId << " ";
-
-  //    // If RefKF has lower id than current KF, then set it to that KF
-  //    if(mpReferenceKF->mnId < pKFCon->mnId)
-  //    {
-  //        mpReferenceKF = pKFCon;
-  //        refKFSet = false;
-  //    }
-
-  //    // Update other KF variables
-  //    if(mnMapUpdateLastKFId < pKFCon->mnId)
-  //    {
-  //        mnLastKeyFrameId = pKFCon->mnFrameId;
-  //        mpLastKeyFrame = pKFCon;
-  //        mnMapUpdateLastKFId = pKFCon->mnId;
-  //    }
-  //}
-
-  //// Edge-SLAM: debug
-  //cout << endl;
-
-  //// Set current-frame RefKF
-  //mCurrentFrame.mpReferenceKF = mpReferenceKF;
-
-  //// Get all map points in tracking local-map
-  //vector<MapPoint*> vpMapPoints = mpMap->GetAllMapPoints();
-
-  //// Iterate through all mappoints and SetReferenceKeyFrame
-  //for (std::vector<MapPoint*>::iterator it=vpMapPoints.begin(); it!=vpMapPoints.end(); ++it)
-  //{
-  //    MapPoint* rMP = *it;
-
-  //    if((unsigned)rMP->mnFirstKFid == rMP->GetReferenceKeyFrame()->mnId)
-  //        continue;
-
-  //    KeyFrame* rKF = mpMap->RetrieveKeyFrame(rMP->mnFirstKFid);
-
-  //    if(rKF)
-  //        rMP->SetReferenceKeyFrame(rKF);
-  //}
-
-  //// Updating mLastFrame
-  //for(int i =0; i<mLastFrame.N; i++)
-  //{
-  //    if(lastFrame_points_availability[i])
-  //    {
-  //        MapPoint* newpMP = mpMap->RetrieveMapPoint(lastFrame_points_ids[i], true);
-
-  //        if (newpMP)
-  //        {
-  //            mLastFrame.mvpMapPoints[i] = newpMP;
-  //        }
-  //        else
-  //        {
-  //            mLastFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-  //        }
-  //    }
-  //}
-
-  //// We should update mvpLocalMapPoints for viewer
-  //mvpLocalMapPoints.clear(); // from tracking = mpAtlas->GetAllMapPoints()
-  //for (unsigned int i = 0 ; i < mvpLocalMapPoints_ids.size(); i++)// from tracking = mpAtlas->GetAllMapPoints()
-  //{
-  //    MapPoint* pMP = mpMap->RetrieveMapPoint(mvpLocalMapPoints_ids[i], true);// from tracking = mpAtlas->GetAllMapPoints()
-  //    if (pMP)
-  //    {
-  //        mvpLocalMapPoints.push_back(pMP);// from tracking = mpAtlas->GetAllMapPoints()
-  //    }
-  //}
-
-  //if(mpViewer)
-  //    mpViewer->Release();
-
-  //// Edge-SLAM: measure
-  //msRelocLastMapUpdateStart = std::chrono::high_resolution_clock::now();
-
-  //mapUpToDate = true;
-  //msRelocStatus = false;
-
-  //// Edge-SLAM: debug
-  //cout << "log,Tracking::mapCallback,local map update is done" << endl;
-
-
-
-
-
-  /* ############################################################ */
-
-
-
-
-  //mpOrbMaps.insert(std::make_pair(opM->GetId(), opM));
-
-  //RCLCPP_INFO(this->get_logger(), "Map with ID '%d is converted.", opM->GetId()); 
-  //mpLocalMapper_->InsertKeyframeFromRos(oKf);
-  //mpAtlas_->AddKeyFrame(oKf, true);
 }
 
 /*        MapPoint        */

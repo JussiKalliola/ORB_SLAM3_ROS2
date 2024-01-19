@@ -1,6 +1,13 @@
 cmake_minimum_required(VERSION 3.5)
 project(orbslam3)
 
+IF(NOT CMAKE_BUILD_TYPE)
+  SET(CMAKE_BUILD_TYPE Debug)
+ENDIF()
+
+
+MESSAGE("${PROJECT_NAME}: Build type: " ${CMAKE_BUILD_TYPE})
+
 # You should set the PYTHONPATH to your own python site-packages path
 set(ENV{PYTHONPATH} "/opt/ros/foxy/install/lib/python3.6/site-packages/")
 
@@ -83,7 +90,6 @@ add_library(slam_observer SHARED
   src/shared/ObserverImpl.cpp
 )
 ament_target_dependencies(slam_observer rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
-
 
 
 target_link_libraries(mono 

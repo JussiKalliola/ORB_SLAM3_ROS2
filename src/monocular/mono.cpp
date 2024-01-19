@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     
     // malloc error using new.. try shared ptr
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_, true);
+    ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_, false);
 
     slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
     
@@ -129,6 +129,7 @@ int main(int argc, char **argv)
     //slam_node_->publishEndMsg();
     //rclcpp::sleep_for(std::chrono::seconds(1));
     // Stop all threads
+    std::cout << "Shutdown SLAM System" << std::endl;
     SLAM.Shutdown();
     // Save camera trajectory
     std::cout << "Saving data to the path=" << strSaveToPath  << strResultFileName << std::endl;

@@ -114,7 +114,8 @@ class SlamWrapperNode : public rclcpp::Node
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mpOrbKeyFrames;
     std::map<long unsigned int, ORB_SLAM3::MapPoint*> mpOrbMapPoints;
     std::map<unsigned int, ORB_SLAM3::GeometricCamera*> mpOrbCameras;
-    
+
+    std::set<unsigned long int> mspKFsReadyForLM;
       
     std::set<ORB_SLAM3::KeyFrame*> mspKeyFrames;
     std::set<ORB_SLAM3::MapPoint*> mspMapPoints;
