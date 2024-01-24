@@ -8,7 +8,13 @@
 
 #include "std_msgs/msg/int64.hpp"
 #include "std_msgs/msg/bool.hpp"
-#include "ActionChecker.hpp"
+//#include "ActionChecker.hpp"
+
+#include "orbslam3_interfaces/Converter.hpp"
+#include "orbslam3_interfaces/KeyFrameConverter.hpp"
+#include "orbslam3_interfaces/MapConverter.hpp"
+
+
 
 #include "utility.hpp"
 
@@ -46,8 +52,8 @@ class SlamWrapperNode : public rclcpp::Node
 
 
   private:
-    ActionChecker* mpActionChecker;
-    std::thread* mptActionChecker;
+    //ActionChecker* mpActionChecker;
+    //std::thread* mptActionChecker;
     
     ORB_SLAM3::System* m_SLAM;
     ORB_SLAM3::Tracking* mpTracker_;
@@ -107,12 +113,12 @@ class SlamWrapperNode : public rclcpp::Node
 
     // Store SLAM data
     std::map<long unsigned int, std::tuple<ORB_SLAM3::Map*, orbslam3_interfaces::msg::Map::SharedPtr>> mpUnprocOrbMaps;
-    std::map<long unsigned int, std::tuple<ORB_SLAM3::KeyFrame*, orbslam3_interfaces::msg::KeyFrame::SharedPtr>> mpUnprocOrbKeyFrames;
-    std::map<long unsigned int, std::tuple<ORB_SLAM3::MapPoint*, orbslam3_interfaces::msg::MapPoint::SharedPtr>> mpUnprocOrbMapPoints;
+    std::map<long unsigned int, orbslam3_interfaces::msg::KeyFrame::SharedPtr> mpUnprocOrbKeyFrames;
+    std::map<std::string, std::tuple<ORB_SLAM3::MapPoint*, orbslam3_interfaces::msg::MapPoint::SharedPtr>> mpUnprocOrbMapPoints;
     
     std::map<long unsigned int, ORB_SLAM3::Map*> mpOrbMaps;
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mpOrbKeyFrames;
-    std::map<long unsigned int, ORB_SLAM3::MapPoint*> mpOrbMapPoints;
+    std::map<std::string, ORB_SLAM3::MapPoint*> mpOrbMapPoints;
     std::map<unsigned int, ORB_SLAM3::GeometricCamera*> mpOrbCameras;
 
     std::set<unsigned long int> mspKFsReadyForLM;
@@ -125,10 +131,10 @@ class SlamWrapperNode : public rclcpp::Node
     
     // Store ROS Action messages for later prosessing
     std::vector<std::tuple<int, int>> mRosActionMap; // First is the action idx 0=Atlas, 1=KeyFrame, ..., and second is the idx in the corresponding vector
-    std::vector<orbslam3_interfaces::msg::KeyFrameActions::SharedPtr> mvpKfRosActions; 
-    std::vector<orbslam3_interfaces::msg::AtlasActions::SharedPtr> mvpAtlasRosActions; 
-    std::vector<orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr> mvpKFDBRosActions; 
-    std::vector<orbslam3_interfaces::msg::MapPointActions::SharedPtr> mvpMpRosActions; 
+    //std::vector<orbslam3_interfaces::msg::KeyFrameActions::SharedPtr> mvpKfRosActions; 
+    //std::vector<orbslam3_interfaces::msg::AtlasActions::SharedPtr> mvpAtlasRosActions; 
+    //std::vector<orbslam3_interfaces::msg::KeyFrameDatabaseActions::SharedPtr> mvpKFDBRosActions; 
+    //std::vector<orbslam3_interfaces::msg::MapPointActions::SharedPtr> mvpMpRosActions; 
 
     //std::map<long unsigned int, orbslam3_interfaces::msg::KeyFrame*> mpRosKeyFrames;
     

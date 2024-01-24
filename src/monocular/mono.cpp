@@ -36,7 +36,7 @@ int main(int argc, char **argv)
     bool visualization = false;
     bool subscribe_to_slam = true;
     bool main_system = true;
-
+    bool mbOnlyTrack = false;
     // Check visualization 
     if (argc > 4)
     {
@@ -55,6 +55,9 @@ int main(int argc, char **argv)
         }
       }
     }
+
+    if(main_system)
+      mbOnlyTrack=false;
 
     
     
@@ -94,7 +97,7 @@ int main(int argc, char **argv)
     
     // malloc error using new.. try shared ptr
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
-    ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_, false);
+    ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, observer_impl_, mbOnlyTrack);
 
     slam_node = std::make_shared<SlamWrapperNode>(&SLAM, subscribe_to_slam); 
     
