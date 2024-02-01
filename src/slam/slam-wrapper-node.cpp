@@ -68,7 +68,7 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
     
 
     action_check_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(100),
+        std::chrono::milliseconds(50),
         std::bind(&SlamWrapperNode::checkForNewActions, this)
     );
     
@@ -175,7 +175,6 @@ void SlamWrapperNode::checkForNewActions() {
       mopKf->PostLoad(mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
       if(!bKFUnprocessed){
         //mpAtlas_->AddKeyFrame(mopKf);
-        mpKfDb_->add(mopKf);
 
         //for(const auto& mpMP : mopKf->GetMapPoints()) {
         //  mpAtlas_->AddMapPoint(mpMP);
@@ -205,8 +204,19 @@ void SlamWrapperNode::checkForNewActions() {
     {
       if(!mpLocalMapper_->AcceptKeyFrames())
         break;
+      
 
       long unsigned int id=*mspKFsReadyForLM.begin();
+      
+      ORB_SLAM3::KeyFrame* pKF = mpOrbKeyFrames[id];
+      mpKfDb_->add(pKF);
+      mpAtlas_->AddKeyFrame(pKF);
+      
+      for(ORB_SLAM3::MapPoint* pMP : pKF->GetMapPoints())
+      {
+        mpAtlas_->AddMapPoint(pMP);
+      }
+      
       mpLocalMapper_->InsertKeyframeFromRos(mpOrbKeyFrames[id]);
       mspKFsReadyForLM.erase(mspKFsReadyForLM.begin());
 
@@ -257,10 +267,10 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKf) {
 void SlamWrapperNode::publishMap(ORB_SLAM3::Map* pM) {
   
   unique_lock<mutex> lock(mMutexUpdateMap);
-
   RCLCPP_INFO(this->get_logger(), "Publishing a new map (full object) with id: %d", pM->GetId());
   RCLCPP_INFO(this->get_logger(), "Map Stats : #KFs=%d, #MPs=%d, #RefMPs=%d", pM->KeyFramesInMap(), pM->MapPointsInMap(), pM->GetReferenceMapPoints().size());
   
+  pM->PreSave(mspCameras);
   auto msgM = Converter::MapConverter::OrbMapToRosMap(pM);
   msgM.system_id = std::getenv("SLAM_SYSTEM_ID");
   
@@ -340,16 +350,12 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     }
   }
 
-  ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf); 
-  
-  //if((oKf->mnId >= 1 || mpOrbMaps[rKf->mp_map_id]->KeyFramesInMap() >= 1))
-  //{
-  //  if(!mpLocalMapper_->NeedNewKeyFrame(oKf))
-  //  {
-  //    delete oKf;
-  //    return;
-  //  }
-  //}
+  ORB_SLAM3::KeyFrame* oKf = static_cast<ORB_SLAM3::KeyFrame*>(NULL);
+  if(mpOrbKeyFrames.find(rKf->mn_id) == mpOrbKeyFrames.end())
+    oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf, static_cast<ORB_SLAM3::KeyFrame*>(NULL));
+  else
+    oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKf, mpOrbKeyFrames[rKf->mn_id]);
+
 
   mpOrbKeyFrames[oKf->mnId] = oKf;
 
@@ -357,8 +363,13 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   for(size_t i = 0; i < rKf->mvp_map_points.size(); i++)
   {
     orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rKf->mvp_map_points[i]);
-    ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId), false);
-      
+    
+    ORB_SLAM3::MapPoint* oMP;
+    if(mpOrbMapPoints.find(mp->m_str_hex_id) != mpOrbMapPoints.end())
+      oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbMapPoints[mp->m_str_hex_id]);
+    else
+      oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<ORB_SLAM3::MapPoint*>(NULL));
+    
     mpOrbMapPoints[oMP->mstrHexId] = oMP;
     oMP->UpdateMap(mpOrbMaps[mp->mp_map_id]);
   }
@@ -368,7 +379,9 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
   oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
   oKf->SetKeyFrameDatabase(mpKfDb_);
   oKf->UpdateMap(mpOrbMaps[rKf->mp_map_id]); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();
+  oKf->ComputeBoW(); 
   
+
   bool bKFUnprocessed = false;
 
   //std::cout << "Before mp postloads #MPs=" << rKf->mv_backup_map_points_id.size() << ", [0]=" << rKf->mv_backup_map_points_id[0]<< std::endl; 
@@ -430,7 +443,6 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   if(rM->system_id == std::getenv("SLAM_SYSTEM_ID")) 
     return;
   
-  unique_lock<mutex> lock(mMutexUpdateMap);
 
   if(mpOrbMaps.find(rM->mn_id) != mpOrbMaps.end())
   {
@@ -443,20 +455,23 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   //mpOrbKeyFrames.clear();
   //mpOrbMapPoints.clear();
   //
-  for(ORB_SLAM3::Map* pM : mpAtlas_->GetAllMaps())
   {
-  //  mpOrbMaps[pM->GetId()] = pM;
-
-    for(ORB_SLAM3::KeyFrame* pKF : pM->GetAllKeyFrames())
+    unique_lock<mutex> lock(mMutexUpdateMap);
+    for(ORB_SLAM3::Map* pM : mpAtlas_->GetAllMaps())
     {
-      if(mpOrbKeyFrames.find(pKF->mnId) == mpOrbKeyFrames.end())
-        mpOrbKeyFrames[pKF->mnId] = pKF;
-    }
+    //  mpOrbMaps[pM->GetId()] = pM;
 
-    for(ORB_SLAM3::MapPoint* pMP : pM->GetAllMapPoints())
-    {
-      if(mpOrbMapPoints.find(pMP->mstrHexId) == mpOrbMapPoints.end())
-        mpOrbMapPoints[pMP->mstrHexId] = pMP;
+      for(ORB_SLAM3::KeyFrame* pKF : pM->GetAllKeyFrames())
+      {
+        if(mpOrbKeyFrames.find(pKF->mnId) == mpOrbKeyFrames.end())
+          mpOrbKeyFrames[pKF->mnId] = pKF;
+      }
+
+      for(ORB_SLAM3::MapPoint* pMP : pM->GetAllMapPoints())
+      {
+        if(mpOrbMapPoints.find(pMP->mstrHexId) == mpOrbMapPoints.end())
+          mpOrbMapPoints[pMP->mstrHexId] = pMP;
+      }
     }
   }
 
@@ -472,6 +487,7 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   
   RCLCPP_INFO(this->get_logger(), "Inform tracking that Map update is being executed. Number of KFs in old map=%d, and MPs=%d", mpAtlas_->GetCurrentMap()->GetAllKeyFrames().size(), mpAtlas_->GetCurrentMap()->GetAllMapPoints().size() );
   mpTracker_->LocalMapIsUpdating(true); 
+  
   //if(mpOrbMaps[rM->mn_id]->KeyFramesInMap() < 2)
   //{
   //  std::cout << "Map is still initializing, skipping update.." << std::endl;
@@ -479,21 +495,44 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
   //}
   
   //bool bUnprocessed = false;
-  ORB_SLAM3::Map* opM = Converter::MapConverter::RosMapToOrbMap(rM);
+  ORB_SLAM3::Map* opM = static_cast<ORB_SLAM3::Map*>(NULL);
+  if(mpOrbMaps.find(rM->mn_id) != mpOrbMaps.end())
+  {
+    opM = mpOrbMaps[rM->mn_id];
+    opM = Converter::MapConverter::RosMapToOrbMap(rM, opM);
+    
+    //std::cout << "Reseting Database..." << std::endl;;
+    //mpKfDb_->clearMap(mpPrevMap);
+    //mpAtlas_->clearMap();
+    //mpAtlas_->AddMap(opM);
+  }
+  
+  RCLCPP_INFO(this->get_logger(), "After update: KFs=%d, and MPs=%d", mpAtlas_->GetCurrentMap()->GetAllKeyFrames().size(), mpAtlas_->GetCurrentMap()->GetAllMapPoints().size() );
 
   std::cout << "After creating map" << std::endl;
   std::vector<std::string> mvpMPsDone;
   std::cout << "Before loop" << std::endl;
   for(size_t j = 0; j < rM->msp_keyframes.size(); j++)
   {
+    unique_lock<mutex> lock(mMutexUpdateMap);
     orbslam3_interfaces::msg::KeyFrame::SharedPtr rKF = std::make_shared<orbslam3_interfaces::msg::KeyFrame>(rM->msp_keyframes[j]);
-    std::cout << "Processing KF=" << rKF->mn_id << std::endl; 
-    ORB_SLAM3::KeyFrame* oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKF); 
-    
-    if(mpOrbKeyFrames.find(oKf->mnId) != mpOrbKeyFrames.end())
-      mpOrbKeyFrames.erase(oKf->mnId);
-    
-    mpOrbKeyFrames[oKf->mnId] = oKf;
+
+    ORB_SLAM3::KeyFrame* oKf = static_cast<ORB_SLAM3::KeyFrame*>(NULL);
+    if(mpOrbKeyFrames.find(rKF->mn_id) == mpOrbKeyFrames.end())
+    {
+      std::cout << " - KF=" << rKF->mn_id << " not found, processing..."<< std::endl;
+      oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKF, static_cast<ORB_SLAM3::KeyFrame*>(NULL));    
+      oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
+      oKf->SetKeyFrameDatabase(mpKfDb_);
+      oKf->ComputeBoW();
+      mpOrbKeyFrames[oKf->mnId] = oKf;
+    } else
+    {
+      std::cout << " - KF=" << rKF->mn_id << " found, processing..."<< std::endl;
+      oKf = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(rKF, mpOrbKeyFrames[rKF->mn_id]);
+    }
+
+    //mpOrbMaps[rM->mn_id]->AddKeyFrame(oKf);
     
     for(size_t i = 0; i < rKF->mvp_map_points.size(); i++)
     {
@@ -501,71 +540,93 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM)
       //std::cout << "Processing MP=" << mp->mn_id << std::endl; 
       ORB_SLAM3::MapPoint* oMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
       if(mpOrbMapPoints.find(mp->m_str_hex_id) == mpOrbMapPoints.end())
-        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId), false);
-      else
-        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<long int>(oKf->mnId), true);
+      {
+        //std::cout << " - MP=" << mp->m_str_hex_id << " not found, processing..."<< std::endl;
+        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<ORB_SLAM3::MapPoint*>(NULL));
+        mpOrbMapPoints[oMP->mstrHexId] = oMP;
+      } else
+      {
+        //std::cout << " - MP=" << mp->m_str_hex_id << " found, processing..."<< std::endl;
+        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbMapPoints[mp->m_str_hex_id]);
+      }
       
-      mpOrbMapPoints[oMP->mstrHexId] = oMP;
-      oMP->UpdateMap(opM);
+      //mpOrbMaps[rKF->mp_map_id]->AddMapPoint(oMP);
+      //oMP->UpdateMap(opM);
       mvpMPsDone.push_back(oMP->mstrHexId);
     }
     
     std::cout << "Done with MPs" << std::endl; 
-    oKf->SetORBVocabulary(m_SLAM->GetORBVocabulary());
-    oKf->SetKeyFrameDatabase(mpKfDb_);
-    oKf->UpdateMap(opM); // This one should be with mp_map_id and mpAtlas_->GetAllMaps();  
+ 
+
   }
   std::cout << "Done with KFs" << std::endl; 
 
+  std::cout << "Checking if map contains map points which does not belong to any keyframes.."<< std::endl;
   for(size_t j = 0; j < rM->msp_map_points.size(); j++)
   {
+    unique_lock<mutex> lock(mMutexUpdateMap);
     std::string targetId = rM->msp_map_points[j].m_str_hex_id;
     
     auto it = std::find(mvpMPsDone.begin(), mvpMPsDone.end(), targetId);
 
-    if(it != mvpMPsDone.end())
+    //std::cout << *it << ", " << targetId << std::endl;
+
+    if(it == mvpMPsDone.end())
     {
       //std::cout << "MapPoint is not processed." << std::endl;
       orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(rM->msp_map_points[j]);
       
-      ORB_SLAM3::MapPoint* oMP = Converter::MapPointConverter::RosMapPointToOrb(mp);
-      
-      mpOrbMapPoints[oMP->mstrHexId] = oMP;
-      oMP->UpdateMap(opM);
+      ORB_SLAM3::MapPoint* oMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
+      if(mpOrbMapPoints.find(mp->m_str_hex_id) == mpOrbMapPoints.end())
+      {
+        std::cout << " - MP=" << mp->m_str_hex_id << " not found, processing..."<< std::endl;
+        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp,static_cast<ORB_SLAM3::MapPoint*>(NULL));
+        mpOrbMapPoints[oMP->mstrHexId] = oMP;
+      } else
+      {
+        std::cout << " - MP=" << mp->m_str_hex_id << " found, processing..."<< std::endl;
+        oMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mpOrbMapPoints[mp->m_str_hex_id]);
+      }
+
+      //mpOrbMaps[rM->mn_id]->AddMapPoint(oMP);
+      //oMP->UpdateMap(opM);
       mvpMPsDone.push_back(oMP->mstrHexId);
-    } else {
-      std::cout << "MapPoint is already processed." << std::endl;
-    }
+    } //else {
+    //  std::cout << "MapPoint is already processed." << std::endl;
+    //}
 
   }
   
-  if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
-  {
-    ORB_SLAM3::Map* mpPrevMap = mpOrbMaps[opM->GetId()];
+  //if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
+  //{
+  //  ORB_SLAM3::Map* mpPrevMap = mpOrbMaps[opM->GetId()];
     
-    std::cout << "Reseting Database..." << std::endl;;
-    mpKfDb_->clearMap(mpPrevMap);
-    mpAtlas_->clearMap();
-  }
-  
+  //  std::cout << "Reseting Database..." << std::endl;;
+  //  mpKfDb_->clearMap(mpPrevMap);
+  //  mpAtlas_->clearMap();
+  //}
+  std::cout << "All data processed, next map postload -> fix the pointer connections." << std::endl; 
   bool bKFUnprocessed = false;
   opM->PostLoad(mpKfDb_, m_SLAM->GetORBVocabulary(), mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
-  
+  //{
+  //  unique_lock<mutex> lock(mMutexUpdateMap);
+  //  mpOrbMaps[rM->mn_id]->PostLoad(mpKfDb_, m_SLAM->GetORBVocabulary(), mpOrbKeyFrames, mpOrbMapPoints, mpOrbCameras, &bKFUnprocessed);
+  //}
   if(bKFUnprocessed) std::cout << "Map with ID=" << opM->GetId() << " is unprocessed!!" << std::endl;
   
-  if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
-  {
-    std::cout << "Map found, replacing it .. " << std::endl;
-    mpAtlas_->ReplaceMap(opM);
-  } else {
-    std::cout << "New map, adding it to Atlas..." << std::endl;
-    mpAtlas_->AddMap(opM);
-  }
+  //if(mpOrbMaps.find(opM->GetId()) != mpOrbMaps.end())
+  //{
+  //  std::cout << "Map found, replacing it .. " << std::endl;
+  //  mpAtlas_->ReplaceMap(opM);
+  //} else {
+  //  std::cout << "New map, adding it to Atlas..." << std::endl;
+  //  mpAtlas_->AddMap(opM);
+  //}
 
-  mpOrbMaps[opM->GetId()] = opM;
+  //mpOrbMaps[opM->GetId()] = opM;
   std::cout << "Done with GrabMap" << std::endl;
 
-  mpTracker_->UpdateFromLocalMapping(opM, mpOrbKeyFrames, mpOrbMapPoints);
+  mpTracker_->UpdateFromLocalMapping(mpOrbMaps[rM->mn_id], mpOrbKeyFrames, mpOrbMapPoints);
 
   
 }
@@ -580,9 +641,9 @@ void SlamWrapperNode::GrabMapPoint(const orbslam3_interfaces::msg::MapPoint::Sha
   
   ORB_SLAM3::MapPoint* oMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
   if(mpOrbMapPoints.find(rpMp->m_str_hex_id) == mpOrbMapPoints.end())
-    oMP = Converter::MapPointConverter::RosMapPointToOrb(rpMp, -1, false);
+    oMP = Converter::MapPointConverter::RosMapPointToOrb(rpMp, static_cast<ORB_SLAM3::MapPoint*>(NULL));
   else
-    oMP = Converter::MapPointConverter::RosMapPointToOrb(rpMp, -1, true);
+    oMP = Converter::MapPointConverter::RosMapPointToOrb(rpMp, mpOrbMapPoints[rpMp->m_str_hex_id]);
 
   if(bUnprocessed) {
     RCLCPP_INFO(this->get_logger(), "*##*#*#*#*#*#*#*###**#*#*#* MapPoint with ID=%s is unprocessed. *#*####*#*#*#**#*#*#*#*#", oMP->mstrHexId);
