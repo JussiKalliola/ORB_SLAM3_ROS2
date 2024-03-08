@@ -29,8 +29,6 @@ MonocularSlamNode::~MonocularSlamNode()
   // Stop all threads
   //m_SLAM->Shutdown();
   // Save camera trajectory
-  //RCLCPP_INFO(this->get_logger(),  "Saving data to the path=" + savePath + mstrResultFilename);
-  //m_SLAM->SaveKeyFrameTrajectoryTUM(savePath + mstrResultFilename);
 }
 
 void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)

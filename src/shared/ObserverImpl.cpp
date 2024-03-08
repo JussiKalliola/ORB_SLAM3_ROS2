@@ -23,6 +23,21 @@ class ObserverImpl : public ORB_SLAM3::Observer {
     //  slam_node_->publishMap(pM); 
     //}
 
+
+    void onActiveMapReset(unsigned long int mnMapId) override {
+      std::cout << "Observerimpl - onActiveMapReset" << std::endl;
+      if(slam_node_) {
+        slam_node_->publishResetActiveMap(mnMapId);
+      } 
+    }
+
+    void onLMResetRequested() override {
+      std::cout << "Observerimpl - onLMResetRequested" << std::endl;
+      if(slam_node_) {
+        slam_node_->publishLMResetRequested();
+      } 
+    }
+
     void onChangeLMActive(bool bActive) override {
       if(slam_node_) {
         slam_node_->publishLMActivityChange(bActive);
