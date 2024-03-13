@@ -40,10 +40,10 @@ public:
         std::string msg2;
         msg2 = os2.str();
         std::cout << "Obj1.compare(Obj2) --------------------------- "<< msg.compare(msg2) << std::endl;
-        std::cout << std::endl;
-        std::cout << msg << std::endl;
-        std::cout << msg2 << std::endl;
-        std::cout << std::endl;
+        //std::cout << std::endl;
+        //std::cout << msg << std::endl;
+        //std::cout << msg2 << std::endl;
+        //std::cout << std::endl;
     }
     exit(1);
   }
