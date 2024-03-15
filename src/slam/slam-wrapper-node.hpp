@@ -42,7 +42,7 @@ class SlamWrapperNode : public rclcpp::Node
     ~SlamWrapperNode();
     
     // Publishers
-    void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf);
+    void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf, unsigned int mnTragetModule);
     void publishMap(ORB_SLAM3::Map* pM);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
     
@@ -68,6 +68,13 @@ class SlamWrapperNode : public rclcpp::Node
 
     void AddMap(ORB_SLAM3::Map* pM);
     void EraseMap(ORB_SLAM3::Map* pM);
+    
+    // Keep track of the biggest ids (used in optimization)
+    unsigned long int GetMaxMapPointID();
+    unsigned long int GetMaxKeyFrameID();
+
+    void CalcMaxMapPointID();
+    void CalcMaxKeyFrameID();
 
     // Generic functions
     void checkForNewActions();
@@ -78,9 +85,15 @@ class SlamWrapperNode : public rclcpp::Node
     void CreateSubscribers();
       
   protected:
+    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule);
     bool mbKeyFrameAction;
     bool mbMapAction;
+
+    unsigned int mnTaskModule;
     
+    unsigned long int mnMaxMPId;
+    unsigned long int mnMaxKFId;
+
     std::mutex mMutexKF;
     std::mutex mMutexMap;
     std::mutex mMutexMapPoint;

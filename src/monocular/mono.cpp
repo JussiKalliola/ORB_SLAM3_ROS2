@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <fstream>
 #include <chrono>
+#include <stdlib.h>
 
 #include "rclcpp/rclcpp.hpp"
 #include "monocular-slam-node.hpp"
@@ -77,6 +78,14 @@ int main(int argc, char **argv)
     strSaveToPath += "monocular/";
 
 
+    char* systemId = std::getenv("SLAM_SYSTEM_ID");
+    if(!systemId) {
+        std::random_device rd;  // Obtain a random number from hardware
+        std::mt19937 gen(rd()); // Seed the generator
+        std::uniform_int_distribution<> distr(1, 100); // Define the range 
+        setenv("SLAM_SYSTEM_ID", std::to_string(distr(gen)).c_str(),1);
+        systemId = std::getenv("SLAM_SYSTEM_ID");
+    }
     
     std::cout << "\n===================" << std::endl; 
     std::cout << "Given parameters" << std::endl; 
@@ -86,7 +95,7 @@ int main(int argc, char **argv)
     std::cout << " - Voc path=" << argv[1] << std::endl; 
     std::cout << " - Settings path=" << argv[2] << std::endl;
     std::cout << " - Main system=" << main_system << std::endl;
-    std::cout << " - SLAM_SYSTEM_ID=" << std::getenv("SLAM_SYSTEM_ID") << std::endl;
+    std::cout << " - SLAM_SYSTEM_ID=" << systemId << std::endl;
     std::cout << "===================\n" << std::endl;
 
 
