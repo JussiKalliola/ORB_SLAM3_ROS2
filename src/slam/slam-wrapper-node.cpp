@@ -920,44 +920,44 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
     map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
         "/MapPoint", 
-        100);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
     
     /* LocalMapping Active*/
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
     lm_active_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Bool>(
         "/LocalMapping/Active", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
 
     /* LocalMapping Active*/
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Reset");
     lm_reset_requested_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
         "/LocalMapping/Reset", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
 
 
     /* Reset Active Map (System) */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map/Active/Reset");
     sys_reset_active_map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Int64>(
         "/Map/Reset/Active", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
 
     /* Destroy */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /destroy");
     end_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
         "/destroy", 
-        10);
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
 
     /* Step */
     //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /step");
@@ -982,21 +982,21 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame",
-        100,
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));
     
     /* Map */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
-        10,
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));
 
     /* MapPoint */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
     m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
         "MapPoint",
-        1000,
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabMapPoint, this, std::placeholders::_1));
     
 
@@ -1004,21 +1004,21 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /LocalMapping/Active");
     m_lm_active_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Bool>(
         "LocalMapping/Active",
-        10,
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabLMActive, this, std::placeholders::_1));
 
     /* LocalMapping reset requested */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /LocalMapping/Reset");
     m_lm_reset_requested_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
         "LocalMapping/Reset",
-        10,
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabLMResetRequested, this, std::placeholders::_1));
 
     /* LocalMapping reset requested */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map/Reset/Active");
     m_sys_reset_active_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Int64>(
         "Map/Reset/Active",
-        10,
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
         std::bind(&SlamWrapperNode::GrabResetActiveMap, this, std::placeholders::_1));
     
 
@@ -1026,7 +1026,7 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /destroy");
     end_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
         "/destroy", 
-        10, 
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE), 
         std::bind(&SlamWrapperNode::endCallback, this, std::placeholders::_1));
     
     /* Step */
