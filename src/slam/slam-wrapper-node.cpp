@@ -920,19 +920,19 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame", 
-        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
-        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
     map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
         "/MapPoint", 
-        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE));
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
     
     /* LocalMapping Active*/
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -982,21 +982,21 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame",
-        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));
     
     /* Map */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
-        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));
 
     /* MapPoint */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
     m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
         "MapPoint",
-        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE),
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT),
         std::bind(&SlamWrapperNode::GrabMapPoint, this, std::placeholders::_1));
     
 
