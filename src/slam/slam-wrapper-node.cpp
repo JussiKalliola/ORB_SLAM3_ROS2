@@ -920,13 +920,13 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame", 
-        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
+        rclcpp::QoS(rclcpp::KeepLast(10)).reliability(RMW_QOS_POLICY_DURABILITY_VOLATILE));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
-        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT));
+        rclcpp::QoS(rclcpp::KeepLast(5)).reliability(RMW_QOS_POLICY_DURABILITY_VOLATILE));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
