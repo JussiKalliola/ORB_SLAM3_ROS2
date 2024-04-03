@@ -42,7 +42,7 @@ class SlamWrapperNode : public rclcpp::Node
     ~SlamWrapperNode();
     
     // Publishers
-    void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf, unsigned int mnTragetModule);
+    void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf, unsigned int mnTargetModule);
     void publishMap(ORB_SLAM3::Map* pM);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
     
@@ -51,6 +51,10 @@ class SlamWrapperNode : public rclcpp::Node
     void publishLMActivityChange(bool bActive);
     void publishEndMsg(); 
     void publishStep(); 
+
+    // Reset
+    void UpdateReset(bool mbReset);
+    bool GetResetStatus();
     
     // Activity
     void SetKeyFrameAction(bool mbAction);
@@ -89,11 +93,14 @@ class SlamWrapperNode : public rclcpp::Node
     bool mbKeyFrameAction;
     bool mbMapAction;
 
+    bool mbResetActive;
+
     unsigned int mnTaskModule;
     
     unsigned long int mnMaxMPId;
     unsigned long int mnMaxKFId;
 
+    std::mutex mMutexReset;
     std::mutex mMutexKF;
     std::mutex mMutexMap;
     std::mutex mMutexMapPoint;
@@ -111,6 +118,7 @@ class SlamWrapperNode : public rclcpp::Node
     ORB_SLAM3::System* m_SLAM;
     ORB_SLAM3::Tracking* mpTracker_;
     ORB_SLAM3::LocalMapping* mpLocalMapper_;
+    ORB_SLAM3::LoopClosing* mpLoopCloser_;
     ORB_SLAM3::Atlas* mpAtlas_;    
     ORB_SLAM3::KeyFrameDatabase* mpKeyFrameDB; 
     
