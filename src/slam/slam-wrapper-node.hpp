@@ -17,6 +17,7 @@
 #include "orbslam3_interfaces/Converter.hpp"
 #include "orbslam3_interfaces/KeyFrameConverter.hpp"
 #include "orbslam3_interfaces/MapConverter.hpp"
+#include "orbslam3_interfaces/AtlasConverter.hpp"
 
 
 
@@ -45,6 +46,7 @@ class SlamWrapperNode : public rclcpp::Node
     void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf, unsigned int mnTargetModule);
     void publishMap(ORB_SLAM3::Map* pM);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
+    void publishAtlas(bool mbMerged, bool mbLoopCloser, std::vector<unsigned long int> mvMergedIds);
     
     void publishResetActiveMap(unsigned long int mnMapId);
     void publishLMResetRequested();
@@ -59,9 +61,11 @@ class SlamWrapperNode : public rclcpp::Node
     // Activity
     void SetKeyFrameAction(bool mbAction);
     void SetMapAction(bool mbAction);
+    void SetAtlasAction(bool mbAction);
 
     bool KeyFrameActionActive();
     bool MapActionActive();
+    bool AtlasActionActive();
 
     // ORB SLAM3 Functions
     void AddKeyFrame(ORB_SLAM3::KeyFrame* pKF);
@@ -79,6 +83,10 @@ class SlamWrapperNode : public rclcpp::Node
 
     void CalcMaxMapPointID();
     void CalcMaxKeyFrameID();
+      
+    void IncreaseKFCount(int inc);
+    long int GetKFCount();
+
 
     // Generic functions
     void checkForNewActions();
@@ -92,6 +100,9 @@ class SlamWrapperNode : public rclcpp::Node
     void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule);
     bool mbKeyFrameAction;
     bool mbMapAction;
+    bool mbAtlasAction;
+
+    long int mnKeyFramesAfterLC;
 
     bool mbResetActive;
 
@@ -103,7 +114,9 @@ class SlamWrapperNode : public rclcpp::Node
     std::mutex mMutexReset;
     std::mutex mMutexKF;
     std::mutex mMutexMap;
+    std::mutex mMutexAtlas;
     std::mutex mMutexMapPoint;
+
     std::mutex mMutexNewKF;
     std::mutex mMutexPublishKF;
     std::mutex mMutexUpdateMap;
@@ -129,6 +142,7 @@ class SlamWrapperNode : public rclcpp::Node
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
     void GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM);
     void GrabMapPoint(const orbslam3_interfaces::msg::MapPoint::SharedPtr rpMp);
+    void GrabAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr rAtlas);
     
     void GrabLMActive(const orbslam3_interfaces::msg::Bool::SharedPtr msg);
     void GrabLMResetRequested(const std_msgs::msg::Bool::SharedPtr msg);
@@ -142,6 +156,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::Map>::SharedPtr map_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::MapPoint>::SharedPtr map_point_publisher_;  
+    rclcpp::Publisher<orbslam3_interfaces::msg::Atlas>::SharedPtr atlas_publisher_;  
     
     rclcpp::Publisher<orbslam3_interfaces::msg::Bool>::SharedPtr lm_active_publisher_;  
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr lm_reset_requested_publisher_;  
@@ -155,6 +170,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::Map>::SharedPtr m_map_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::MapPoint>::SharedPtr m_map_point_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::Atlas>::SharedPtr m_atlas_subscriber_;
     
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr m_lm_reset_requested_subscriber_;     
     rclcpp::Subscription<orbslam3_interfaces::msg::Bool>::SharedPtr m_lm_active_subscriber_;     

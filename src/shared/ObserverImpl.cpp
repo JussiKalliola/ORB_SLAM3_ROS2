@@ -59,6 +59,12 @@ class ObserverImpl : public ORB_SLAM3::Observer {
             }
         }
 
+        void onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds) override {
+            if(slam_node_) {
+                slam_node_->publishAtlas(mbMerged, mbLoopClosure, mvMeergedIds);
+            }
+        }
+
         void attachSlamNode(std::shared_ptr<SlamWrapperNode> slam_node) {
             slam_node_ = slam_node;
         }

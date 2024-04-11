@@ -38,6 +38,7 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_sla
     mpKeyFrameDB = m_SLAM->GetKeyFrameDatabase();
    
     UpdateReset(false);
+    IncreaseKFCount(0);
 
     for(const auto& mpCam : mpAtlas_->GetAllCameras())
     {
@@ -218,7 +219,14 @@ void SlamWrapperNode::EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 void SlamWrapperNode::AddMapPoint(ORB_SLAM3::MapPoint* pMP)
 {
     unique_lock<std::mutex> lock(mMutexMapPoint); 
-    if(!pMP || pMP->isBad())
+    if(!pMP)
+        return;
+    if(pMP->mnId > mnMaxMPId)
+    {
+        mnMaxMPId=pMP->mnId;
+    }
+
+    if(pMP->isBad())
         return;
 
     mORBMapPoints[pMP->mstrHexId] = pMP; 
@@ -329,6 +337,13 @@ void SlamWrapperNode::SetMapAction(bool mbAction)
     mbMapAction = mbAction;
 }
 
+void SlamWrapperNode::SetAtlasAction(bool mbAction)
+{
+    unique_lock<std::mutex> lock(mMutexAtlas);
+    mbAtlasAction = mbAction;
+}
+
+
 bool SlamWrapperNode::KeyFrameActionActive()
 {
     unique_lock<std::mutex> lock(mMutexKF);
@@ -340,6 +355,34 @@ bool SlamWrapperNode::MapActionActive()
     unique_lock<std::mutex> lock(mMutexMap);
     return mbMapAction;
 }
+
+
+bool SlamWrapperNode::AtlasActionActive()
+{
+    unique_lock<std::mutex> lock(mMutexAtlas);
+    return mbAtlasAction;
+}
+
+
+void SlamWrapperNode::IncreaseKFCount(int inc)
+{
+    unique_lock<std::mutex> lock(mMutexKF);
+    if(inc==0)
+        mnKeyFramesAfterLC=0;
+    else
+        mnKeyFramesAfterLC+=inc;
+}
+long int SlamWrapperNode::GetKFCount()
+{
+    unique_lock<std::mutex> lock(mMutexKF);
+    return mnKeyFramesAfterLC;
+}
+
+
+
+
+
+
 
 void SlamWrapperNode::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule)
 {
@@ -353,6 +396,7 @@ void SlamWrapperNode::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const un
         
         if(pKF)
         {
+            IncreaseKFCount(1);  
             mpKeyFrameDB->add(pKF);
             mpAtlas_->AddKeyFrame(pKF);
         }
@@ -367,6 +411,7 @@ void SlamWrapperNode::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const un
             if(mpLocalMapper_->NeedNewKeyFrame(pKF))
             {
                 //mpKeyFrameDB->add(pKF);
+                IncreaseKFCount(1);  
                 mpLocalMapper_->InsertKeyframeFromRos(pKF);
             } else {
                 mspKFsReadyForLM.insert(pKF->mnId);
@@ -378,9 +423,19 @@ void SlamWrapperNode::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const un
         // in this case the system mainly performing loop closing
         // not sure what to do here yet. 
         if(mnTargetModule == 3) {
-            mpLoopCloser_->InsertKeyFrame(pKF);
+            if(pKF)
+            {
+                for(ORB_SLAM3::MapPoint* pMPi : pKF->GetMapPoints())
+                {
+                    if(pMPi)
+                        mpAtlas_->AddMapPoint(pMPi);
+                }
+                IncreaseKFCount(1);  
+                mpAtlas_->AddKeyFrame(pKF);
+                pKF->UpdateConnections();
+                mpLoopCloser_->InsertKeyFrame(pKF);
+            }
         } else {
-
             for(ORB_SLAM3::MapPoint* pMPi : pKF->GetMapPoints())
             {
                 if(pMPi)
@@ -389,6 +444,7 @@ void SlamWrapperNode::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const un
             
             if(pKF)
             {
+                IncreaseKFCount(1);  
                 mpKeyFrameDB->add(pKF);
                 mpAtlas_->AddKeyFrame(pKF);
             }
@@ -409,7 +465,7 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKF, unsigned int mnT
     RCLCPP_INFO(this->get_logger(), "Publishing a new KeyFrame with id: %d. Stats: #MPs=%d, Map ID=%d, #MP matches=%d, #mspChildrens=%d, #msploopedges=%d, #mspMergeEdges=%d", pKF->mnId, pKF->GetMapPoints().size(), pKF->GetMap()->GetId(), pKF->GetMapPointMatches().size(), pKF->GetChilds().size(), pKF->GetLoopEdges().size(), pKF->GetMergeEdges().size());
 
       
-    while(MapActionActive() || KeyFrameActionActive())
+    while(AtlasActionActive() || MapActionActive() || KeyFrameActionActive())
     {
     //    std::cout << "Map action is active, waiting..." << std::endl;
         usleep(3000);
@@ -442,7 +498,12 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKF, unsigned int mnT
 
     orbslam3_interfaces::msg::KeyFrame mRosKF = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROS(pKF);
     mRosKF.target = mnTargetModule;
+    mRosKF.from = mnTaskModule;
     keyframe_publisher_->publish(mRosKF);
+    
+    // Tracking: Update kf count since it does not receive any KFs
+    if(mnTaskModule == 1)
+        IncreaseKFCount(1);  
 
     //ORB_SLAM3::KeyFrame* tempKF = Converter::KeyFrameConverter::ROSKeyFrameToORBSLAM3(std::make_shared<orbslam3_interfaces::msg::KeyFrame>(msgKf), static_cast<ORB_SLAM3::KeyFrame*>(NULL));
     //Utility::CompareTwoSerializedObjects(tempKF, pKf);
@@ -451,10 +512,50 @@ void SlamWrapperNode::publishKeyFrame(ORB_SLAM3::KeyFrame* pKF, unsigned int mnT
     SetKeyFrameAction(false);
 }
 
+
+/*        Atlas        */
+void SlamWrapperNode::publishAtlas(bool mbMerged, bool mbLoopCloser, std::vector<unsigned long int> mvMergedIds) {
+
+    RCLCPP_INFO(this->get_logger(), "Publishing Atlas after Merge=%d or LoopClosure=%d", mbMerged, mbLoopCloser);
+    
+    SetAtlasAction(true);
+    IncreaseKFCount(0);
+    //publishEndMsg(); 
+    orbslam3_interfaces::msg::Atlas mRosAtlas;
+    mRosAtlas.mp_current_map = Converter::MapConverter::OrbMapToRosMap(mpAtlas_->GetCurrentMap());
+
+    mRosAtlas.system_id = std::getenv("SLAM_SYSTEM_ID");
+    mRosAtlas.from_module_id = 3;
+    mRosAtlas.mb_map_merge = mbMerged;
+    mRosAtlas.mb_loop_closer = mbLoopCloser;
+    mRosAtlas.mv_merged_map_ids = mvMergedIds;
+    
+    atlas_publisher_->publish(mRosAtlas);
+
+    SetAtlasAction(false);
+    //if(mbMerged && !mvMergedIds.empty() && !mbLoopCloser)
+    //{
+    //    // Construct Atlas message for merging.
+    //     
+
+    //} else if(mbLoopCloser && !mbMerged) {
+    //    // Loop closure but no merge
+    //} else if(mbLoopCloser && mbMerged) {
+    //    // both
+    //}
+
+
+
+}
+
+
 /*        Map        */
 void SlamWrapperNode::publishMap(ORB_SLAM3::Map* pM) {
     
-    while(KeyFrameActionActive() || MapActionActive())
+    if(GetKFCount() <= 1)
+        return;
+    
+    while(AtlasActionActive() || KeyFrameActionActive() || MapActionActive())
     {
         //std::cout << "KF action is active, waiting..." << std::endl;
         usleep(3000);
@@ -565,14 +666,25 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     if(mpRosKF->system_id == std::getenv("SLAM_SYSTEM_ID")) 
         return;
     
-    if(mnTaskModule == 1)
+    if(mnTaskModule == 3 && mpRosKF->target != mnTaskModule)
         return;
+    //if(mnTaskModule == 0 && mpRosKF->from == 2)
+    //    return;
+    
+    //if(mnTaskModule != mpRosKF->target && mnTaskModule != 0)
+    //    return;
+
     //if(mpRosKF->mn_id%3==0 && mpRosKF->mn_id >0)
     //  return;
-    while(MapActionActive() || KeyFrameActionActive())
+    
+    if(mpLoopCloser_->CheckIfRunning())
+        return;
+      
+    // Add time check which checks from header compared to current ros time if the frame gets old.
+    while(AtlasActionActive() || MapActionActive() || KeyFrameActionActive())
     {
-        //std::cout << "Map action is active, waiting..." << std::endl;
-        usleep(3000);
+        std::cout << "Map action is active, waiting..." << std::endl;
+        usleep(5000);
     }
     
     SetKeyFrameAction(true);
@@ -616,9 +728,14 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     CalcMaxKeyFrameID();
 
     
+    if(mpLoopCloser_->CheckIfRunning())
+    {
+        SetKeyFrameAction(false);
+        return;
+    }  
 
 
-    RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d, for a map: %d", mpRosKF->mn_id, mpRosKF->mp_map_id);
+    RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d, for a map: %d, is LC running:%d", mpRosKF->mn_id, mpRosKF->mp_map_id, mpLoopCloser_->CheckIfRunning());
 
     if(mORBMaps.find(mpRosKF->mp_map_id) == mORBMaps.end())
     {
@@ -667,7 +784,11 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
     for(size_t i = 0; i < mpRosKF->mvp_map_points.size(); i++)
     {
         if(mpRosKF->mvp_map_points[i].mn_id > mnMaxMPId)
+        {
             mnMaxMPId = mpRosKF->mvp_map_points[i].mn_id;
+            ++mnMaxMPId;
+        }  
+          
     } 
     
     std::cout << "The largest MP ID=" << mnMaxMPId<< std::endl;
@@ -752,16 +873,82 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
 }
 
 
+
+
+/*        Atlas        */
+void SlamWrapperNode::GrabAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr mpRosAtlas) {
+    if(mpRosAtlas->system_id == std::getenv("SLAM_SYSTEM_ID")) 
+        return;
+
+    while(KeyFrameActionActive() || MapActionActive() || mpLoopCloser_->CheckIfRunning())
+    {
+    //    std::cout << "KF action is active, waiting..." << std::endl;
+        usleep(3000);
+    }
+
+    SetAtlasAction(true);
+    
+    
+    orbslam3_interfaces::msg::Map::SharedPtr mpRosNewMap = std::make_shared<orbslam3_interfaces::msg::Map>(mpRosAtlas->mp_current_map);
+    
+    if(mpRosAtlas->mb_map_merge)
+    {
+        RCLCPP_INFO(this->get_logger(), "Got Atlas. Maps Merged=%d. Current map=%d. Merged maps=%d,%d", mpRosAtlas->mb_map_merge, mpRosNewMap->mn_id, mpRosAtlas->mv_merged_map_ids[0], mpRosAtlas->mv_merged_map_ids[1]);
+    } else if (mpRosAtlas->mb_loop_closer) {
+        RCLCPP_INFO(this->get_logger(), "Got Atlas. LoopClosure=%d, Current map=%d.", mpRosAtlas->mb_loop_closer, mpRosNewMap->mn_id);
+
+    }
+
+    GrabMap(mpRosNewMap);
+
+    if(mpRosAtlas->mb_map_merge)
+    {
+        unsigned long int mnBadMapId;
+        for(unsigned long int mapId : mpRosAtlas->mv_merged_map_ids)
+        {
+          std::cout << mapId << ",";
+            if(mapId != mpRosAtlas->mp_current_map.mn_id)
+                mnBadMapId = mapId;
+        }
+        std::cout << std::endl;
+
+        ORB_SLAM3::Map* pBadMap = mORBMaps[mnBadMapId];
+        if(pBadMap)
+        {
+            mpAtlas_->SetMapBad(pBadMap);
+            mpAtlas_->RemoveBadMaps();
+        }
+
+        mpAtlas_->GetCurrentMap()->ClearErasedData();
+        mpAtlas_->GetCurrentMap()->ClearUpdatedKFIds();
+        mpAtlas_->GetCurrentMap()->ClearUpdatedMPIds();
+    }
+    
+    IncreaseKFCount(0);
+    std::cout << "num of maps=" << mpAtlas_->GetAllMaps().size() << std::endl; 
+    SetAtlasAction(false);
+    //usleep(10000);
+    //publishEndMsg();
+}
+
+
+
+
 /*        Map        */
 void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpRosMap) {
     if(mpRosMap->system_id == std::getenv("SLAM_SYSTEM_ID")) 
         return;
-    
+    std::cout << GetKFCount() << std::endl; 
+    if(GetKFCount() <= 0)
+        return;
+
+    if(mpLoopCloser_->CheckIfRunning())
+        return;
 
     while(KeyFrameActionActive() || MapActionActive())
     {
-    //    std::cout << "KF action is active, waiting..." << std::endl;
-        usleep(3000);
+        std::cout << "KF action is active, waiting..." << std::endl;
+        usleep(10000);
     }
     
     SetMapAction(true);
@@ -780,9 +967,9 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
 
     if(mORBMaps.find(mpRosMap->mn_id) != mORBMaps.end())
     {
-        RCLCPP_INFO(this->get_logger(), "Got an update for a map, id=%d. Stats: #KFs=%d, #MPs=%d", mpRosMap->mn_id, mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size());
+        RCLCPP_INFO(this->get_logger(), "Got an update for a map, id=%d, from module=%d, is LC running=%d. Stats: #KFs=%d, #MPs=%d", mpRosMap->mn_id, mpRosMap->from_module_id, mpLoopCloser_->CheckIfRunning(), mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size());
     } else { 
-        RCLCPP_INFO(this->get_logger(), "Got a new map, id=%d. Stats: #KFs=%d, #MPs=%d", mpRosMap->mn_id, mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size());
+        RCLCPP_INFO(this->get_logger(), "Got a new map, id=%d, from module=%d, is LC running=%d. Stats: #KFs=%d, #MPs=%d", mpRosMap->mn_id, mpRosMap->from_module_id, mpLoopCloser_->CheckIfRunning(), mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size());
     }
 
     //{
@@ -830,6 +1017,11 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
     size_t mpNotFound=0;
     
 
+    if(mpLoopCloser_->CheckIfRunning())
+    {
+        SetMapAction(false);
+        return;
+    }  
 
     mpTracker_->LocalMapIsUpdating(true); 
     for(size_t j = 0; j < mpRosMap->msp_keyframes.size(); j++)
@@ -858,10 +1050,17 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
         for(size_t i = 0; i < mpRosKF->mvp_map_points.size(); i++)
         {
             orbslam3_interfaces::msg::MapPoint::SharedPtr mp = std::make_shared<orbslam3_interfaces::msg::MapPoint>(mpRosKF->mvp_map_points[i]);
+            
             //std::cout << "Processing MP=" << mp->mn_id << std::endl; 
             ORB_SLAM3::MapPoint* pMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
             if(mORBMapPoints.find(mp->m_str_hex_id) == mORBMapPoints.end())
             {
+                if(mp->mn_id <= mnMaxMPId) 
+                {
+                    unique_lock<std::mutex> lock(mMutexMapPoint);
+                    ++mnMaxMPId;
+                    mp->mn_id = mnMaxMPId;
+                }
                 //std::cout << " - MP=" << mp->m_str_hex_id << " not found, processing..."<< std::endl;
                 pMP = Converter::MapPointConverter::RosMapPointToOrb(mp, static_cast<ORB_SLAM3::MapPoint*>(NULL));
                 AddMapPoint(pMP);
@@ -869,7 +1068,7 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
             } else {
                 //std::cout << " - MP=" << mp->m_str_hex_id << " found, processing..."<< std::endl;
                 pMP = Converter::MapPointConverter::RosMapPointToOrb(mp, mORBMapPoints[mp->m_str_hex_id]);
-                mpNotFound+=1;
+                mpFound+=1;
             }
             
             mvpMPsDone.push_back(pMP->mstrHexId);
@@ -889,9 +1088,16 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
             //std::cout << "MapPoint is in map but not in KF." << std::endl;
             orbslam3_interfaces::msg::MapPoint::SharedPtr mpRosMP = std::make_shared<orbslam3_interfaces::msg::MapPoint>(mpRosMap->msp_map_points[j]);
             
+            
             ORB_SLAM3::MapPoint* pMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
             if(mORBMapPoints.find(mpRosMP->m_str_hex_id) == mORBMapPoints.end())
             {
+                if(mpRosMP->mn_id <= mnMaxMPId) 
+                {
+                    unique_lock<std::mutex> lock(mMutexMapPoint);
+                    ++mnMaxMPId;
+                    mpRosMP->mn_id = mnMaxMPId;
+                }
                 //std::cout << " - MP=" << mp->m_str_hex_id << " not found, processing..."<< std::endl;
                 pMP = Converter::MapPointConverter::RosMapPointToOrb(mpRosMP, pMP);
                 AddMapPoint(pMP);
@@ -912,6 +1118,14 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
     
     //unique_lock<mutex> lock(mMutexUpdateMap);
     pM->PostLoad(mpKeyFrameDB, m_SLAM->GetORBVocabulary(), mORBKeyFrames, mORBMapPoints, mORBCameras, &bKFUnprocessed, mspUnprocKFids);
+    
+    if(mpLoopCloser_->CheckIfRunning())
+    {
+        SetMapAction(false);
+        return;
+    }  
+    
+    mpTracker_->LocalMapIsUpdating(false); 
     
     // Remove KFs which have been removed on the other machine
     for(const auto& kfId : mpRosMap->mvp_erased_keyframe_ids)
@@ -939,15 +1153,17 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
         }
     }
     
-    mpTracker_->LocalMapIsUpdating(false); 
     
     if(bKFUnprocessed) 
         std::cout << "Map with ID=" << pM->GetId() << " is unprocessed!!" << std::endl;
     
-    if(mnTaskModule == 2) {
+    // only tracking needs to update all the stuff there
+    if(mnTaskModule == 1) {
         mpTracker_->UpdateFromLocalMapping(mORBMaps[mpRosMap->mn_id], mORBKeyFrames, mORBMapPoints);
     }
-
+ 
+    pM->ClearErasedData();
+    pM->ClearUpdatedKFIds();
     
     SetMapAction(false);
 }
@@ -983,7 +1199,7 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
     RCLCPP_INFO(this->get_logger(), "Reset requested for Active map id=%d", msg->data);
     
 
-    while(MapActionActive() || KeyFrameActionActive())
+    while(AtlasActionActive() || MapActionActive() || KeyFrameActionActive())
     {
         usleep(3000);
     }
@@ -1067,19 +1283,25 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame", 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(20), rmw_qos_profile_sensor_data));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
+        rclcpp::QoS(rclcpp::KeepLast(5), rmw_qos_profile_sensor_data));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
     map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
         "/MapPoint", 
         rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
+    
+    /* ATLAS */
+    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
+    atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
+        "/Atlas", 
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
     
     /* LocalMapping Active*/
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -1129,16 +1351,23 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(20), rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));
     
     /* Map */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
+        rclcpp::QoS(rclcpp::KeepLast(5), rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));
 
+    /* Atlas */
+    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
+    m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
+        "Atlas",
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default),
+        std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));
+    
     /* MapPoint */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
     m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
