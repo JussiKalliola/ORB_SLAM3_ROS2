@@ -2,10 +2,12 @@
 #ifndef __SLAM_WRAPPER_NODE_HPP_
 #define __SLAM_WRAPPER_NODE_HPP_
 
+
 #include <mutex>
 
 #include "rclcpp/rclcpp.hpp"
 
+#include "std_msgs/msg/int32.hpp"
 #include "std_msgs/msg/int64.hpp"
 #include "std_msgs/msg/bool.hpp"
 
@@ -20,10 +22,12 @@
 #include "orbslam3_interfaces/AtlasConverter.hpp"
 
 
-
 #include "utility.hpp"
 
 #include <cv_bridge/cv_bridge.h>
+
+//#include "../Distributor/System.hpp"
+//#include "../Distributor/Observer.hpp"
 
 #include "System.h"
 #include "Frame.h"
@@ -35,18 +39,26 @@
 #include "KeyFrameDatabase.h"
 #include "GeometricCamera.h"
 
+class Distributor;
+class Observer;
+class System;
+class MapHandler;
+class KeyFramePublisher;
+class KeyFrameSubscriber;
+
 class SlamWrapperNode : public rclcpp::Node 
 {
   public:
-    SlamWrapperNode(ORB_SLAM3::System* pSLAM, bool subscribe_to_slam, const std::string path="./", const std::string strResultFilename="KeyFrameTrajectory.txt");
+    SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<System> pDistSystem, bool subscribe_to_slam, const std::string path="./", const std::string strResultFilename="KeyFrameTrajectory.txt");
 
     ~SlamWrapperNode();
     
     // Publishers
-    void publishKeyFrame(ORB_SLAM3::KeyFrame* pKf, unsigned int mnTargetModule);
+    void publishKeyFrame(orbslam3_interfaces::msg::KeyFrame mRosKF);
+    void publishMap(orbslam3_interfaces::msg::Map mRosMap);
     void publishMap(ORB_SLAM3::Map* pM);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
-    void publishAtlas(bool mbMerged, bool mbLoopCloser, std::vector<unsigned long int> mvMergedIds);
+    void publishAtlas(orbslam3_interfaces::msg::Atlas mRosAtlas);
     
     void publishResetActiveMap(unsigned long int mnMapId);
     void publishLMResetRequested();
@@ -97,7 +109,22 @@ class SlamWrapperNode : public rclcpp::Node
     void CreateSubscribers();
       
   protected:
-    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule);
+    
+    ORB_SLAM3::KeyFrame* ProcessNewKeyFrame(std::shared_ptr<orbslam3_interfaces::msg::KeyFrame> mpRosKF, std::map<unsigned long int, ORB_SLAM3::Map*> mMaps);
+    ORB_SLAM3::MapPoint* ProcessNewMapPoint(std::shared_ptr<orbslam3_interfaces::msg::MapPoint> mpRosMP, std::map<unsigned long int, ORB_SLAM3::Map*> mMaps);
+    
+    ORB_SLAM3::KeyFrame* InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, std::map<unsigned long int, ORB_SLAM3::KeyFrame*> mFusedKFs);
+    void InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, std::map<std::string, ORB_SLAM3::MapPoint*> mFusedMPs);
+    void InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* mpCurrentMap);
+
+    std::shared_ptr<Distributor> mpDistributor;
+    std::shared_ptr<System> mpDistributionSystem;
+    std::shared_ptr<Observer> mpObserver;
+    MapHandler* mpMapHandler;
+    KeyFramePublisher* mpKeyFramePublisher;
+    KeyFrameSubscriber* mpKeyFrameSubscriber;
+
+    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule, const unsigned int nFromModule);
     bool mbKeyFrameAction;
     bool mbMapAction;
     bool mbAtlasAction;
@@ -148,6 +175,7 @@ class SlamWrapperNode : public rclcpp::Node
     void GrabLMResetRequested(const std_msgs::msg::Bool::SharedPtr msg);
     void GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::SharedPtr msg);
     
+    void workerCallback(std_msgs::msg::Int32::SharedPtr msg);
     void endCallback(std_msgs::msg::Bool::SharedPtr bMsg);
     void stepCallback(std_msgs::msg::Bool::SharedPtr bMsg);
     
@@ -164,6 +192,7 @@ class SlamWrapperNode : public rclcpp::Node
     
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr end_publisher_;
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr step_publisher_;
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr worker_publisher_;  
     
 
     // Subscribers
@@ -176,6 +205,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Subscription<orbslam3_interfaces::msg::Bool>::SharedPtr m_lm_active_subscriber_;     
     rclcpp::Subscription<orbslam3_interfaces::msg::Int64>::SharedPtr m_sys_reset_active_map_subscriber_;     
     
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr worker_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr end_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr step_subscriber_;
 

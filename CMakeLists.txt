@@ -86,19 +86,33 @@ add_library(slam_wrapper SHARED
 ament_target_dependencies(slam_wrapper rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
 
 
-add_library(slam_observer SHARED
-  src/shared/ObserverImpl.cpp
+add_library(slam_distributor SHARED
+  src/slam/Distributor.cpp
 )
-ament_target_dependencies(slam_observer rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
+ament_target_dependencies(slam_distributor rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
 
+add_library(slam_distributor2 SHARED
+  src/Distributor/System.cpp
+  src/Distributor/KeyFramePublisher.cpp
+  src/Distributor/KeyFrameSubscriber.cpp
+  src/Distributor/MapHandler.cpp
+  src/Distributor/Observer.cpp
+  src/Distributor/System.hpp
+  src/Distributor/KeyFramePublisher.hpp
+  src/Distributor/KeyFrameSubscriber.hpp
+  src/Distributor/MapHandler.hpp
+  src/Distributor/Observer.hpp
+)
+ament_target_dependencies(slam_distributor2 rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
 
 target_link_libraries(mono 
-  slam_observer 
+  slam_distributor 
+  slam_distributor2 
   slam_wrapper
   -lboost_serialization
 )
 
-install(TARGETS slam_wrapper mono  slam_observer 
+install(TARGETS slam_wrapper mono  slam_distributor slam_distributor2 
   DESTINATION lib/${PROJECT_NAME})
 #rgbd stereo stereo-inertial
 # Install launch files.
