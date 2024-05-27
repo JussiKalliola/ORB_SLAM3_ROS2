@@ -81,7 +81,7 @@ public:
     } else if (lowercaseStr == "false") {
       return false; // Return 0 for false
     } else {
-      cout << "Parameter is not boolean; exit..." << endl;
+      std::cout << "Parameter is not boolean; exit..." << std::endl;
       exit(1);
     }
   }

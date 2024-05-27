@@ -9,7 +9,7 @@ ENDIF()
 MESSAGE("${PROJECT_NAME}: Build type: " ${CMAKE_BUILD_TYPE})
 
 # You should set the PYTHONPATH to your own python site-packages path
-set(ENV{PYTHONPATH} "/opt/ros/foxy/install/lib/python3.6/site-packages/")
+set(ENV{PYTHONPATH} "/opt/ros/humble/install/lib/python3.10/site-packages/")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/CMakeModules)
 
@@ -19,7 +19,7 @@ if(NOT CMAKE_CXX_STANDARD)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic -w)
+  add_compile_options(-Wall -Wextra -Wpedantic -O3 -w)
 endif()
 
 find_package(ament_cmake REQUIRED)
@@ -31,7 +31,6 @@ find_package(message_filters REQUIRED)
 find_package(Sophus REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(ORB_SLAM3 REQUIRED)
-find_package(orbslam3_interfaces REQUIRED)
 find_package(orbslam3_interfaces REQUIRED)
 
 #Jussi: Switch to OpenCV 4.2 from 4.4 to make it work with ros2 wrapper
@@ -86,33 +85,41 @@ add_library(slam_wrapper SHARED
 ament_target_dependencies(slam_wrapper rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
 
 
-add_library(slam_distributor SHARED
-  src/slam/Distributor.cpp
-)
-ament_target_dependencies(slam_distributor rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
+#add_library(slam_distributor SHARED
+#  src/slam/Distributor.cpp
+#)
+#ament_target_dependencies(slam_distributor rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
 
-add_library(slam_distributor2 SHARED
+add_library(slam_distributor SHARED
   src/Distributor/System.cpp
   src/Distributor/KeyFramePublisher.cpp
   src/Distributor/KeyFrameSubscriber.cpp
   src/Distributor/MapHandler.cpp
   src/Distributor/Observer.cpp
+  src/Distributor/Tracker.cpp
   src/Distributor/System.hpp
   src/Distributor/KeyFramePublisher.hpp
   src/Distributor/KeyFrameSubscriber.hpp
   src/Distributor/MapHandler.hpp
   src/Distributor/Observer.hpp
+  src/Distributor/Tracker.hpp
+  src/Converter/Converter.hpp
+  src/Converter/AtlasConverter.hpp
+  src/Converter/MapConverter.hpp
+  src/Converter/KeyFrameConverter.hpp
+  src/Converter/MapPointConverter.hpp
 )
-ament_target_dependencies(slam_distributor2 rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Pangolin)
+ament_target_dependencies(slam_distributor rclcpp std_msgs orbslam3_interfaces cv_bridge ORB_SLAM3 Sophus Pangolin)
 
 target_link_libraries(mono 
   slam_distributor 
-  slam_distributor2 
   slam_wrapper
   -lboost_serialization
 )
 
-install(TARGETS slam_wrapper mono  slam_distributor slam_distributor2 
+#orbslam3_interfaces
+
+install(TARGETS slam_wrapper mono  slam_distributor #slam_distributor2 
   DESTINATION lib/${PROJECT_NAME})
 #rgbd stereo stereo-inertial
 # Install launch files.

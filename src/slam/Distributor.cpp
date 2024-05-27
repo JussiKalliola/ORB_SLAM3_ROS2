@@ -171,8 +171,9 @@ orbslam3_interfaces::msg::KeyFrame Distributor::ProcessNewKeyFrame()
     }
     
     orbslam3_interfaces::msg::KeyFrame mRosKF = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROS(pKF);
+
     mRosKF.target = mnTargetModule;
-    mRosKF.from = mnTaskModule;
+    mRosKF.from_module_id = mnTaskModule;
     
     return mRosKF;
 }

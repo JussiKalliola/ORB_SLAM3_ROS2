@@ -12,7 +12,8 @@
 //#include "KeyFrameDatabase.h"
 //#include "GeometricCamera.h"
 
-#include "orbslam3_interfaces/Converter.hpp"
+#include "../Converter/Converter.hpp"
+//#include "orbslam3_interfaces/Converter.hpp"
 //#include "./Observer.hpp"
 #include <stdlib.h>
 #include <mutex>
@@ -49,6 +50,46 @@ class MapHandler
     void RequestFinish();
     bool isFinished();
 
+    //vector<long int> vnNumberOfNewMapPoints;
+    //vector<long int> vnNumberOfUpdatedMapPoints;
+    vector<double> vdRos2OrbConvMap_ms;
+    vector<double> vdRos2OrbKFConvMap_ms;
+    vector<double> vdRos2OrbMPConvMap_ms;
+    vector<double> vdRos2OrbDataConvMap_ms;
+    vector<double> vdPostLoadKFMap_ms;
+    vector<double> vdPostLoadMPMap_ms;
+    vector<double> vdInjectKFMap_ms;
+    vector<double> vdInjectMPMap_ms;
+    vector<double> vdUpdateMap_ms; // Convert (without KFs and MPs), postload, inject
+    vector<double> vdRos2OrbProcMap_ms;
+    vector<int> vnNumberOfMPs;
+    vector<int> vnNumberOfKFs;
+    vector<int> vnNumberOfMPsTotal;
+    vector<int> vnNumberOfKFsTotal;
+
+    vector<std::chrono::steady_clock::time_point> vtTimesSubMap;
+
+    vector<double> vdRos2OrbDataConvAtlas_ms;
+    vector<double> vdRos2OrbKFConvAtlas_ms;
+    vector<double> vdPostLoadKFAtlas_ms;
+    vector<double> vdPostLoadMPAtlas_ms;
+    vector<double> vdInjectKFAtlas_ms;
+    vector<double> vdInjectMPAtlas_ms;
+    vector<double> vdUpdateAtlas_ms; // Convert (without KFs and MPs), postload, inject
+    vector<double> vdRos2OrbProcAtlas_ms;
+    vector<std::chrono::steady_clock::time_point> vtTimesSubAtlas;
+
+    vector<double> vdPreSaveMap_ms;
+    vector<double> vdOrb2RosConvMap_ms;
+    vector<double> vdOrb2RosProcMap_ms;
+    vector<std::chrono::steady_clock::time_point> vtTimesPubMap;
+
+    vector<double> vdPreSaveAtlas_ms;
+    vector<double> vdOrb2RosConvAtlas_ms;
+    vector<double> vdOrb2RosProcAtlas_ms;
+    vector<std::chrono::steady_clock::time_point> vtTimesPubAtlas;
+
+
   protected:  
     bool CheckPubLocalMaps();
     bool CheckSubLocalMaps();
@@ -61,6 +102,15 @@ class MapHandler
 
     void ProcessNewPubGlobalMap();
     void ProcessNewSubGlobalMap();
+
+    std::set<std::string> msErasedMPs;
+    std::set<unsigned long int> msUpdatedLocalKFs;
+    std::set<std::string> msUpdatedLocalMPs;
+
+    std::set<unsigned long int> msErasedKFs;
+    std::set<unsigned long int> msUpdatedGlobalKFs;
+    std::set<std::string> msUpdatedGlobalMPs;
+    std::mutex mMutexUpdates;
 
     std::list<ORB_SLAM3::Map*> mlpMapPubQueue;
     std::list<orbslam3_interfaces::msg::Map::SharedPtr> mlpMapSubQueue;

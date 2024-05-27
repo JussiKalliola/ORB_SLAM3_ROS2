@@ -13,7 +13,7 @@
 #include "../Distributor/System.hpp"
 
 #include "../slam/slam-wrapper-node.hpp"
-#include "../slam/Distributor.hpp"
+//#include "../slam/Distributor.hpp"
 
 
 std::shared_ptr<SlamWrapperNode> slam_node;
@@ -69,9 +69,13 @@ int main(int argc, char **argv)
     string strSaveToPath = argv[3]; 
     // First create the base directory and then sub directory
     if (Utility::createDirectory(strSaveToPath)) {
-      if (!Utility::createDirectory(strSaveToPath + "monocular/")) {
+      if (Utility::createDirectory(strSaveToPath + "monocular/")) {
+        if (!Utility::createDirectory(strSaveToPath + "monocular/" + "stats/")) 
+            exit(1);
+      } else {
         // Failer to create directory or it doesnt exists
         exit(1);
+
       }
     } else {
       // Failer to create directory or it doesnt exists
@@ -105,9 +109,10 @@ int main(int argc, char **argv)
     std::signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv); 
 
-    std::shared_ptr<System> mpDistSystem= std::make_shared<System>();
+    std::string mStatSavePath=strSaveToPath+"stats/"; 
+    std::shared_ptr<System> mpDistSystem= std::make_shared<System>(mStatSavePath);
     std::shared_ptr<Observer> mpDistObserver = mpDistSystem->GetObserver();
-    std::shared_ptr<Distributor> mpDistributor = std::make_shared<Distributor>();
+    //std::shared_ptr<Distributor> mpDistributor = std::make_shared<Distributor>();
 
     // malloc error using new.. try shared ptr
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
@@ -122,13 +127,14 @@ int main(int argc, char **argv)
     {
         mpDistSystem->AttachORBSLAMSystem(&SLAM);
         mpDistSystem->AttachSLAMNode(slam_node);
+        mpDistSystem->LaunchThreads();
     }
 
-    if(mpDistributor != nullptr) 
-    {
-      mpDistributor->AttachSLAMNode(slam_node);
-      mpDistributor->AttachSLAMSystem(&SLAM);
-    }
+    //if(mpDistributor != nullptr) 
+    //{
+    //  mpDistributor->AttachSLAMNode(slam_node);
+    //  mpDistributor->AttachSLAMSystem(&SLAM);
+    //}
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
@@ -165,6 +171,8 @@ int main(int argc, char **argv)
     SLAM.SaveKeyFrameTrajectoryTUM(strSaveToPath + strResultFileName);
     std::cout << "Shutdown SLAM System" << std::endl;
     SLAM.Shutdown();
+    mpDistSystem->ShutDown();
+    
     
     //rclcpp::shutdown();
 

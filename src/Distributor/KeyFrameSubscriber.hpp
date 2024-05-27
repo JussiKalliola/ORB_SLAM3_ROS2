@@ -2,8 +2,8 @@
 #define DISTRIBUTOR_KEYFRAME_SUBSCRIBER_H
 
 #include "System.h"
-#include "orbslam3_interfaces/Converter.hpp"
-#include "orbslam3_interfaces/KeyFrameConverter.hpp"
+#include "../Converter/Converter.hpp"
+#include "../Converter/KeyFrameConverter.hpp"
 //#include "Frame.h"
 //#include "KeyFrame.h"
 //#include "Map.h"
@@ -32,6 +32,7 @@ class KeyFrameSubscriber
     void Run();
 
     void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::SharedPtr pRosKF);
+    void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr pRosKFUpdate);
     
     int KeyFramesInQueue();
 
@@ -41,13 +42,34 @@ class KeyFrameSubscriber
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachObserver(std::shared_ptr<Observer> pObserver);
 
+    // Processing times ROS->ORB, include postload etc.
+    vector<double> vdRos2OrbProcKF_ms;
+    vector<double> vdRos2OrbConvKF_ms;
+    vector<double> vdRos2OrbConvMP_ms;
+    vector<double> vdPostLoadKF_ms;
+    vector<double> vdPostLoadMP_ms;
+    vector<double> vdInjectMP_ms;
+    vector<double> vdInjectKF_ms;
+    vector<double> vdPrepDataKF_ms;;
+
+    vector<int> vnKFAmount;
+    vector<int> vnMPAmount;
+
+    vector<int> vnNewMPAmount;
+    vector<int> vnUpdateMPAmount;
+
+    vector<std::chrono::steady_clock::time_point> vtTimes;
+
   protected:  
 
     bool CheckNewKeyFrames();
+    bool CheckNewKeyFrameUpdates();
     
     void ProcessNewKeyFrame();
+    void ProcessNewKeyFrameUpdate();
     
     std::list<orbslam3_interfaces::msg::KeyFrame::SharedPtr> mlpRosKeyFrameQueue;
+    std::list<orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mlpRosKeyFrameUpdateQueue;
     std::mutex mMutexNewRosKFs;
 
     bool CheckFinish();

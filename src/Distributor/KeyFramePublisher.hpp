@@ -1,8 +1,8 @@
 #ifndef DISTRIBUTOR_KEYFRAME_PUBLISHER_H
 #define DISTRIBUTOR_KEYFRAME_PUBLISHER_H
 
-#include "orbslam3_interfaces/Converter.hpp"
-#include "orbslam3_interfaces/KeyFrameConverter.hpp"
+#include "../Converter/Converter.hpp"
+#include "../Converter/KeyFrameConverter.hpp"
 //#include "../slam/slam-wrapper-node.hpp"
 #include "System.h"
 //#include "Frame.h"
@@ -32,7 +32,8 @@ class KeyFramePublisher
     // main function
     void Run();
 
-    void InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF, unsigned int mnTargetModule);
+    void InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF);
+    void InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds);
     
     int KeyFramesInQueue();
 
@@ -44,12 +45,20 @@ class KeyFramePublisher
     void AttachObserver(std::shared_ptr<Observer> pObserver);
     int mnTaskModule;
 
+    // Processing times ROS->ORB, include postload etc.
+    vector<double> vdPreSaveMP_ms;
+    vector<double> vdPreSaveKF_ms;
+    vector<double> vdOrb2RosProcKF_ms;
+    vector<double> vdOrb2RosConvKF_ms;
+    vector<std::chrono::steady_clock::time_point> vtTimes;
+
   protected:  
     bool CheckNewKeyFrames();
-    orbslam3_interfaces::msg::KeyFrame ProcessNewKeyFrame();
+    void ProcessNewKeyFrame();
+    
+    std::set<std::string> msUpdatedMPs;
 
     std::list<ORB_SLAM3::KeyFrame*> mlpKeyFrameQueue;
-    std::list<unsigned int> mlKeyFrameTargetModule;
     std::mutex mMutexNewKFs;
 
     bool CheckFinish();

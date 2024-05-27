@@ -26,13 +26,14 @@
 class MapHandler;
 class KeyFramePublisher;
 class KeyFrameSubscriber;
+class Tracker;
 class SlamWrapperNode;
 class Observer;
 
 class System
 {
   public:  
-    System();
+    System(std::string mStatSavePath);
     ~System();
 
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
@@ -44,12 +45,29 @@ class System
     MapHandler* GetMapHandler();
     KeyFrameSubscriber* GetKeyFrameSubscriber();
     KeyFramePublisher* GetKeyFramePublisher();
-
     
+    void ShutDown();
+
+    void TrackStats2File();
+    void LoopClosingStats2File();
+    void LocalMapStats2File();
+    void TimeStats2File();
+    void SystemStats2File();
+    void PrintTimeStats();
+
+
   protected:  
     ORB_SLAM3::System* pSLAM;
+    ORB_SLAM3::Tracking* mpTracker;
+    ORB_SLAM3::LocalMapping* mpLocalMapper;
+    ORB_SLAM3::LoopClosing* mpLoopCloser;
 
     std::shared_ptr<SlamWrapperNode> pSLAMNode;
+
+    std::string mStrStatSavePath;
+
+    std::mutex mMutexTime;
+    std::chrono::steady_clock::time_point time_GlobalSystemStart;
 
 
   private:  
@@ -72,10 +90,14 @@ class System
     // otherwise send to ros network
     std::shared_ptr<Observer> mpObserver;
 
+    // system Tracker. Keeps track of CPU, memory etc. utilization. working in its own thread. 
+    Tracker* mpSystemTracker;
+
     // System threads: KF Publisher, KF Subscriber, Map Handler (sub+pub)
     std::thread* mptKeyFramePublisher;
     std::thread* mptKeyFrameSubscriber;
     std::thread* mptMapHandler;
+    std::thread* mptSystemTracker;
 };
 //}
 

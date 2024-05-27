@@ -1,5 +1,7 @@
 #include "Distributor.h"
 
+#include "std_msgs/msg/header.hpp"
+
 #include "orbslam3_interfaces/Converter.hpp"
 //#include "orbslam3_interfaces/KeyFrameConverter.hpp"
 //#include "orbslam3_interfaces/MapConverter.hpp"
@@ -48,6 +50,7 @@ class Distributor : public ORB_SLAM3::Distributor {
         void deleteSlamNode(std::shared_ptr<SlamWrapperNode> slam_node);
 
         int mnTaskModule;
+
 
     protected:
         bool CheckNewKeyFrames();

@@ -41,43 +41,94 @@ class Observer : public ORB_SLAM3::Distributor
     ~Observer();
 
     // Routing data
-    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int mnTargetModule, const unsigned int nFromModule);
+    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule);
+
+    // Injetion functions. Inject received data back into SLAM
     void InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap);
-    void InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, std::map<std::string, ORB_SLAM3::MapPoint*> mMapMPs);
-    ORB_SLAM3::KeyFrame* InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, std::map<unsigned long int, ORB_SLAM3::KeyFrame*> mMapKFs);
-    ORB_SLAM3::MapPoint* ConvertMapPoint(std::shared_ptr<orbslam3_interfaces::msg::MapPoint> mpRosMP, std::map<unsigned long int, ORB_SLAM3::Map*> mMaps);
-    ORB_SLAM3::KeyFrame* ConvertKeyFrame(std::shared_ptr<orbslam3_interfaces::msg::KeyFrame> mpRosKF, std::map<unsigned long int, ORB_SLAM3::Map*> mMaps);
+    void InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* mpExistingMP, const bool mbNew);
+    ORB_SLAM3::KeyFrame* InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, ORB_SLAM3::KeyFrame* mpExistingKF, const int nFromModule);
+
+    // Conversion between ORB and ROS2 interfaces
+    ORB_SLAM3::MapPoint* ConvertMapPoint(const std::shared_ptr<orbslam3_interfaces::msg::MapPointUpdate>& mpRosMP, ORB_SLAM3::MapPoint* mpExistingMP);
+    ORB_SLAM3::MapPoint* ConvertMapPoint(const std::shared_ptr<orbslam3_interfaces::msg::MapPoint>& mpRosMP, ORB_SLAM3::MapPoint* mpExistingMP);
+    ORB_SLAM3::KeyFrame* ConvertKeyFrame(const std::shared_ptr<orbslam3_interfaces::msg::KeyFrame>& mpRosKF, ORB_SLAM3::KeyFrame* mpExistingKF);
+    void ConvertKeyFrame(const std::shared_ptr<orbslam3_interfaces::msg::KeyFrameUpdate>& mpRosKF, ORB_SLAM3::KeyFrame* mpExistingKF);
 
     
-    void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
-    void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
-    void AttachKeyFramePublisher(KeyFramePublisher* pKeyFramePublisher);
+    // ORB SLAM3 functions
+    void AddMapPoint(ORB_SLAM3::MapPoint* pMP);
+    void EraseMapPoint(ORB_SLAM3::MapPoint* pMP);
+    bool CheckIfMapPointExists(ORB_SLAM3::MapPoint* pMP);
+    void ClearMapPointsFromMap(ORB_SLAM3::Map* pM);
+    std::map<std::string, ORB_SLAM3::MapPoint*>& GetAllMapPoints();
+
+    void AddKeyFrame(ORB_SLAM3::KeyFrame* pKF);
+    void EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF);
+    bool CheckIfKeyFrameExists(ORB_SLAM3::KeyFrame* pKF);
+    void ClearKeyFramesFromMap(ORB_SLAM3::Map* pM);
+    std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& GetAllKeyFrames();
+
+    void AddMap(ORB_SLAM3::Map* pM);
+    void EraseMap(ORB_SLAM3::Map* pM);
+    std::map<unsigned long int, ORB_SLAM3::Map*>& GetAllMaps();
     
     // Update worker set
     void AddNewWorker(unsigned int mnWorkerModule);
 
     // Task module related
     int GetTaskModule();
+
+    double TimeSinceReset();
+    std::chrono::system_clock::time_point GetLastResetTime();
+    void UpdateLastResetTime();
+
+
+    void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
+    void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
+    void AttachKeyFramePublisher(KeyFramePublisher* pKeyFramePublisher);
+
     
     // Override inherited public functions from ORBSLAM3
+    void onNewMap(ORB_SLAM3::Map* pM) override;
+    void onNewKeyFrame(ORB_SLAM3::KeyFrame* pKF) override;
+    void onNewMapPoint(ORB_SLAM3::MapPoint* pMP) override;
     void onActiveMapReset(unsigned long int mnMapId) override;
     void onLMResetRequested() override;
-    void onChangeLMActive(bool bActive) override;
-    void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, unsigned int mnTargetModule) override;
+    //void onChangeLMActive(bool bActive) override;
+    void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF) override;
+    void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds) override;
     void onLocalMapUpdated(ORB_SLAM3::Map* pM) override;
     void onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds) override;
     int KeyFramesInQueue() override;
     int MapsInQueue() override;
 
+
+
     
   protected:  
     int GetWorkerNumber();
+    bool CheckIfWorkerExists(const unsigned int mnTargetID);
     
     std::set<unsigned int> mspWorkers; 
     std::mutex mMutexWorker;
 
     std::mutex mMutexTask;
     int mnTaskModule;
+
+
+    // ORB SLAM3 Data
+    std::map<unsigned long int, ORB_SLAM3::Map*> mOrbMaps;
+    std::mutex mMutexMap;
+
+    std::map<std::string, ORB_SLAM3::MapPoint*> mOrbMapPoints;
+    std::mutex mMutexMapPoint;
+
+    std::map<unsigned long int, ORB_SLAM3::KeyFrame*> mOrbKeyFrames;
+    std::mutex mMutexKeyFrame;
+
+    double mdSinceReset;
+    std::chrono::system_clock::time_point mtLastResetTime;
+    std::mutex mMutexTimes;
 
   private:  
     std::shared_ptr<SlamWrapperNode> pSLAMNode;
