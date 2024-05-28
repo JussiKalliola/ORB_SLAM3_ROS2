@@ -405,13 +405,13 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame/New", 
-        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
 
     /* KEYFRAME */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_update_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameUpdate>(
         "/KeyFrame/Update", 
-        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
@@ -499,14 +499,14 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame/New",
-        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));//, options1);
     
     // KF Update
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_update_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameUpdate>(
         "KeyFrame/Update",
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data), //rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default), //rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrameUpdate, this, std::placeholders::_1));//, options1);
     
     /* Map */

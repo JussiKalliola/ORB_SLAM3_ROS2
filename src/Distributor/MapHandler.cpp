@@ -955,7 +955,7 @@ void MapHandler::ProcessNewSubLocalMap()
           ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
           ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, mpRosMap->from_module_id);
           //std::cout << "KF addrs: " << tempKF << "," << mFusedKFs[tempKF->mnId] << std::endl;
-          pKF->mnNextTarget=0;
+          //pKF->mnNextTarget=0;
           
           if(pKF)
               mpObserver->ForwardKeyFrameToTarget(pKF, mpRosMap->from_module_id);
@@ -1042,7 +1042,7 @@ int MapHandler::LocalMapsInQueue()
 bool MapHandler::CheckPubLocalMaps()
 {
     unique_lock<mutex> lock(mMutexNewMaps);
-    return((!msUpdatedLocalKFs.empty() || !msUpdatedLocalMPs.empty()));
+    return((msUpdatedLocalKFs.size() > 2 && msUpdatedLocalMPs.size() > 50));
 }
 
 
