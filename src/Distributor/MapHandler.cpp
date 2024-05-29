@@ -695,6 +695,30 @@ void MapHandler::ProcessNewSubLocalMap()
         return a.mn_id > b.mn_id;
     });
 
+    // Remove KFs and MPs
+    for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
+    {
+        unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
+        ORB_SLAM3::KeyFrame* pEraseKF=mFusedKFs[mnId];
+        if(pEraseKF)
+        {
+            //mpKeyFrameDB->erase(pEraseKF);
+            pEraseKF->SetBadFlag();
+        }
+    }
+
+    for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
+    {
+        std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
+        ORB_SLAM3::MapPoint* pEraseMP=mFusedMPs[mnId];
+        if(pEraseMP)
+        {
+            //mpObserver->EraseMapPoint(pEraseMP);
+            pEraseMP->SetBadFlag();
+        }
+    }
+
+
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartConvKFMP = std::chrono::steady_clock::now();
 
@@ -977,28 +1001,6 @@ void MapHandler::ProcessNewSubLocalMap()
     
     //std::cout << "Got an update for a map. 5. All the data is injected into ORB_SLAM3." << std::endl;
 
-    // Remove KFs and MPs
-    for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
-    {
-        unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
-        ORB_SLAM3::KeyFrame* pEraseKF=mFusedKFs[mnId];
-        if(pEraseKF)
-        {
-            //mpKeyFrameDB->erase(pEraseKF);
-            pEraseKF->SetBadFlag();
-        }
-    }
-
-    for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
-    {
-        std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
-        ORB_SLAM3::MapPoint* pEraseMP=mFusedMPs[mnId];
-        if(pEraseMP)
-        {
-            mpObserver->EraseMapPoint(pEraseMP);
-            pEraseMP->SetBadFlag();
-        }
-    }
 
     //std::cout << "Got an update for a map. 6. Data which was deleted elsewhere is removed from the system." << std::endl;
 
