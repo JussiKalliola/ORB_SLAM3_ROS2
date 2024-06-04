@@ -1,0 +1,3 @@
+/cam0/image_raw:
+  reliability: best_effort
+  history: keep_all

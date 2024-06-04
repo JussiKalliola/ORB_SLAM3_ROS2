@@ -1,4 +1,5 @@
 #include "monocular-slam-node.hpp"
+#include <rmw/qos_profiles.h>
 
 #include<opencv2/core/core.hpp>
 
@@ -18,6 +19,7 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<S
   m_image_subscriber = this->create_subscription<ImageMsg>(
       "camera",
       10,
+      //rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
       std::bind(&MonocularSlamNode::GrabImage, this, std::placeholders::_1));
 }
 
