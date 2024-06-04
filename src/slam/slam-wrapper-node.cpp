@@ -430,7 +430,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
     atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
         "/Atlas", 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
     
     /* LocalMapping Active*/
     //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -521,7 +521,7 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
     m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
         "Atlas",
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default),
         std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);
     
     /* MapPoint */

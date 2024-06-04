@@ -921,10 +921,8 @@ void MapHandler::ProcessNewSubLocalMap()
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartPostLoadMP = std::chrono::steady_clock::now();
 
-    vnNumberOfKFs.push_back(mvpTempKFs.size());
-    vnNumberOfKFsTotal.push_back(pCurrentMap->GetAllKeyFrames().size());
+    vnNumberOfKFs.push_back(mvRosKF.size());
     vnNumberOfMPs.push_back(mvpTempMPs.size());
-    vnNumberOfMPsTotal.push_back(pCurrentMap->GetAllMapPoints().size());
     // PostLoad for all the MPs
     //for(std::unordered_map<std::string, ORB_SLAM3::MapPoint*>::iterator it = mTempMPs.begin(); it != mTempMPs.end(); ++it)
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
@@ -1015,6 +1013,9 @@ void MapHandler::ProcessNewSubLocalMap()
     tempMap->PostLoad(mpKeyFrameDB, pSLAM->GetORBVocabulary(), mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
     mpObserver->InjectMap(tempMap, pCurrentMap);
 
+    vnNumberOfKFsTotal.push_back(pCurrentMap->GetAllKeyFrames().size());
+    vnNumberOfMPsTotal.push_back(pCurrentMap->GetAllMapPoints().size());
+
     // End of timer
     std::chrono::steady_clock::time_point time_EndUpdateMap = std::chrono::steady_clock::now();
     double timeUpdateMap = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndUpdateMap- time_StartUpdateMap).count();
@@ -1044,7 +1045,7 @@ int MapHandler::LocalMapsInQueue()
 bool MapHandler::CheckPubLocalMaps()
 {
     unique_lock<mutex> lock(mMutexNewMaps);
-    return((msUpdatedLocalKFs.size() > 2 && msUpdatedLocalMPs.size() > 50));
+    return((msUpdatedLocalKFs.size() >= 1 && msUpdatedLocalMPs.size() > 50));
 }
 
 

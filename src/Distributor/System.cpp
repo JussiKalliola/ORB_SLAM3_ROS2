@@ -120,7 +120,7 @@ void System::LocalMapStats2File()
     f.open(fileName);
     f << fixed << setprecision(6);
 
-    f << "#Start time[ms], Stereo rect[ms], MP culling[ms], MP creation[ms], LBA[ms], KF culling[ms], Total[ms]" << endl;
+    f << "#Start time[ms], Insert KF[MS], MP culling[ms], MP creation[ms], LBA[ms], KF culling[ms], Total[ms]" << endl;
     for(int i=0; i<mpLocalMapper->vdLMTotal_ms.size(); ++i)
     {
         std::chrono::steady_clock::time_point time_StartAction = mpLocalMapper->vtStartTimeLM_ms[i];
@@ -154,7 +154,7 @@ void System::TrackStats2File()
 {
     ofstream f;
     string sysId(std::getenv("SLAM_SYSTEM_ID"));
-
+    std::string fileName="";
     if(mpObserver->GetTaskModule() == 1)
     {
         std::string fileName=mStrStatSavePath + "LostTrackStats.txt";
@@ -174,52 +174,23 @@ void System::TrackStats2File()
         f.close();
 
     }
-    //std::string fileName=mStrStatSavePath + "LostTrackStats-" + sysId + ".txt";
-    //f.open(fileName);
-    //f << fixed << setprecision(6);
 
-    //f << "#Start time[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
 
-    //for(int i=0; i<mpTracker->vtStartTime_ms.size(); ++i)
-    //{
-    //    std::chrono::steady_clock::time_point time_StartAction = mpTracker->vtStartTime_ms[i];
-    //    long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
 
-    //    double stereo_rect = 0.0;
-    //    if(!mpTracker->vdRectStereo_ms.empty())
-    //    {
-    //        stereo_rect = mpTracker->vdRectStereo_ms[i];
-    //    }
+    fileName=mStrStatSavePath + "TrackingStats-" + sysId + ".txt";
+    f.open(fileName);
+    f << fixed << setprecision(6);
+    f << "Time from start [ms], ORB Extract[ms], Pose Pred[ms], LM Track[ms], New KF[ms], Total[ms]" << endl;
 
-    //    double resize_image = 0.0;
-    //    if(!mpTracker->vdResizeImage_ms.empty())
-    //    {
-    //        resize_image = mpTracker->vdResizeImage_ms[i];
-    //    }
+    for(int i=0;i<mpTracker->vdTrackTotal_ms.size(); ++i)
+    {
+        std::chrono::steady_clock::time_point time_StartAction = mpTracker->vtStartTimeTR_ms[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        f << timeSinceStart << "," << mpTracker->vdORBExtract_ms[i] << "," << mpTracker->vdPosePred_ms[i] << "," << mpTracker->vdLMTrack_ms[i] << "," << mpTracker->vdNewKF_ms[i] << "," << mpTracker->vdTrackTotal_ms[i] << endl;
+    }
 
-    //    double orb_extract = 0.0;
-    //    if(mpTracker->vdORBExtract_ms.size() > i)
-    //    {
-    //      
-    //    }
 
-    //    double stereo_match = 0.0;
-    //    if(!mpTracker->vdStereoMatch_ms.empty())
-    //    {
-    //        stereo_match = mpTracker->vdStereoMatch_ms[i];
-    //    }
-
-    //    double imu_preint = 0.0;
-    //    if(!mpTracker->vdIMUInteg_ms.empty())
-    //    {
-    //        imu_preint = mpTracker->vdIMUInteg_ms[i];
-    //    }
-
-    //    f << timeSinceStart << "," << stereo_rect << "," << resize_image << "," << mpTracker->vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
-    //      << mpTracker->vdPosePred_ms[i] <<  "," << mpTracker->vdLMTrack_ms[i] << "," << mpTracker->vdNewKF_ms[i] << "," << mpTracker->vdTrackTotal_ms[i] << endl;
-    //}
-
-    //f.close();
+    f.close();
 }
 
 void System::SystemStats2File()
