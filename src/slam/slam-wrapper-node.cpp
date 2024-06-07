@@ -320,13 +320,13 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
 
     mpLocalMapper_->Release();
 
-    mpObserver->ClearMapPointsFromMap(mpAtlas_->GetCurrentMap());
-    mpObserver->ClearKeyFramesFromMap(mpAtlas_->GetCurrentMap());
+    //mpObserver->ClearMapPointsFromMap(mpAtlas_->GetCurrentMap());
+    //mpObserver->ClearKeyFramesFromMap(mpAtlas_->GetCurrentMap());
 
     if(mpObserver->GetTaskModule() == 2)
-        mpTracker_->ResetActiveMap(true, msg->data);
-    else
         mpTracker_->ResetActiveMap(false, msg->data);
+    else
+        mpTracker_->ResetActiveMap(true, msg->data);
 }
 
 

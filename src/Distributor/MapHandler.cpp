@@ -118,7 +118,7 @@ void MapHandler::ProcessNewPubGlobalMap()
     mRosAtlas.mp_current_map = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap);
 
     mRosAtlas.system_id = std::getenv("SLAM_SYSTEM_ID");
-    //mRosAtlas.from_module_id = mnTaskModule;
+    mRosAtlas.from_module_id = mpObserver->GetTaskModule();
     mRosAtlas.mb_map_merge = std::get<0>(mtAtlasUpdate);
     mRosAtlas.mb_loop_closer = std::get<1>(mtAtlasUpdate);
     mRosAtlas.mv_merged_map_ids = std::get<2>(mtAtlasUpdate);
@@ -181,11 +181,13 @@ void MapHandler::ProcessNewSubGlobalMap()
     ORB_SLAM3::Map* pCurrentMap = static_cast<ORB_SLAM3::Map*>(NULL);
     std::map<unsigned long int, ORB_SLAM3::Map*> mMaps = mpObserver->GetAllMaps();
 
-    if(mpRosAtlas->mb_map_merge && mpRosAtlas->mv_merged_map_ids.size() >= 2)
+    if(mpRosAtlas->mb_map_merge && mpRosAtlas->mv_merged_map_ids.size() == 2)
     {
 
+        std::cout << "Got Atlas Update. 0. Merge map current map=" << mpRosAtlas->mv_merged_map_ids[1] << ", merge map=" << mpRosAtlas->mv_merged_map_ids[0] << std::endl;
         pCurrentMap = mMaps[mpRosAtlas->mv_merged_map_ids[1]];
         pMergeMap = mMaps[mpRosAtlas->mv_merged_map_ids[0]];
+
     } else {
         pCurrentMap = mMaps[mpRosMap->mn_id];
     }
@@ -197,29 +199,43 @@ void MapHandler::ProcessNewSubGlobalMap()
         pCurrentMap->attachDistributor(mpObserver);
     }
     
-    std::vector<ORB_SLAM3::KeyFrame*> mvpKFs = pCurrentMap->GetAllKeyFrames(); 
-    for(int i=0;i<mvpKFs.size();++i)
+    std::vector<ORB_SLAM3::Map*> mvpAtlasMaps = mpAtlas->GetAllMaps();
+    for(int k=0;k<mvpAtlasMaps.size();++k)
     {
-      ORB_SLAM3::KeyFrame* pKFi = mvpKFs[i];
-      if(!pKFi)
-          continue;
-      mFusedKFs[pKFi->mnId] = pKFi;
+        std::vector<ORB_SLAM3::KeyFrame*> mvpKFs = mvpAtlasMaps[k]->GetAllKeyFrames(); 
+        for(int i=0;i<mvpKFs.size();++i)
+        {
+          ORB_SLAM3::KeyFrame* pKFi = mvpKFs[i];
+          if(!pKFi)
+              continue;
+          mFusedKFs[pKFi->mnId] = pKFi;
+        }
+
+        std::vector<ORB_SLAM3::MapPoint*> mvpMPs = mvpAtlasMaps[k]->GetAllMapPoints(); 
+
+        for(int i=0;i<mvpMPs.size();++i)
+        {
+          ORB_SLAM3::MapPoint* pMPi = mvpMPs[i];
+          if(!pMPi)
+              continue;
+          mFusedMPs[pMPi->mstrHexId] = pMPi;
+        }
     }
+    
+    //std::vector<ORB_SLAM3::KeyFrame*> mvpKFs = pCurrentMap->GetAllKeyFrames(); 
+    //for(int i=0;i<mvpKFs.size();++i)
+    //{
+    //  ORB_SLAM3::KeyFrame* pKFi = mvpKFs[i];
+    //  if(!pKFi)
+    //      continue;
+    //  mFusedKFs[pKFi->mnId] = pKFi;
+    //}
 
     //mFusedKFs = mpObserver->GetAllKeyFrames();
 
     //vnKFAmount.push_back(mFusedKFs.size());
 
     //mFusedMPs = mpObserver->GetAllMapPoints();
-    std::vector<ORB_SLAM3::MapPoint*> mvpMPs = pCurrentMap->GetAllMapPoints(); 
-
-    for(int i=0;i<mvpMPs.size();++i)
-    {
-      ORB_SLAM3::MapPoint* pMPi = mvpMPs[i];
-      if(!pMPi)
-          continue;
-      mFusedMPs[pMPi->mstrHexId] = pMPi;
-    }
 
     std::cout << "Got Atlas Update. 1. Maps collected." << std::endl;
 
@@ -517,6 +533,8 @@ void MapHandler::ProcessNewSubGlobalMap()
 
     if(mpRosAtlas->mb_map_merge && pMergeMap)
     {
+        std::cout << "Got Atlas Update. 8. Remove merged map." << std::endl;
+        pCurrentMap->SetCurrentMap();
         mpAtlas->SetMapBad(pMergeMap);
         mpAtlas->RemoveBadMaps();
     }
