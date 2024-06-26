@@ -32,12 +32,14 @@ class KeyFrameSubscriber
     void Run();
 
     void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::SharedPtr pRosKF);
-    void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr pRosKFUpdate);
+    void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr& pRosKFUpdate);
     
     int KeyFramesInQueue();
 
     void RequestFinish();
     bool isFinished();
+
+    void ResetQueue();
 
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachObserver(std::shared_ptr<Observer> pObserver);
@@ -70,6 +72,7 @@ class KeyFrameSubscriber
     
     std::list<orbslam3_interfaces::msg::KeyFrame::SharedPtr> mlpRosKeyFrameQueue;
     std::list<orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mlpRosKeyFrameUpdateQueue;
+    std::map<unsigned long int, orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mpRosKeyFrameUpdateQueue;
     std::mutex mMutexNewRosKFs;
 
     bool CheckFinish();

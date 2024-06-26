@@ -23,6 +23,7 @@
 
 class SlamWrapperNode;
 class Observer;
+class KeyFrameSubscriber;
 class MapConverter;
 
 class MapHandler 
@@ -46,9 +47,12 @@ class MapHandler
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
     void AttachObserver(std::shared_ptr<Observer> pObserver);
+    void AttachKFSubscriber(KeyFrameSubscriber* pKFSubscriber);
 
     void RequestFinish();
     bool isFinished();
+
+    void ResetQueue();
 
     //vector<long int> vnNumberOfNewMapPoints;
     //vector<long int> vnNumberOfUpdatedMapPoints;
@@ -99,9 +103,11 @@ class MapHandler
 
     void ProcessNewPubLocalMap();
     void ProcessNewSubLocalMap();
+    void ProcessNewSubLocalMap2();
 
     void ProcessNewPubGlobalMap();
     void ProcessNewSubGlobalMap();
+    void ProcessNewSubGlobalMap2();
 
     std::set<std::string> msErasedMPs;
     std::set<unsigned long int> msUpdatedLocalKFs;
@@ -111,6 +117,11 @@ class MapHandler
     std::set<unsigned long int> msUpdatedGlobalKFs;
     std::set<std::string> msUpdatedGlobalMPs;
     std::mutex mMutexUpdates;
+
+    std::map<unsigned long int, orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mpKeyFrameQueue;
+    std::map<std::string, orbslam3_interfaces::msg::MapPoint::SharedPtr> mpMapPointQueue;
+    orbslam3_interfaces::msg::Map::SharedPtr mpNewRosMap;
+    orbslam3_interfaces::msg::Atlas::SharedPtr mpNewRosAtlas;
 
     std::list<ORB_SLAM3::Map*> mlpMapPubQueue;
     std::list<orbslam3_interfaces::msg::Map::SharedPtr> mlpMapSubQueue;
@@ -126,6 +137,8 @@ class MapHandler
     bool mbFinished;
     std::mutex mMutexFinish;
 
+    std::chrono::high_resolution_clock::time_point msLastMUStart;
+    int mnMapFreq_ms;
 
   private:  
     // ORB_SLAM3
@@ -139,6 +152,7 @@ class MapHandler
     std::shared_ptr<SlamWrapperNode> pSLAMNode;
 
     std::shared_ptr<Observer> mpObserver;
+    KeyFrameSubscriber* mpKeyFrameSubscriber;
 };
 //}
 

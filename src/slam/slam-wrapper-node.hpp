@@ -84,7 +84,7 @@ class SlamWrapperNode : public rclcpp::Node
     
     // Action callbacks
     void GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr rKf);
-    void GrabKeyFrameUpdate(const orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr mpRosKFUpdate);
+    void GrabKeyFrameUpdate(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr mpRosKFUpdate);
     void GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr rM);
     void GrabMapPoint(const orbslam3_interfaces::msg::MapPoint::SharedPtr rpMp);
     void GrabAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr rAtlas);

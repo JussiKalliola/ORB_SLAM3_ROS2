@@ -38,6 +38,11 @@ System::System(std::string mStatSavePath):
       mpKeyFramePublisher->AttachObserver(mpObserver);
       mpKeyFrameSubscriber->AttachObserver(mpObserver);
     }
+
+    if(mpKeyFrameSubscriber)
+    {
+      mpMapHandler->AttachKFSubscriber(mpKeyFrameSubscriber);
+    }
 }
 
 System::~System()
@@ -282,36 +287,36 @@ void System::TimeStats2File()
     f.close();
         
     // Map Subscription
-    fileName=mStrStatSavePath + "MapSubscribeTime-" + sysId + ".txt";
-    f.open(fileName);
-    f << fixed << setprecision(6);
+    //fileName=mStrStatSavePath + "MapSubscribeTime-" + sysId + ".txt";
+    //f.open(fileName);
+    //f << fixed << setprecision(6);
 
-    f << "Time from start [ms], #MPs PostLoad[ms], KFs PostLoad[ms], KFs Conversion[ms], MPs Conversion[ms], KFs+MPs Conversion[ms], MPs Injection[ms], KFs Injection[ms], Map Conversion[ms], Total[ms], #MPs/msg,  #KFs/msg, #MPs Total, #KFs Total" << endl;
+    //f << "Time from start [ms], #MPs PostLoad[ms], KFs PostLoad[ms], KFs Conversion[ms], MPs Conversion[ms], KFs+MPs Conversion[ms], MPs Injection[ms], KFs Injection[ms], Map Conversion[ms], Total[ms], #MPs/msg,  #KFs/msg, #MPs Total, #KFs Total" << endl;
 
-    for(int i=0; i<mpMapHandler->vdRos2OrbProcMap_ms.size(); ++i)
-    {
-        std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesSubMap[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpMapHandler->vdPostLoadMPMap_ms[i] << "," << mpMapHandler->vdPostLoadKFMap_ms[i] << "," << mpMapHandler->vdRos2OrbKFConvMap_ms[i] << "," << mpMapHandler->vdRos2OrbMPConvMap_ms[i] << "," <<  mpMapHandler->vdRos2OrbDataConvMap_ms[i] << "," << mpMapHandler->vdInjectMPMap_ms[i] << "," << mpMapHandler->vdInjectKFMap_ms[i] << "," << mpMapHandler->vdUpdateMap_ms[i] << "," << mpMapHandler->vdRos2OrbProcMap_ms[i] << "," << mpMapHandler->vnNumberOfMPs[i] << "," << mpMapHandler->vnNumberOfKFs[i] << "," << mpMapHandler->vnNumberOfMPsTotal[i] << "," << mpMapHandler->vnNumberOfKFsTotal[i]<< endl;
-    }
+    //for(int i=0; i<mpMapHandler->vdRos2OrbProcMap_ms.size(); ++i)
+    //{
+    //    std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesSubMap[i];  
+    //    long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+    //    f << timeSinceStart << "," << mpMapHandler->vdPostLoadMPMap_ms[i] << "," << mpMapHandler->vdPostLoadKFMap_ms[i] << "," << mpMapHandler->vdRos2OrbKFConvMap_ms[i] << "," << mpMapHandler->vdRos2OrbMPConvMap_ms[i] << "," <<  mpMapHandler->vdRos2OrbDataConvMap_ms[i] << "," << mpMapHandler->vdInjectMPMap_ms[i] << "," << mpMapHandler->vdInjectKFMap_ms[i] << "," << mpMapHandler->vdUpdateMap_ms[i] << "," << mpMapHandler->vdRos2OrbProcMap_ms[i] << "," << mpMapHandler->vnNumberOfMPs[i] << "," << mpMapHandler->vnNumberOfKFs[i] << "," << mpMapHandler->vnNumberOfMPsTotal[i] << "," << mpMapHandler->vnNumberOfKFsTotal[i]<< endl;
+    //}
 
-    f.close();
+    //f.close();
 
     // Atlas Subscription
-    fileName=mStrStatSavePath + "AtlasSubscribeTime-" + sysId + ".txt";
-    f.open(fileName);
-    f << fixed << setprecision(6);
+    //fileName=mStrStatSavePath + "AtlasSubscribeTime-" + sysId + ".txt";
+    //f.open(fileName);
+    //f << fixed << setprecision(6);
 
-    f << "Time from start [ms], #MPs PostLoad[ms], KFs PostLoad[ms], KFs+MPs Conversion[ms], MPs Injection[ms], KFs Injection[ms], Map Conversion[ms], Total[ms]" << endl;
+    //f << "Time from start [ms], #MPs PostLoad[ms], KFs PostLoad[ms], KFs+MPs Conversion[ms], MPs Injection[ms], KFs Injection[ms], Map Conversion[ms], Total[ms]" << endl;
 
-    for(int i=0; i<mpMapHandler->vdRos2OrbProcAtlas_ms.size(); ++i)
-    {
-        std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesSubAtlas[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpMapHandler->vdPostLoadMPAtlas_ms[i] << "," << mpMapHandler->vdPostLoadKFAtlas_ms[i] << "," <<  mpMapHandler->vdRos2OrbDataConvAtlas_ms[i] << "," << mpMapHandler->vdInjectMPAtlas_ms[i] << "," << mpMapHandler->vdInjectKFAtlas_ms[i] << "," << mpMapHandler->vdUpdateAtlas_ms[i] << "," << mpMapHandler->vdRos2OrbProcAtlas_ms[i] << endl;
-    }
+    //for(int i=0; i<mpMapHandler->vdRos2OrbProcAtlas_ms.size(); ++i)
+    //{
+    //    std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesSubAtlas[i];  
+    //    long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+    //    f << timeSinceStart << "," << mpMapHandler->vdPostLoadMPAtlas_ms[i] << "," << mpMapHandler->vdPostLoadKFAtlas_ms[i] << "," <<  mpMapHandler->vdRos2OrbDataConvAtlas_ms[i] << "," << mpMapHandler->vdInjectMPAtlas_ms[i] << "," << mpMapHandler->vdInjectKFAtlas_ms[i] << "," << mpMapHandler->vdUpdateAtlas_ms[i] << "," << mpMapHandler->vdRos2OrbProcAtlas_ms[i] << endl;
+    //}
 
-    f.close();
+    //f.close();
 
     // KF Latency
     fileName=mStrStatSavePath + "KeyFrameLatencyTime-" + sysId + ".txt";

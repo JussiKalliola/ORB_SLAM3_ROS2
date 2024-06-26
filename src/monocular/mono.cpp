@@ -36,6 +36,19 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    char* systemId = std::getenv("SLAM_SYSTEM_ID");
+    if(!systemId) 
+    {
+        std::random_device rd;  // Obtain a random number from hardware
+        std::mt19937 gen(rd()); // Seed the generator
+        std::uniform_int_distribution<> distr(1, 100); // Define the range 
+        setenv("SLAM_SYSTEM_ID", std::to_string(distr(gen)).c_str(),1);
+        systemId = std::getenv("SLAM_SYSTEM_ID");
+    }
+    
+    std::string strSystemId(systemId);
+    std::transform(strSystemId.begin(), strSystemId.end(), strSystemId.begin(), ::toupper);
+
     string strResultFileName = "KeyFrameTrajectory.txt";
     bool visualization = false;
     bool subscribe_to_slam = true;
@@ -70,7 +83,7 @@ int main(int argc, char **argv)
     // First create the base directory and then sub directory
     if (Utility::createDirectory(strSaveToPath)) {
       if (Utility::createDirectory(strSaveToPath + "monocular/")) {
-        if (!Utility::createDirectory(strSaveToPath + "monocular/" + "stats/")) 
+        if (!Utility::createDirectory(strSaveToPath + "monocular/" + strSystemId + "/")) 
             exit(1);
       } else {
         // Failer to create directory or it doesnt exists
@@ -85,14 +98,6 @@ int main(int argc, char **argv)
     strSaveToPath += "monocular/";
 
 
-    char* systemId = std::getenv("SLAM_SYSTEM_ID");
-    if(!systemId) {
-        std::random_device rd;  // Obtain a random number from hardware
-        std::mt19937 gen(rd()); // Seed the generator
-        std::uniform_int_distribution<> distr(1, 100); // Define the range 
-        setenv("SLAM_SYSTEM_ID", std::to_string(distr(gen)).c_str(),1);
-        systemId = std::getenv("SLAM_SYSTEM_ID");
-    }
     
     std::cout << "\n===================" << std::endl; 
     std::cout << "Given parameters" << std::endl; 
@@ -102,14 +107,15 @@ int main(int argc, char **argv)
     std::cout << " - Voc path=" << argv[1] << std::endl; 
     std::cout << " - Settings path=" << argv[2] << std::endl;
     std::cout << " - Main system=" << main_system << std::endl;
-    std::cout << " - SLAM_SYSTEM_ID=" << systemId << std::endl;
+    std::cout << " - SLAM_SYSTEM_ID=" << strSystemId << std::endl;
     std::cout << "===================\n" << std::endl;
 
 
     std::signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv); 
 
-    std::string mStatSavePath=strSaveToPath+"stats/"; 
+    std::string mStatSavePath=strSaveToPath+strSystemId+"/"; 
+    std::cout << mStatSavePath << std::endl;
     std::shared_ptr<System> mpDistSystem= std::make_shared<System>(mStatSavePath);
     std::shared_ptr<Observer> mpDistObserver = mpDistSystem->GetObserver();
     //std::shared_ptr<Distributor> mpDistributor = std::make_shared<Distributor>();

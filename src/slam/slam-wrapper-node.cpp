@@ -224,7 +224,7 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
 }
 
 
-void SlamWrapperNode::GrabKeyFrameUpdate(const orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr mpRosKFUpdate) {
+void SlamWrapperNode::GrabKeyFrameUpdate(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr mpRosKFUpdate) {
   
     if(mpRosKFUpdate->system_id == std::getenv("SLAM_SYSTEM_ID")) 
         return;
@@ -307,14 +307,12 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
     if(msg->system_id == std::getenv("SLAM_SYSTEM_ID")) 
         return;
     
-    rclcpp::Time msgTime = msg->header.stamp;
-    //rclcpp::Time now = this->now();
-    std::chrono::nanoseconds ns(msgTime.nanoseconds());
-    std::chrono::system_clock::time_point chrono_time_point(ns);
-    double mdTime = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - chrono_time_point).count();
-    //std::cout << "Time since msg was sent=" << (now-msgTime).nanoseconds()/1000000 << std::endl;
-    std::cout << "Time since msg was sent=" << mdTime<< std::endl;
     mpObserver->UpdateLastResetTime();
+
+    mpKeyFramePublisher->ResetQueue();
+    mpKeyFrameSubscriber->ResetQueue();
+    mpMapHandler->ResetQueue();
+
     
     RCLCPP_INFO(this->get_logger(), "Reset requested for Active map id=%d", msg->data);
 
@@ -405,20 +403,20 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame/New", 
-        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
 
     /* KEYFRAME */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_update_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameUpdate>(
         "/KeyFrame/Update", 
-        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
     
     /* MAP */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
         //qosMap);
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
@@ -499,14 +497,14 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame/New",
-        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));//, options1);
     
     // KF Update
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_update_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameUpdate>(
         "KeyFrame/Update",
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data), //rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default), //rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrameUpdate, this, std::placeholders::_1));//, options1);
     
     /* Map */
@@ -514,7 +512,7 @@ void SlamWrapperNode::CreateSubscribers() {
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
         //qosMap, 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
 
     /* Atlas */

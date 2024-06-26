@@ -37,6 +37,7 @@ class KeyFramePublisher
     
     int KeyFramesInQueue();
 
+    void ResetQueue();
     void RequestFinish();
     bool isFinished();
 

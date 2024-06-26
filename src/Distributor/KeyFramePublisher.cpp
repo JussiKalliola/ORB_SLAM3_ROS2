@@ -210,6 +210,13 @@ bool KeyFramePublisher::CheckNewKeyFrames()
     return(!mlpKeyFrameQueue.empty());
 }
 
+void KeyFramePublisher::ResetQueue()
+{
+  unique_lock<mutex> lock(mMutexNewKFs);
+
+  mlpKeyFrameQueue.clear();
+  msUpdatedMPs.clear();
+}
 
 
 void KeyFramePublisher::RequestFinish()

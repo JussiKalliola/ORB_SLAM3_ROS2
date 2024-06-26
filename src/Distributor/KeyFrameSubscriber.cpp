@@ -58,7 +58,7 @@ bool KeyFrameSubscriber::CheckNewKeyFrames()
 bool KeyFrameSubscriber::CheckNewKeyFrameUpdates()
 {
     unique_lock<mutex> lock(mMutexNewRosKFs);
-    return(!mlpRosKeyFrameUpdateQueue.empty());
+    return(!mpRosKeyFrameUpdateQueue.empty());
 }
 
 int KeyFrameSubscriber::KeyFramesInQueue()
@@ -76,9 +76,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr pRosKF = static_cast<orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr>(NULL);
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
-        pRosKF = mlpRosKeyFrameUpdateQueue.front();
+        auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
+        pRosKF = it->second;
+        mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
 
-        mlpRosKeyFrameUpdateQueue.pop_front();
+        //mlpRosKeyFrameUpdateQueue.pop_front();
     }
   
     if(!pRosKF)
@@ -149,7 +151,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     std::chrono::steady_clock::time_point time_EndPrepDataKF = std::chrono::steady_clock::now();
     double timePrepDataKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndPrepDataKF - time_StartPrepDataKF).count();
     vdPrepDataKF_ms.push_back(timePrepDataKF);
-    std::cout << "Got a new keyframe update. 1. Existing data is collected." << std::endl;
+    //std::cout << "Got a new keyframe update. 1. Existing data is collected." << std::endl;
     
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartConvKF = std::chrono::steady_clock::now();
@@ -250,6 +252,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
     tempKF->PostLoad(mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
+    tempKF->UpdateBestCovisibles();
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadKF = std::chrono::steady_clock::now();
@@ -349,7 +352,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id);
     }
     
-    std::cout << "Got a new keyframe Update. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
+    if(pCurrentMap->KeyFramesInMap() < 10)
+    {
+        mpTracker->UpdateReference(pKF);
+    }
+    //std::cout << "Got a new keyframe Update. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndRos2OrbProcKF = std::chrono::steady_clock::now();
@@ -647,7 +654,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 }
 
 
-void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr pRosKFUpdate)
+void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr& pRosKFUpdate)
 {
 
     //if(mpObserver->GetTaskModule()==1 && mpObserver->GetTaskModule()!=pRosKF->target)
@@ -663,10 +670,14 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpd
     if(timeSinceReset < 50)
         return;
 
-    std::cout << "***** GOT KF UPDATE ******" << std::endl;
+    //std::cout << "***** GOT KF UPDATE ******" << std::endl;
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
-        mlpRosKeyFrameUpdateQueue.push_back(pRosKFUpdate);
+        //mlpRosKeyFrameUpdateQueue.push_back(pRosKFUpdate);
+        if(mpRosKeyFrameUpdateQueue[pRosKFUpdate->mn_id] && (mpRosKeyFrameUpdateQueue[pRosKFUpdate->mn_id]->mn_last_module > pRosKFUpdate->mn_last_module))
+          return;
+        
+        mpRosKeyFrameUpdateQueue[pRosKFUpdate->mn_id] = pRosKFUpdate;
     }
 }
 
@@ -691,6 +702,16 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
         unique_lock<mutex> lock(mMutexNewRosKFs);
         mlpRosKeyFrameQueue.push_back(pRosKF);
     }
+}
+
+void KeyFrameSubscriber::ResetQueue()
+{
+  unique_lock<mutex> lock(mMutexNewRosKFs);
+
+  mlpRosKeyFrameQueue.clear();
+  mlpRosKeyFrameUpdateQueue.clear();
+  mpRosKeyFrameUpdateQueue.clear();
+
 }
 
 void KeyFrameSubscriber::RequestFinish()

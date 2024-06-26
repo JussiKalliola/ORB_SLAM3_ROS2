@@ -58,25 +58,6 @@ namespace Converter {
         std::vector<std::string> mvpErasedMPIds(mspErasedMPIds.begin(), mspErasedMPIds.end()); 
         
         std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << mspUpdatedMapPointIds.size() << std::endl;
-
-        for(ORB_SLAM3::MapPoint* mp : opM->GetAllMapPoints())
-        {
-          if(mp && !mspErasedMPIds.count(mp->mstrHexId))
-          {
-            if(!mspUpdatedMapPointIds.empty())
-            {
-              if(mspUpdatedMapPointIds.find(mp->mstrHexId) != mspUpdatedMapPointIds.end())
-              {
-                rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
-                mspUpdatedMapPointIds.erase(mp->mstrHexId);
-              }
-            } else {
-              rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
-              //mspUpdatedMapPointIds.erase(mp->mstrHexId);
-            }
-          }
-        }
-        
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0) {
           std::vector<ORB_SLAM3::KeyFrame*> mvpAllKeyFrames = opM->GetAllKeyFrames();
@@ -98,6 +79,25 @@ namespace Converter {
             kf->mnNextTarget=0;
           }
         }
+
+        //for(ORB_SLAM3::MapPoint* mp : opM->GetAllMapPoints())
+        //{
+        //  if(mp && !mspErasedMPIds.count(mp->mstrHexId))
+        //  {
+        //    if(!mspUpdatedMapPointIds.empty())
+        //    {
+        //      if(mspUpdatedMapPointIds.find(mp->mstrHexId) != mspUpdatedMapPointIds.end())
+        //      {
+        //        rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
+        //        mspUpdatedMapPointIds.erase(mp->mstrHexId);
+        //      }
+        //    } else {
+        //      rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
+        //      //mspUpdatedMapPointIds.erase(mp->mstrHexId);
+        //    }
+        //  }
+        //}
+        
 
         //opM->ClearUpdatedKFIds();
         //MapPoint[] msp_map_points                 // std::set<MapPoint*> mspMapPoints;
@@ -198,25 +198,6 @@ namespace Converter {
         std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
         std::vector<unsigned long int> mvpErasedKFIds(msErasedKFs.begin(), msErasedKFs.end()); 
 
-        if(!mspUpdatedMapPointIds.empty())
-        {
-          for(ORB_SLAM3::MapPoint* mp : opM->GetAllMapPoints())
-          {
-            if(mp && !mspErasedMPIds.count(mp->mstrHexId))
-            {
-                if(mspUpdatedMapPointIds.find(mp->mstrHexId) != mspUpdatedMapPointIds.end())
-                {
-                  rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
-                  mspUpdatedMapPointIds.erase(mp->mstrHexId);
-                }
-                //} else {
-                //  rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
-                //  //mspUpdatedMapPointIds.erase(mp->mstrHexId);
-                //}
-            }
-          }
-        }
-        
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0 && !mspUpdatedKFIds.empty()) {
           std::vector<ORB_SLAM3::KeyFrame*> mvpAllKeyFrames = opM->GetAllKeyFrames();
@@ -236,6 +217,26 @@ namespace Converter {
             kf->mnNextTarget=0;
           }
         }
+
+        //if(!mspUpdatedMapPointIds.empty())
+        //{
+        //  for(ORB_SLAM3::MapPoint* mp : opM->GetAllMapPoints())
+        //  {
+        //    if(mp && !mspErasedMPIds.count(mp->mstrHexId))
+        //    {
+        //        if(mspUpdatedMapPointIds.find(mp->mstrHexId) != mspUpdatedMapPointIds.end())
+        //        {
+        //          rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
+        //          mspUpdatedMapPointIds.erase(mp->mstrHexId);
+        //        }
+        //        //} else {
+        //        //  rM.msp_map_points.push_back(Converter::MapPointConverter::ORBSLAM3MapPointToROS(mp));
+        //        //  //mspUpdatedMapPointIds.erase(mp->mstrHexId);
+        //        //}
+        //    }
+        //  }
+        //}
+        
 
         //opM->ClearUpdatedKFIds();
         //MapPoint[] msp_map_points                 // std::set<MapPoint*> mspMapPoints;
