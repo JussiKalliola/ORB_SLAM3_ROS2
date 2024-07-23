@@ -52,6 +52,7 @@ class MapHandler
     void RequestFinish();
     bool isFinished();
 
+
     void ResetQueue();
 
     //vector<long int> vnNumberOfNewMapPoints;
@@ -138,9 +139,17 @@ class MapHandler
     std::mutex mMutexFinish;
 
     std::chrono::high_resolution_clock::time_point msLastMUStart;
+    std::chrono::high_resolution_clock::time_point msLastGlobalMUStart;
+
     int mnMapFreq_ms;
+    int maxUpdateN;
+    int mnGlobalMapFreq_ms;
+    int maxUpdateGlobalN;
 
   private:  
+    int mnPubIters;
+    int mnAtlasBatchNumber;
+
     // ORB_SLAM3
     ORB_SLAM3::System* pSLAM;
     ORB_SLAM3::Tracking* mpTracker;

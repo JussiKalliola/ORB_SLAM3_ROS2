@@ -38,18 +38,17 @@ class SlamWrapperNode : public rclcpp::Node
     ~SlamWrapperNode();
     
     // Publishers
-    void publishKeyFrame(orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF);
+    void publishKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF);
     void publishKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate mRosKFUpdate);
-    void publishMap(orbslam3_interfaces::msg::Map mRosMap);
-    void publishMap(ORB_SLAM3::Map* pM);
+    void publishMap(const orbslam3_interfaces::msg::Map::SharedPtr mRosMap);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
-    void publishAtlas(orbslam3_interfaces::msg::Atlas mRosAtlas);
+    void publishAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr& mRosAtlas);
     
     void publishResetActiveMap(unsigned long int mnMapId);
     void publishLMResetRequested();
     //void publishLMActivityChange(bool bActive);
     void publishEndMsg(); 
-    void publishStep(); 
+    void publishStopLM(); 
     
     void CreatePublishers();
     void CreateSubscribers();
@@ -95,7 +94,7 @@ class SlamWrapperNode : public rclcpp::Node
     
     void workerCallback(std_msgs::msg::Int32::SharedPtr msg);
     void endCallback(std_msgs::msg::Bool::SharedPtr bMsg);
-    void stepCallback(std_msgs::msg::Bool::SharedPtr bMsg);
+    void stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr bMsg);
     
 
     // Publishers
@@ -110,7 +109,7 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Publisher<orbslam3_interfaces::msg::Int64>::SharedPtr sys_reset_active_map_publisher_;  
     
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr end_publisher_;
-    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr step_publisher_;
+    rclcpp::Publisher<orbslam3_interfaces::msg::Bool>::SharedPtr stop_lm_publisher_;
     rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr worker_publisher_;  
     
 
@@ -127,7 +126,7 @@ class SlamWrapperNode : public rclcpp::Node
     
     rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr worker_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr end_subscriber_;
-    rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr step_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::Bool>::SharedPtr stop_lm_subscriber_;
 };
 
 #endif

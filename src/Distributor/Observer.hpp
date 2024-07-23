@@ -44,7 +44,7 @@ class Observer : public ORB_SLAM3::Distributor
     void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule);
 
     // Injetion functions. Inject received data back into SLAM
-    void InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap);
+    void InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap, const int nFromModule);
     void InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* mpExistingMP, const bool mbNew);
     ORB_SLAM3::KeyFrame* InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, ORB_SLAM3::KeyFrame* mpExistingKF, const int nFromModule);
 
@@ -58,19 +58,26 @@ class Observer : public ORB_SLAM3::Distributor
     // ORB SLAM3 functions
     void AddMapPoint(ORB_SLAM3::MapPoint* pMP);
     void EraseMapPoint(ORB_SLAM3::MapPoint* pMP);
+    void EraseMapPoint(std::string mnId);
     bool CheckIfMapPointExists(ORB_SLAM3::MapPoint* pMP);
+    bool CheckIfMapPointExists(std::string mstrId);
+    ORB_SLAM3::MapPoint* GetMapPoint(std::string mnId);
     void ClearMapPointsFromMap(ORB_SLAM3::Map* pM);
     std::map<std::string, ORB_SLAM3::MapPoint*>& GetAllMapPoints();
 
     void AddKeyFrame(ORB_SLAM3::KeyFrame* pKF);
     void EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF);
+    void EraseKeyFrame(unsigned long int mnId);
+    ORB_SLAM3::KeyFrame* GetKeyFrame(unsigned long int mnId);
     bool CheckIfKeyFrameExists(ORB_SLAM3::KeyFrame* pKF);
+    bool CheckIfKeyFrameExists(unsigned long int mnId);
     void ClearKeyFramesFromMap(ORB_SLAM3::Map* pM);
     std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& GetAllKeyFrames();
 
     void AddMap(ORB_SLAM3::Map* pM);
     void EraseMap(ORB_SLAM3::Map* pM);
     std::map<unsigned long int, ORB_SLAM3::Map*>& GetAllMaps();
+
     
     // Update worker set
     void AddNewWorker(unsigned int mnWorkerModule);
@@ -87,6 +94,8 @@ class Observer : public ORB_SLAM3::Distributor
     void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
     void AttachKeyFramePublisher(KeyFramePublisher* pKeyFramePublisher);
 
+    ORB_SLAM3::KeyFrame* mpLastKeyFrame;
+    unsigned long int mnLastKFId;
     
     // Override inherited public functions from ORBSLAM3
     void onNewMap(ORB_SLAM3::Map* pM) override;
@@ -94,6 +103,7 @@ class Observer : public ORB_SLAM3::Distributor
     void onNewMapPoint(ORB_SLAM3::MapPoint* pMP) override;
     void onActiveMapReset(unsigned long int mnMapId) override;
     void onLMResetRequested() override;
+    void onLMStopRequest() override;
     //void onChangeLMActive(bool bActive) override;
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF) override;
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds) override;

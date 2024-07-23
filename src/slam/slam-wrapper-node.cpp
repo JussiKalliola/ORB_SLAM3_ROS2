@@ -94,7 +94,7 @@ SlamWrapperNode::~SlamWrapperNode() {
 /* OBJECT PUBLISHERS */
 
 /*        KeyFrame        */
-void SlamWrapperNode::publishKeyFrame(orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF) 
+void SlamWrapperNode::publishKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF) 
 {
     // Add header
     std_msgs::msg::Header header;
@@ -120,36 +120,41 @@ void SlamWrapperNode::publishKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate m
 
 
 /*        Atlas        */
-void SlamWrapperNode::publishAtlas(orbslam3_interfaces::msg::Atlas mRosAtlas) 
+void SlamWrapperNode::publishAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr& mRosAtlas) 
 {
 
     // Add header
     std_msgs::msg::Header header;
     header.stamp = this->now();
-    mRosAtlas.header = header;
+    mRosAtlas->header = header;
     
-    atlas_publisher_->publish(mRosAtlas);
+    atlas_publisher_->publish(*mRosAtlas);
 
-    RCLCPP_INFO(this->get_logger(), " ********************* Publishing Atlas after Merge=%d or LoopClosure=%d, #KFs=%d", mRosAtlas.mb_map_merge, mRosAtlas.mb_loop_closer, mpAtlas_->GetCurrentMap()->KeyFramesInMap());
+    RCLCPP_INFO(this->get_logger(), " ********************* Publishing Atlas after Merge=%d or LoopClosure=%d, #KFs=%d", mRosAtlas->mb_map_merge, mRosAtlas->mb_loop_closer, mRosAtlas->mp_current_map.msp_keyframes.size());
+    RCLCPP_INFO(this->get_logger(), "Map Stats : #updated KFs=%d, #updated MPs=%d, #del KFs=%d, #del MPs=%d", 
+        mRosAtlas->mp_current_map.mvp_updated_keyframes_ids.size(), 
+        mRosAtlas->mp_current_map.mvp_updated_map_points_ids.size(), 
+        mRosAtlas->mp_current_map.mvp_erased_keyframe_ids.size(), 
+        mRosAtlas->mp_current_map.mvp_erased_mappoint_ids.size());
 }
 
 /*        Map        */
-void SlamWrapperNode::publishMap(orbslam3_interfaces::msg::Map mRosMap) 
+void SlamWrapperNode::publishMap(const orbslam3_interfaces::msg::Map::SharedPtr mRosMap) 
 {
 
     // Add header
     std_msgs::msg::Header header;
     header.stamp = this->now();
-    mRosMap.header = header;
+    mRosMap->header = header;
     
-    map_publisher_->publish(mRosMap);
+    map_publisher_->publish(*mRosMap);
     
-    RCLCPP_INFO(this->get_logger(), "Publishing a new map with id: %d", mRosMap.mn_id);
+    RCLCPP_INFO(this->get_logger(), "Publishing a new map with id: %d", mRosMap->mn_id);
     RCLCPP_INFO(this->get_logger(), "Map Stats : #updated KFs=%d, #updated MPs=%d, #del KFs=%d, #del MPs=%d", 
-        mRosMap.msp_keyframes.size(), 
-        mRosMap.msp_map_points.size(), 
-        mRosMap.mvp_erased_keyframe_ids.size(), 
-        mRosMap.mvp_erased_mappoint_ids.size());
+        mRosMap->mvp_updated_keyframes_ids.size(), 
+        mRosMap->mvp_updated_map_points_ids.size(), 
+        mRosMap->mvp_erased_keyframe_ids.size(), 
+        mRosMap->mvp_erased_mappoint_ids.size());
 }
 
 
@@ -374,19 +379,34 @@ void SlamWrapperNode::workerCallback(std_msgs::msg::Int32::SharedPtr msg) {
     mpObserver->AddNewWorker(msg->data); 
 }
 
-void SlamWrapperNode::publishStep() 
+void SlamWrapperNode::publishStopLM() 
 {
-    std_msgs::msg::Bool bMsg;
+    if(mpObserver->GetTaskModule() < 3)
+        return;
+
+    orbslam3_interfaces::msg::Bool bMsg;
+    bMsg.system_id = std::getenv("SLAM_SYSTEM_ID");
     bMsg.data = true;
+
     
-    end_publisher_->publish(bMsg);
-    RCLCPP_INFO(this->get_logger(), "Publishing to /step");
+    stop_lm_publisher_->publish(bMsg);
+    RCLCPP_INFO(this->get_logger(), "Publishing to /LocalMapping/Stop");
 }
 
 
-void SlamWrapperNode::stepCallback(std_msgs::msg::Bool::SharedPtr bMsg) {
-    RCLCPP_INFO(this->get_logger(), "Received msg from /step");
-    mpTracker_->mbStep = true;
+void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr bMsg) {
+    
+    if(bMsg->system_id == std::getenv("SLAM_SYSTEM_ID"))
+       return; 
+
+    RCLCPP_INFO(this->get_logger(), "Received msg from /LocalMapping/Stop");
+    //mpTracker_->mbStep = true;
+    //mpLocalMapper_->mbGBARunning = true;
+    //mpLocalMapper_->RequestStop();
+    //mpMapHandler->ResetQueue();
+    //mpKeyFrameSubscriber->ResetQueue();
+    //mpKeyFramePublisher->ResetQueue();
+    //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
 }
 
 
@@ -403,7 +423,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame/New", 
-        rclcpp::QoS(rclcpp::KeepLast(1),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
 
     /* KEYFRAME */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
@@ -416,7 +436,7 @@ void SlamWrapperNode::CreatePublishers() {
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
         //qosMap);
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
@@ -428,7 +448,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
     atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
         "/Atlas", 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
     
     /* LocalMapping Active*/
     //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -461,11 +481,11 @@ void SlamWrapperNode::CreatePublishers() {
         "/worker", 
         rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable()) ;
 
-    /* Step */
-    //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /step");
-    //step_publisher_ = this->create_publisher<std_msgs::msg::Bool>(
-    //    "/step", 
-    //    10);
+    /* Stop LM */
+    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Stop");
+    stop_lm_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Bool>(
+        "/LocalMapping/Stop", 
+        10);
 
 
 }
@@ -512,14 +532,14 @@ void SlamWrapperNode::CreateSubscribers() {
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
         //qosMap, 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
 
     /* Atlas */
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
     m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
         "Atlas",
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
         std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);
     
     /* MapPoint */
@@ -570,10 +590,10 @@ void SlamWrapperNode::CreateSubscribers() {
         qosLatching, 
         std::bind(&SlamWrapperNode::workerCallback, this, std::placeholders::_1));//, options3);
     
-    /* Step */
-    //RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /step");
-    //step_subscriber_ = this->create_subscription<std_msgs::msg::Bool>(
-    //    "/step", 
-    //    10, 
-    //    std::bind(&SlamWrapperNode::stepCallback, this, std::placeholders::_1));
+    /* Stop LM */
+    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /LocalMapping/Stop");
+    stop_lm_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Bool>(
+        "/LocalMapping/Stop", 
+        10, 
+        std::bind(&SlamWrapperNode::stopLMCallback, this, std::placeholders::_1));
 }

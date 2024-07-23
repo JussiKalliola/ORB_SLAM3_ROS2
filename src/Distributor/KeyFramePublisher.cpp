@@ -141,8 +141,9 @@ void KeyFramePublisher::ProcessNewKeyFrame()
           msUpdatedMPs.clear();
         }
 
+        std::set<std::string> msErasedMPIds = pKF->GetMap()->GetErasedMPIds();
         orbslam3_interfaces::msg::KeyFrameUpdate mRosKFUpdate;
-        mRosKFUpdate = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(pKF, msUpdatedMPs, true);
+        mRosKFUpdate = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(pKF, msUpdatedMPs, msErasedMPIds, true);
         
 
 
@@ -194,6 +195,12 @@ void KeyFramePublisher::InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
     std::cout << "***** SEND KF ******" << std::endl;
+    if(!mpObserver->CheckIfKeyFrameExists(pKF))
+    {
+      mpObserver->AddKeyFrame(pKF);
+    }
+
+
 
     std::set<std::string> mspUpdatedMapPoints = pKF->GetMap()->GetUpdatedMPIds();
 

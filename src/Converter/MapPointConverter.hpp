@@ -195,33 +195,33 @@ namespace Converter {
 
       static void RosMapPointUpdateToOrb(const map_point_update::SharedPtr& rMp, orb_map_point* mpExistingMP) {
         
-          long long int mnId = rMp->mn_id;
-          std::string mstrHexId = rMp->m_str_hex_id;
-          int nObs = rMp->n_obs;
+          const long long int mnId = rMp->mn_id;
+          const std::string mstrHexId = rMp->m_str_hex_id;
+          const int nObs = rMp->n_obs;
           
-          long long int mBackupHostKFId = rMp->mp_host_kf_id;
+          const long long int mBackupHostKFId = rMp->mp_host_kf_id;
           
-          unsigned int mnOriginMapId = rMp->mn_origin_map_id;
-          Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
+          const unsigned int mnOriginMapId = rMp->mn_origin_map_id;
+          const Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
 
-          std::map<long unsigned int, int> mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
-          std::map<long unsigned int, int> mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
+          const std::map<long unsigned int, int>& mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
+          const std::map<long unsigned int, int>& mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
 
-          Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
+          const Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
          
 
-          long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
-          int mnVisible = rMp->mn_visible;
-          int mnFound = rMp->mn_found;
-          bool mbBad = rMp->mb_bad;
+          const long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
+          const int mnVisible = rMp->mn_visible;
+          const int mnFound = rMp->mn_found;
+          const bool mbBad = rMp->mb_bad;
           
-          std::string mBackupReplacedId = rMp->m_backup_replaced_id;
-          float mfMinDistance = rMp->mf_min_distance;
-          float mfMaxDistance = rMp->mf_max_distance;
+          const std::string mBackupReplacedId = rMp->m_backup_replaced_id;
+          const float mfMinDistance = rMp->mf_min_distance;
+          const float mfMaxDistance = rMp->mf_max_distance;
           
-          cv::Mat mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
+          const cv::Mat& mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
           
-          unsigned int mnLastModule = rMp->mn_last_module;
+          const unsigned int mnLastModule = rMp->mn_last_module;
 
           mpExistingMP->UpdateMapPoint(nObs, /*mpHostKF,*/ mBackupHostKFId, mnOriginMapId, mWorldPos, 
               /*mObservations,*/ mBackupObservationsId1, mBackupObservationsId2, mNormalVector, mDescriptor, 
@@ -231,47 +231,47 @@ namespace Converter {
 
       static orb_map_point* RosMapPointToOrb(const map_point::SharedPtr& rMp, orb_map_point* mpExistingMP = static_cast<orb_map_point*>(NULL)) {
         
-          long long int mnId = rMp->mn_id;
-          std::string mstrHexId = rMp->m_str_hex_id;
-          long int mnFirstKFid = rMp->mn_first_kf_id;
-          long int mnFirstFrame = rMp->mn_first_frame;
-          int nObs = rMp->n_obs;
-          long unsigned int mnBALocalForKF = rMp->mn_ba_local_for_kf;
-          long unsigned int mnFuseCandidateForKF = rMp->mn_fuse_candidate_for_kf;
-          long unsigned int mnLoopPointForKF = rMp->mn_loop_point_for_kf;
-          long unsigned int mnCorrectedByKF = rMp->mn_corrected_by_kf;
-          long unsigned int mnCorrectedReference = rMp->mn_corrected_referece;
-          Eigen::Vector3f mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
-          long unsigned int mnBAGlobalForKF = rMp->mn_ba_global_for_kf;
-          long unsigned int mnBALocalForMerge = rMp->mn_ba_local_for_merge;
-          Eigen::Vector3f mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
-          Eigen::Vector3f mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
-          double mInvDepth = rMp->m_inv_depth;
-          double mInitU = rMp->m_init_u;
-          double mInitV = rMp->m_init_v;
+          const long long int mnId = rMp->mn_id;
+          const std::string mstrHexId = rMp->m_str_hex_id;
+          const long int mnFirstKFid = rMp->mn_first_kf_id;
+          const long int mnFirstFrame = rMp->mn_first_frame;
+          const int nObs = rMp->n_obs;
+          const long unsigned int mnBALocalForKF = rMp->mn_ba_local_for_kf;
+          const long unsigned int mnFuseCandidateForKF = rMp->mn_fuse_candidate_for_kf;
+          const long unsigned int mnLoopPointForKF = rMp->mn_loop_point_for_kf;
+          const long unsigned int mnCorrectedByKF = rMp->mn_corrected_by_kf;
+          const long unsigned int mnCorrectedReference = rMp->mn_corrected_referece;
+          const Eigen::Vector3f mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
+          const long unsigned int mnBAGlobalForKF = rMp->mn_ba_global_for_kf;
+          const long unsigned int mnBALocalForMerge = rMp->mn_ba_local_for_merge;
+          const Eigen::Vector3f mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
+          const Eigen::Vector3f mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
+          const double mInvDepth = rMp->m_inv_depth;
+          const double mInitU = rMp->m_init_u;
+          const double mInitV = rMp->m_init_v;
           
-          long long int mBackupHostKFId = rMp->mp_host_kf_id;
+          const long long int mBackupHostKFId = rMp->mp_host_kf_id;
           
-          unsigned int mnOriginMapId = rMp->mn_origin_map_id;
-          Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
+          const unsigned int mnOriginMapId = rMp->mn_origin_map_id;
+          const Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
 
-          std::map<long unsigned int, int> mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
-          std::map<long unsigned int, int> mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
+          const std::map<long unsigned int, int>& mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
+          const std::map<long unsigned int, int>& mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
 
-          Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
+          const Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
           
-          long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
-          int mnVisible = rMp->mn_visible;
-          int mnFound = rMp->mn_found;
-          bool mbBad = rMp->mb_bad;
+          const long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
+          const int mnVisible = rMp->mn_visible;
+          const int mnFound = rMp->mn_found;
+          const bool mbBad = rMp->mb_bad;
           
-          std::string mBackupReplacedId = rMp->m_backup_replaced_id;
-          float mfMinDistance = rMp->mf_min_distance;
-          float mfMaxDistance = rMp->mf_max_distance;
+          const std::string mBackupReplacedId = rMp->m_backup_replaced_id;
+          const float mfMinDistance = rMp->mf_min_distance;
+          const float mfMaxDistance = rMp->mf_max_distance;
           
-          cv::Mat mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
+          const cv::Mat& mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
           
-          unsigned int mnLastModule = rMp->mn_last_module;
+          const unsigned int mnLastModule = rMp->mn_last_module;
 
           if(mpExistingMP)
           {
@@ -286,20 +286,20 @@ namespace Converter {
               return mpExistingMP;
           } else
           {
-              float mTrackProjX = rMp->m_track_proj_x;
-              float mTrackProjY = rMp->m_track_proj_y;
-              float mTrackDepth = rMp->m_track_depth;
-              float mTrackDepthR = rMp->m_track_depth_r;
-              float mTrackProjXR = rMp->m_track_proj_xr;
-              float mTrackProjYR = rMp->m_track_proj_yr;
-              bool mbTrackInView = rMp->mb_track_in_view;
-              bool mbTrackInViewR = rMp->mb_track_in_view_r;
-              int mnTrackScaleLevel = rMp->mn_track_scale_level;
-              int mnTrackScaleLevelR = rMp->mn_track_scale_level_r;
-              float mTrackViewCos = rMp->m_track_view_cos;
-              float mTrackViewCosR = rMp->m_track_view_cos_r;
-              long unsigned int mnTrackReferenceForFrame = rMp->mn_track_reference_for_frame;
-              long unsigned int mnLastFrameSeen = rMp->mn_last_frame_seen;
+              const float mTrackProjX = rMp->m_track_proj_x;
+              const float mTrackProjY = rMp->m_track_proj_y;
+              const float mTrackDepth = rMp->m_track_depth;
+              const float mTrackDepthR = rMp->m_track_depth_r;
+              const float mTrackProjXR = rMp->m_track_proj_xr;
+              const float mTrackProjYR = rMp->m_track_proj_yr;
+              const bool mbTrackInView = rMp->mb_track_in_view;
+              const bool mbTrackInViewR = rMp->mb_track_in_view_r;
+              const int mnTrackScaleLevel = rMp->mn_track_scale_level;
+              const int mnTrackScaleLevelR = rMp->mn_track_scale_level_r;
+              const float mTrackViewCos = rMp->m_track_view_cos;
+              const float mTrackViewCosR = rMp->m_track_view_cos_r;
+              const long unsigned int mnTrackReferenceForFrame = rMp->mn_track_reference_for_frame;
+              const long unsigned int mnLastFrameSeen = rMp->mn_last_frame_seen;
 
               return new orb_map_point(mnId, mstrHexId, mnFirstKFid, mnFirstFrame, nObs, mTrackProjX, mTrackProjY, 
                   mTrackDepth, mTrackDepthR, mTrackProjXR, mTrackProjYR, mbTrackInView, mbTrackInViewR, mnTrackScaleLevel, 

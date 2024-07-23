@@ -35,6 +35,7 @@ class KeyFrameSubscriber
     void InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr& pRosKFUpdate);
     
     int KeyFramesInQueue();
+    int KeyFrameUpdatesInQueue();
 
     void RequestFinish();
     bool isFinished();
