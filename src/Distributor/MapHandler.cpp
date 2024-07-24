@@ -11,7 +11,7 @@
 //namespace TempDistributor {
 
 MapHandler::MapHandler()
-  : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(100), mnGlobalMapFreq_ms(100), mnPubIters(0), mnAtlasBatchNumber(0), 
+  : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(50), mnGlobalMapFreq_ms(100), mnPubIters(0), mnAtlasBatchNumber(0), 
     maxUpdateN(5), maxUpdateGlobalN(3)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -696,8 +696,8 @@ void MapHandler::ProcessNewPubLocalMap()
                 mRosMap->mb_first_batch = true;
             std::cout << "after conversion" << std::endl;
             // Decrease the rate of publishing so that the network does not congest
-            mnMapFreq_ms=100;
-            maxUpdateN=10;
+            mnMapFreq_ms=0;
+            maxUpdateN=5;
             mnPubIters++;
         }
         else {
@@ -712,8 +712,8 @@ void MapHandler::ProcessNewPubLocalMap()
             msErasedMPs.clear();
             
             // Make next update instant
-            maxUpdateN=5;
-            mnMapFreq_ms=50;
+            maxUpdateN=3;
+            mnMapFreq_ms=0;
             mnPubIters=0;
         }
     }
@@ -1577,8 +1577,8 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     pMap->ClearUpdatedKFIds();
     
     // Make next update instant
-    mnMapFreq_ms=50;
-    maxUpdateN=5;
+    mnMapFreq_ms=0;
+    maxUpdateN=3;
 
     // Make next update instant
     //mnMapFreq_ms=100;
