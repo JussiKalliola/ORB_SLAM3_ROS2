@@ -902,7 +902,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
 
     bool bKFUnprocessed = false;
     //tempMap->PostLoad(mpKeyFrameDB, pSLAM->GetORBVocabulary(), mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
-    mpObserver->InjectMap(tempMap, pCurrentMap, mpRosMap->from_module_id);
+    mpObserver->InjectMap(tempMap, pCurrentMap, mpRosAtlas->from_module_id);
     
     // End of timer
     std::chrono::steady_clock::time_point time_EndUpdateAtlas = std::chrono::steady_clock::now();
