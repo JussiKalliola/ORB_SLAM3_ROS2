@@ -436,7 +436,7 @@ void SlamWrapperNode::CreatePublishers() {
     map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
         "/Map", 
         //qosMap);
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
     
     /* MAPPOINT */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
@@ -532,7 +532,7 @@ void SlamWrapperNode::CreateSubscribers() {
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
         //qosMap, 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
 
     /* Atlas */
