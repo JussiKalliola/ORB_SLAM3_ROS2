@@ -64,6 +64,7 @@ class Observer : public ORB_SLAM3::Distributor
     ORB_SLAM3::MapPoint* GetMapPoint(std::string mnId);
     void ClearMapPointsFromMap(ORB_SLAM3::Map* pM);
     std::map<std::string, ORB_SLAM3::MapPoint*>& GetAllMapPoints();
+    std::set<ORB_SLAM3::MapPoint*>& GetAllMapPointsSet();
 
     void AddKeyFrame(ORB_SLAM3::KeyFrame* pKF);
     void EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF);
@@ -73,6 +74,7 @@ class Observer : public ORB_SLAM3::Distributor
     bool CheckIfKeyFrameExists(unsigned long int mnId);
     void ClearKeyFramesFromMap(ORB_SLAM3::Map* pM);
     std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& GetAllKeyFrames();
+    std::set<ORB_SLAM3::KeyFrame*>& GetAllKeyFramesSet();
 
     void AddMap(ORB_SLAM3::Map* pM);
     void EraseMap(ORB_SLAM3::Map* pM);
@@ -96,6 +98,8 @@ class Observer : public ORB_SLAM3::Distributor
 
     ORB_SLAM3::KeyFrame* mpLastKeyFrame;
     unsigned long int mnLastKFId;
+
+    std::set<unsigned long int> msAllErasedKFIds;
     
     // Override inherited public functions from ORBSLAM3
     void onNewMap(ORB_SLAM3::Map* pM) override;
@@ -103,7 +107,7 @@ class Observer : public ORB_SLAM3::Distributor
     void onNewMapPoint(ORB_SLAM3::MapPoint* pMP) override;
     void onActiveMapReset(unsigned long int mnMapId) override;
     void onLMResetRequested() override;
-    void onLMStopRequest() override;
+    void onLMStopRequest(const bool bStopLM) override;
     //void onChangeLMActive(bool bActive) override;
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF) override;
     void onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds) override;
@@ -131,10 +135,13 @@ class Observer : public ORB_SLAM3::Distributor
     std::mutex mMutexMap;
 
     std::map<std::string, ORB_SLAM3::MapPoint*> mOrbMapPoints;
+    std::set<ORB_SLAM3::MapPoint*> msOrbMapPoints;
     std::mutex mMutexMapPoint;
 
     std::map<unsigned long int, ORB_SLAM3::KeyFrame*> mOrbKeyFrames;
+    std::set<ORB_SLAM3::KeyFrame*> msOrbKeyFrames;
     std::mutex mMutexKeyFrame;
+
 
     double mdSinceReset;
     std::chrono::system_clock::time_point mtLastResetTime;

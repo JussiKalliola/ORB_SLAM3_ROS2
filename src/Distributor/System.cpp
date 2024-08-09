@@ -22,9 +22,6 @@ System::System(std::string mStatSavePath):
     mpKeyFrameSubscriber = new KeyFrameSubscriber();
     mpSystemTracker = new Tracker();
 
-    
-    // Start of a timer
-    time_GlobalSystemStart = std::chrono::steady_clock::now();
 
 
     // Attach hnadlers to observer
@@ -48,6 +45,13 @@ System::System(std::string mStatSavePath):
 System::~System()
 {
 
+}
+
+void System::UpdateGlobalStartTime(std::chrono::system_clock::time_point time_GlobalStart)
+{
+    unique_lock<mutex> lock(mMutexTime);
+    time_GlobalSystemClock = time_GlobalStart;
+    time_GlobalSystemStart = std::chrono::steady_clock::now();
 }
 
 void System::LoopClosingStats2File()
@@ -210,8 +214,8 @@ void System::SystemStats2File()
 
     for(int i=0; i<mpSystemTracker->vdProcessUsageCPU_pct.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpSystemTracker->vtTimes[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        std::chrono::system_clock::time_point time_StartAction = mpSystemTracker->vtTimes[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemClock).count();
         f << timeSinceStart << "," << mpSystemTracker->vdProcessUsageCPU_pct[i] << "," << mpSystemTracker->vdTotalUsageCPU_pct[i] << "," <<  mpSystemTracker->vnProcessVRAM_kb[i] << "," << mpSystemTracker->vllCurrentVRAM_kb[i] << "," << mpSystemTracker->vllTotalVRAM_kb[i] << "," << mpSystemTracker->vnProcessPRAM_kb[i] << "," << mpSystemTracker->vllCurrentPRAM_kb[i] << "," << mpSystemTracker->vllTotalPRAM_kb[i] << endl;
     }
 
@@ -231,8 +235,8 @@ void System::TimeStats2File()
 
     for(int i=0; i<mpKeyFramePublisher->vdOrb2RosProcKF_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpKeyFramePublisher->vtTimes[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        std::chrono::system_clock::time_point time_StartAction = mpKeyFramePublisher->vtTimes[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemClock).count();
         f << timeSinceStart << "," << mpKeyFramePublisher->vdOrb2RosConvKF_ms[i] << "," << mpKeyFramePublisher->vdPreSaveKF_ms[i] << "," <<  mpKeyFramePublisher->vdPreSaveMP_ms[i] << "," << mpKeyFramePublisher->vdOrb2RosProcKF_ms[i] << endl;
     }
 
@@ -247,8 +251,8 @@ void System::TimeStats2File()
 
     for(int i=0; i<mpMapHandler->vdOrb2RosProcMap_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesPubMap[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        std::chrono::system_clock::time_point time_StartAction = mpMapHandler->vtTimesPubMap[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemClock).count();
         f << timeSinceStart << "," << mpMapHandler->vdOrb2RosConvMap_ms[i] << "," << mpMapHandler->vdPreSaveMap_ms[i] << "," <<  mpMapHandler->vdOrb2RosProcMap_ms[i]<< endl;
     }
 
@@ -263,8 +267,8 @@ void System::TimeStats2File()
 
     for(int i=0; i<mpMapHandler->vdOrb2RosProcAtlas_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpMapHandler->vtTimesPubAtlas[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        std::chrono::system_clock::time_point time_StartAction = mpMapHandler->vtTimesPubAtlas[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemClock).count();
         f << timeSinceStart << "," << mpMapHandler->vdOrb2RosConvAtlas_ms[i] << "," << mpMapHandler->vdPreSaveAtlas_ms[i] << "," <<  mpMapHandler->vdOrb2RosProcAtlas_ms[i]<< endl;
     }
 
@@ -279,8 +283,8 @@ void System::TimeStats2File()
 
     for(int i=0; i<mpKeyFrameSubscriber->vdRos2OrbProcKF_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpKeyFrameSubscriber->vtTimes[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
+        std::chrono::system_clock::time_point time_StartAction = mpKeyFrameSubscriber->vtTimes[i];  
+        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemClock).count();
         f << timeSinceStart << "," << mpKeyFrameSubscriber->vdRos2OrbConvKF_ms[i] << "," << mpKeyFrameSubscriber->vdPrepDataKF_ms[i] << "," << mpKeyFrameSubscriber->vdRos2OrbConvMP_ms[i] << "," <<  mpKeyFrameSubscriber->vdPostLoadKF_ms[i] << "," << mpKeyFrameSubscriber->vdPostLoadMP_ms[i] << "," << mpKeyFrameSubscriber->vdInjectKF_ms[i] << "," << mpKeyFrameSubscriber->vdInjectMP_ms[i] << "," << mpKeyFrameSubscriber->vdRos2OrbProcKF_ms[i] << "," << mpKeyFrameSubscriber->vnKFAmount[i] << "," << mpKeyFrameSubscriber->vnMPAmount[i] << "," << mpKeyFrameSubscriber->vnNewMPAmount[i]<< "," << mpKeyFrameSubscriber->vnUpdateMPAmount[i]<< endl;
     }
 

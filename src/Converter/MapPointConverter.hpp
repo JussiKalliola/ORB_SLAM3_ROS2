@@ -142,7 +142,7 @@ namespace Converter {
           msgMp.m_world_pos = CppToRos::EigenVector3fToVector3(pMp->GetWorldPos());
           
           // Keyframes observing the point and associated index in keyframe
-          std::map<ORB_SLAM3::KeyFrame*,std::tuple<int,int> > obs = pMp->GetObservations(); 
+          const std::map<ORB_SLAM3::KeyFrame*,std::tuple<int,int> >& obs = pMp->GetObservations(); 
           //msgMp.m_observations = CppToRos::MapToRosKeyValuePairVector(obs);
 
           std::map<long unsigned int, int> obsBackup1;

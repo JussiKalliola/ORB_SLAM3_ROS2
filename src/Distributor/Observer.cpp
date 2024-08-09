@@ -42,17 +42,20 @@ void Observer::AddMapPoint(ORB_SLAM3::MapPoint* pMP)
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     //std::cout << "adding mappoint=" << pMP->mstrHexId << std::endl;
     mOrbMapPoints[pMP->mstrHexId] = pMP;
+    msOrbMapPoints.insert(pMP);
 }
 
 void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
 {
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     mOrbMapPoints.erase(pMP->mstrHexId);
+    msOrbMapPoints.erase(pMP);
 }
 
 void Observer::EraseMapPoint(std::string mnId)
 {
     unique_lock<std::mutex> lock(mMutexMapPoint); 
+    msOrbMapPoints.erase(mOrbMapPoints[mnId]);
     mOrbMapPoints.erase(mnId);
 }
 
@@ -99,6 +102,13 @@ void Observer::ClearMapPointsFromMap(ORB_SLAM3::Map* pM)
     }
 }
 
+
+std::set<ORB_SLAM3::MapPoint*>& Observer::GetAllMapPointsSet()
+{
+    //unique_lock<std::mutex> lock(mMutexMapPoint); 
+    return msOrbMapPoints;
+}
+
 std::map<std::string, ORB_SLAM3::MapPoint*>& Observer::GetAllMapPoints()
 {
     //unique_lock<std::mutex> lock(mMutexMapPoint); 
@@ -132,6 +142,7 @@ void Observer::AddKeyFrame(ORB_SLAM3::KeyFrame* pKF)
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
     std::cout << "adding keyframe=" << pKF->mnId << std::endl;
     mOrbKeyFrames[pKF->mnId] = pKF;
+    msOrbKeyFrames.insert(pKF);
     
     std::set<ORB_SLAM3::MapPoint*> MPs = pKF->GetMapPoints();
 
@@ -149,12 +160,14 @@ void Observer::AddKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 void Observer::EraseKeyFrame(unsigned long int mnId)
 {
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
+    msOrbKeyFrames.erase(mOrbKeyFrames[mnId]);
     mOrbKeyFrames.erase(mnId);
 }
 
 void Observer::EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 {
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
+    msOrbKeyFrames.erase(pKF);
     mOrbKeyFrames.erase(pKF->mnId);
 }
 
@@ -208,6 +221,11 @@ std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& Observer::GetAllKeyFrames()
 }
 
 
+std::set<ORB_SLAM3::KeyFrame*>& Observer::GetAllKeyFramesSet()
+{
+    unique_lock<std::mutex> lock(mMutexKeyFrame); 
+    return msOrbKeyFrames;
+}
 
 
 void Observer::InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap, const int nFromModule)
@@ -239,6 +257,7 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
     {
         //unique_lock<std::mutex> lock(mMutexMapPoint); 
         mpExistingMP->UpdateMapPoint(*tempMP);
+        mpAtlas->AddMapPoint(mpExistingMP);
         delete tempMP;
     }
 }
@@ -535,10 +554,10 @@ void Observer::onLMResetRequested()
       pSLAMNode->publishLMResetRequested();
 }
 
-void Observer::onLMStopRequest()
+void Observer::onLMStopRequest(const bool bStopLM)
 {
   if(pSLAMNode)
-      pSLAMNode->publishStopLM();
+      pSLAMNode->publishStopLM(bStopLM);
 
 }
 

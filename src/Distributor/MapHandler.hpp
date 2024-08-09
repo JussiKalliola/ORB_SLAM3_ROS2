@@ -72,7 +72,7 @@ class MapHandler
     vector<int> vnNumberOfMPsTotal;
     vector<int> vnNumberOfKFsTotal;
 
-    vector<std::chrono::steady_clock::time_point> vtTimesSubMap;
+    vector<std::chrono::system_clock::time_point> vtTimesSubMap;
 
     vector<double> vdRos2OrbDataConvAtlas_ms;
     vector<double> vdRos2OrbKFConvAtlas_ms;
@@ -82,17 +82,17 @@ class MapHandler
     vector<double> vdInjectMPAtlas_ms;
     vector<double> vdUpdateAtlas_ms; // Convert (without KFs and MPs), postload, inject
     vector<double> vdRos2OrbProcAtlas_ms;
-    vector<std::chrono::steady_clock::time_point> vtTimesSubAtlas;
+    vector<std::chrono::system_clock::time_point> vtTimesSubAtlas;
 
     vector<double> vdPreSaveMap_ms;
     vector<double> vdOrb2RosConvMap_ms;
     vector<double> vdOrb2RosProcMap_ms;
-    vector<std::chrono::steady_clock::time_point> vtTimesPubMap;
+    vector<std::chrono::system_clock::time_point> vtTimesPubMap;
 
     vector<double> vdPreSaveAtlas_ms;
     vector<double> vdOrb2RosConvAtlas_ms;
     vector<double> vdOrb2RosProcAtlas_ms;
-    vector<std::chrono::steady_clock::time_point> vtTimesPubAtlas;
+    vector<std::chrono::system_clock::time_point> vtTimesPubAtlas;
 
 
   protected:  
@@ -111,10 +111,12 @@ class MapHandler
     void ProcessNewSubGlobalMap2();
 
     std::set<std::string> msErasedMPs;
+    std::set<std::string> msToBeErasedMPs;
     std::set<unsigned long int> msUpdatedLocalKFs;
     std::set<std::string> msUpdatedLocalMPs;
 
     std::set<unsigned long int> msErasedKFs;
+    std::set<unsigned long int> msToBeErasedKFs;
     std::set<unsigned long int> msUpdatedGlobalKFs;
     std::set<std::string> msUpdatedGlobalMPs;
     std::mutex mMutexUpdates;

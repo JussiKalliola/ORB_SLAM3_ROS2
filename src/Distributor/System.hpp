@@ -46,6 +46,8 @@ class System
     KeyFrameSubscriber* GetKeyFrameSubscriber();
     KeyFramePublisher* GetKeyFramePublisher();
     
+    void UpdateGlobalStartTime(std::chrono::system_clock::time_point time_GlobalStart);
+
     void ShutDown();
 
     void TrackStats2File();
@@ -68,6 +70,7 @@ class System
 
     std::mutex mMutexTime;
     std::chrono::steady_clock::time_point time_GlobalSystemStart;
+    std::chrono::system_clock::time_point time_GlobalSystemClock;
 
 
   private:  

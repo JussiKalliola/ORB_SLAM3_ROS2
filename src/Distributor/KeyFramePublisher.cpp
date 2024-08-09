@@ -1,7 +1,7 @@
 #include "./KeyFramePublisher.hpp"
 #include "./Observer.hpp"
 #include "../slam/slam-wrapper-node.hpp"
-
+#include <thread>
 //namespace TempDistributor {
 
 KeyFramePublisher::KeyFramePublisher():
@@ -52,29 +52,33 @@ void KeyFramePublisher::ProcessNewKeyFrame()
     
     // Start of a timer
     std::chrono::steady_clock::time_point time_StartOrb2RosProcKF = std::chrono::steady_clock::now();
-    vtTimes.push_back(time_StartOrb2RosProcKF);
+    std::chrono::system_clock::time_point time_Start = std::chrono::system_clock::now();
+    vtTimes.push_back(time_Start);
 
     // Here KF Might not hve map for some reason, handle that
     //std::map<unsigned long int, ORB_SLAM3::KeyFrame*> mFusedKFs = mpObserver->GetAllKeyFrames();
-    //std::map<std::string, ORB_SLAM3::MapPoint*> mFusedMPs = mpObserver->GetAllMapPoints();
 
-    std::set<ORB_SLAM3::KeyFrame*> mspKeyFrames;
-    for (const auto& tempKF : mpAtlas->GetAllKeyFrames()) {
-        mspKeyFrames.insert(tempKF);
-    }    
+    std::set<ORB_SLAM3::KeyFrame*>& msFusedKFs= mpObserver->GetAllKeyFramesSet();
+    std::set<ORB_SLAM3::MapPoint*>& msFusedMPs= mpObserver->GetAllMapPointsSet();
 
-    std::set<ORB_SLAM3::MapPoint*> mspMapPoints;
-    for (const auto& tempMP : mpAtlas->GetAllMapPoints()) {
-        mspMapPoints.insert(tempMP);
-    }    
 
-    std::vector<ORB_SLAM3::GeometricCamera*> mvpCameras = mpAtlas->GetAllCameras();
-    std::set<ORB_SLAM3::GeometricCamera*> mspCameras(mvpCameras.begin(), mvpCameras.end());
-    
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartPreSaveKF = std::chrono::steady_clock::now();
+    //std::set<ORB_SLAM3::KeyFrame*> mspKeyFrames;
+    //for (const auto& tempKF : mFusedKFs) {
+    //    mspKeyFrames.insert(tempKF.second);
+    //}    
 
-    pKF->PreSave(mspKeyFrames, mspMapPoints, mspCameras);
+    //std::set<ORB_SLAM3::MapPoint*> mspMapPoints;
+    //for (const auto& tempMP : mFusedMPs) {
+    //    mspMapPoints.insert(tempMP.second);
+    //}    
+
+    const std::vector<ORB_SLAM3::GeometricCamera*>& mvpCameras = mpAtlas->GetAllCameras();
+    std::set<ORB_SLAM3::GeometricCamera*> mspCameras(mvpCameras.begin(), mvpCameras.end());
+    
+
+    pKF->PreSave(msFusedKFs, msFusedMPs, mspCameras);
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPreSaveKF = std::chrono::steady_clock::now();
@@ -88,7 +92,7 @@ void KeyFramePublisher::ProcessNewKeyFrame()
     {
         for(ORB_SLAM3::MapPoint* pMP : pKF->GetMapPoints())
         {
-            pMP->PreSave(mspKeyFrames, mspMapPoints);
+            pMP->PreSave(msFusedKFs, msFusedMPs);
         }
 
     }
@@ -106,8 +110,7 @@ void KeyFramePublisher::ProcessNewKeyFrame()
         // Start of a timer -------------
         std::chrono::steady_clock::time_point time_StartOrb2RosConvKF = std::chrono::steady_clock::now();
 
-        orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF;
-        mRosKF = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROS(pKF, msUpdatedMPs, false);
+        orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROS(pKF, msUpdatedMPs, false);
         
 
 
@@ -124,26 +127,27 @@ void KeyFramePublisher::ProcessNewKeyFrame()
         pKF->mnNextTarget = 0;
         mRosKF->from_module_id = mpObserver->GetTaskModule();
 
+        
+        pSLAMNode->publishKeyFrame(mRosKF);
+
         // End of timer
         std::chrono::steady_clock::time_point time_EndOrb2RosProcKF = std::chrono::steady_clock::now();
         double timeOrb2RosProcKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndOrb2RosProcKF - time_StartOrb2RosProcKF).count();
         vdOrb2RosProcKF_ms.push_back(timeOrb2RosProcKF);
-        
-        pSLAMNode->publishKeyFrame(mRosKF);
     } 
     else {
 
         // Start of a timer -------------
         std::chrono::steady_clock::time_point time_StartOrb2RosConvKF = std::chrono::steady_clock::now();
 
-        {
-          unique_lock<mutex>(mMutexNewKFs);
-          msUpdatedMPs.clear();
-        }
+        //{
+        //  unique_lock<mutex>(mMutexNewKFs);
+        //  msUpdatedMPs.clear();
+        //}
 
         std::set<std::string> msErasedMPIds = pKF->GetMap()->GetErasedMPIds();
         orbslam3_interfaces::msg::KeyFrameUpdate mRosKFUpdate;
-        mRosKFUpdate = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(pKF, msUpdatedMPs, msErasedMPIds, true);
+        mRosKFUpdate = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(pKF, msUpdatedMPs, msErasedMPIds, false);
         
 
 
@@ -156,12 +160,12 @@ void KeyFramePublisher::ProcessNewKeyFrame()
         pKF->mnNextTarget = 0;
         mRosKFUpdate.from_module_id = mpObserver->GetTaskModule();
 
+        pSLAMNode->publishKeyFrame(mRosKFUpdate);
+
         // End of timer
         std::chrono::steady_clock::time_point time_EndOrb2RosProcKF = std::chrono::steady_clock::now();
         double timeOrb2RosProcKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndOrb2RosProcKF - time_StartOrb2RosProcKF).count();
         vdOrb2RosProcKF_ms.push_back(timeOrb2RosProcKF);
-        
-        pSLAMNode->publishKeyFrame(mRosKFUpdate);
     }
 }
 

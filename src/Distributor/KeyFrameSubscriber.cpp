@@ -107,7 +107,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartRos2OrbProcKF = std::chrono::steady_clock::now();
-    vtTimes.push_back(time_StartRos2OrbProcKF);
+    std::chrono::system_clock::time_point time_Start = std::chrono::system_clock::now();
+    vtTimes.push_back(time_Start);
     
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartPrepDataKF = std::chrono::steady_clock::now();
@@ -223,10 +224,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         ORB_SLAM3::MapPoint* tempMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
         if(mpObserver->CheckIfMapPointExists(mpRosMP->m_str_hex_id))//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
         {
-          ORB_SLAM3::MapPoint* mpCopyMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id); //mFusedMPs[mpRosMP->m_str_hex_id];
-          if(!mpCopyMP)
-              continue;
-          ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
+          //ORB_SLAM3::MapPoint* mpCopyMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id); //mFusedMPs[mpRosMP->m_str_hex_id];
+          //if(!mpCopyMP)
+          //    continue;
+          //ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
+          ORB_SLAM3::MapPoint* mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(false);
           updates++;
@@ -236,6 +238,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
           ORB_SLAM3::MapPoint* mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(true);
+          mpObserver->AddMapPoint(tempMP);
           mFusedMPs[tempMP->mstrHexId] = tempMP;
           news++;
         }
@@ -421,14 +424,15 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartRos2OrbProcKF = std::chrono::steady_clock::now();
-    vtTimes.push_back(time_StartRos2OrbProcKF);
+    std::chrono::system_clock::time_point time_Start = std::chrono::system_clock::now();
+    vtTimes.push_back(time_Start);
     
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartPrepDataKF = std::chrono::steady_clock::now();
 
 
     // Get maps and the map where KF is
-    std::map<unsigned long int, ORB_SLAM3::Map*> mMaps = mpObserver->GetAllMaps();
+    std::map<unsigned long int, ORB_SLAM3::Map*>& mMaps = mpObserver->GetAllMaps();
     ORB_SLAM3::Map* pCurrentMap = mMaps[pRosKF->mp_map_id];
 
     if(!pCurrentMap)

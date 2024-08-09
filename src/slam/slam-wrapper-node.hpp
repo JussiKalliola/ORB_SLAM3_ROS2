@@ -48,7 +48,7 @@ class SlamWrapperNode : public rclcpp::Node
     void publishLMResetRequested();
     //void publishLMActivityChange(bool bActive);
     void publishEndMsg(); 
-    void publishStopLM(); 
+    void publishStopLM(const bool bStopLM); 
     
     void CreatePublishers();
     void CreateSubscribers();

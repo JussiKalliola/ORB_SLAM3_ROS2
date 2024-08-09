@@ -63,7 +63,7 @@ void Tracker::Run()
       vllCurrentPRAM_kb.push_back(GetCurrentPMemory());
       vllTotalPRAM_kb.push_back(GetTotalPMemory());
 
-      vtTimes.push_back(std::chrono::steady_clock::now());
+      vtTimes.push_back(std::chrono::system_clock::now());
 
 
       usleep(100000);

@@ -32,6 +32,10 @@ SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<Syste
     mpKeyFramePublisher=pDistSystem->GetKeyFramePublisher();
     mpKeyFrameSubscriber=pDistSystem->GetKeyFrameSubscriber();
 
+    // Use ROS time 
+    std::chrono::system_clock::time_point time_Start(std::chrono::nanoseconds(this->now().nanoseconds()));
+    mpDistributionSystem->UpdateGlobalStartTime(time_Start);
+
     // Attach ORB SLAM3 System pointers
     m_SLAM = pSLAM;
     mpTracker_ = m_SLAM->GetTrackerPtr();
@@ -216,10 +220,11 @@ void SlamWrapperNode::GrabKeyFrame(const orbslam3_interfaces::msg::KeyFrame::Sha
 
     rclcpp::Time msgTime = mpRosKF->header.stamp;
     std::chrono::system_clock::time_point time_Start(std::chrono::nanoseconds(msgTime.nanoseconds()));
-    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - time_Start).count();
+    std::chrono::system_clock::time_point time_Now(std::chrono::nanoseconds(this->now().nanoseconds()));
+    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_Now - time_Start).count();
     vdLatencyKF_ms.push_back(timeLatency);
 
-    //RCLCPP_INFO(this->get_logger(), " **************************** Got a new keyframe, id: %d, for a map: %d", mpRosKF->mn_id, mpRosKF->mp_map_id);
+    RCLCPP_INFO(this->get_logger(), "Got a new keyframe, id: %d, for a map: %d, latency=%f", mpRosKF->mn_id, mpRosKF->mp_map_id, timeLatency);
 
     //auto timeDiff = rclcpp::Clock(RCL_SYSTEM_TIME).now() - mpRosKF->header.stamp;
     
@@ -236,7 +241,8 @@ void SlamWrapperNode::GrabKeyFrameUpdate(orbslam3_interfaces::msg::KeyFrameUpdat
 
     rclcpp::Time msgTime = mpRosKFUpdate->header.stamp;
     std::chrono::system_clock::time_point time_Start(std::chrono::nanoseconds(msgTime.nanoseconds()));
-    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - time_Start).count();
+    std::chrono::system_clock::time_point time_Now(std::chrono::nanoseconds(this->now().nanoseconds()));
+    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_Now - time_Start).count();
     vdLatencyKF_ms.push_back(timeLatency);
 
     //RCLCPP_INFO(this->get_logger(), " **************************** Got a new keyframe, id: %d, for a map: %d", mpRosKF->mn_id, mpRosKF->mp_map_id);
@@ -256,10 +262,11 @@ void SlamWrapperNode::GrabAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr
 
     rclcpp::Time msgTime = mpRosAtlas->header.stamp;
     std::chrono::system_clock::time_point time_Start(std::chrono::nanoseconds(msgTime.nanoseconds()));
-    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - time_Start).count();
+    std::chrono::system_clock::time_point time_Now(std::chrono::nanoseconds(this->now().nanoseconds()));
+    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_Now - time_Start).count();
     vdLatencyAtlas_ms.push_back(timeLatency);
     
-    RCLCPP_INFO(this->get_logger(), "Got Atlas Update, merge=%d, closure=%d", mpRosAtlas->mb_map_merge, mpRosAtlas->mb_loop_closer);
+    RCLCPP_INFO(this->get_logger(), "Got Atlas Update, merge=%d, closure=%d, latency=%f", mpRosAtlas->mb_map_merge, mpRosAtlas->mb_loop_closer, timeLatency);
     
     mpMapHandler->InsertNewSubGlobalMap(mpRosAtlas);
 
@@ -275,10 +282,14 @@ void SlamWrapperNode::GrabMap(const orbslam3_interfaces::msg::Map::SharedPtr mpR
     
     rclcpp::Time msgTime = mpRosMap->header.stamp;
     std::chrono::system_clock::time_point time_Start(std::chrono::nanoseconds(msgTime.nanoseconds()));
-    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - time_Start).count();
+    std::chrono::system_clock::time_point time_Now(std::chrono::nanoseconds(this->now().nanoseconds()));
+    double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_Now - time_Start).count();
+    
+    setprecision(5);
+    RCLCPP_INFO(this->get_logger(), "Got an update for a map, id=%d, from module=%d. Stats: #KFs=%d, #MPs=%d, latency=%f", mpRosMap->mn_id, mpRosMap->from_module_id, mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size(), timeLatency);
+
     vdLatencyMap_ms.push_back(timeLatency);
 
-    RCLCPP_INFO(this->get_logger(), "Got an update for a map, id=%d, from module=%d. Stats: #KFs=%d, #MPs=%d", mpRosMap->mn_id, mpRosMap->from_module_id, mpRosMap->msp_keyframes.size(), mpRosMap->msp_map_points.size());
     
     mpMapHandler->InsertNewSubLocalMap(mpRosMap);
     
@@ -379,14 +390,14 @@ void SlamWrapperNode::workerCallback(std_msgs::msg::Int32::SharedPtr msg) {
     mpObserver->AddNewWorker(msg->data); 
 }
 
-void SlamWrapperNode::publishStopLM() 
+void SlamWrapperNode::publishStopLM(const bool bStopLM) 
 {
     if(mpObserver->GetTaskModule() < 3)
         return;
 
     orbslam3_interfaces::msg::Bool bMsg;
     bMsg.system_id = std::getenv("SLAM_SYSTEM_ID");
-    bMsg.data = true;
+    bMsg.data = bStopLM;
 
     
     stop_lm_publisher_->publish(bMsg);
@@ -400,13 +411,20 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
        return; 
 
     RCLCPP_INFO(this->get_logger(), "Received msg from /LocalMapping/Stop");
-    //mpTracker_->mbStep = true;
-    //mpLocalMapper_->mbGBARunning = true;
-    //mpLocalMapper_->RequestStop();
-    //mpMapHandler->ResetQueue();
-    //mpKeyFrameSubscriber->ResetQueue();
-    //mpKeyFramePublisher->ResetQueue();
-    //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
+    if(bMsg->data)
+    {
+        //mpTracker_->mbStep = true;
+        //mpLocalMapper_->mbGBARunning = true;
+        //mpLocalMapper_->RequestStop();
+        //mpMapHandler->ResetQueue();
+        //mpKeyFrameSubscriber->ResetQueue();
+        //mpKeyFramePublisher->ResetQueue();
+        //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
+    } else {
+      //mpLocalMapper_->mbGBARunning = false;
+      //mpLocalMapper_->Release();
+      //mpLocalMapper_->EmptyQueue();
+    }
 }
 
 
@@ -423,7 +441,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
     keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
         "/KeyFrame/New", 
-        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
+        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
 
     /* KEYFRAME */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
@@ -448,7 +466,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
     atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
         "/Atlas", 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
+        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
     
     /* LocalMapping Active*/
     //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -517,7 +535,7 @@ void SlamWrapperNode::CreateSubscribers() {
     RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
     m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
         "KeyFrame/New",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));//, options1);
     
     // KF Update
@@ -532,7 +550,7 @@ void SlamWrapperNode::CreateSubscribers() {
     m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
         "Map",
         //qosMap, 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
+        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
         std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
 
     /* Atlas */

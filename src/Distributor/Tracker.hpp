@@ -29,7 +29,7 @@ class Tracker
     vector<long long> vllCurrentPRAM_kb;
     vector<long long> vllTotalPRAM_kb;
 
-    vector<std::chrono::steady_clock::time_point> vtTimes;
+    vector<std::chrono::system_clock::time_point> vtTimes;
 
 
   protected:  

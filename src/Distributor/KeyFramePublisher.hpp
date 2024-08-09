@@ -51,7 +51,7 @@ class KeyFramePublisher
     vector<double> vdPreSaveKF_ms;
     vector<double> vdOrb2RosProcKF_ms;
     vector<double> vdOrb2RosConvKF_ms;
-    vector<std::chrono::steady_clock::time_point> vtTimes;
+    vector<std::chrono::system_clock::time_point> vtTimes;
 
   protected:  
     bool CheckNewKeyFrames();

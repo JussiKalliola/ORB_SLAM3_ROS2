@@ -60,7 +60,7 @@ namespace Converter {
         std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << mspUpdatedMapPointIds.size() << std::endl;
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0) {
-          std::vector<ORB_SLAM3::KeyFrame*> mvpAllKeyFrames = opM->GetAllKeyFrames();
+          const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
             if(kf && !mspErasedKFIds.count(kf->mnId))
@@ -197,11 +197,10 @@ namespace Converter {
         //std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
         const std::vector<unsigned long int> mvpErasedKFIds(msErasedKFs.begin(), msErasedKFs.end()); 
 
-        opM->ClearErasedData();
 
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0 && !mspUpdatedKFIds.empty()) {
-          std::vector<ORB_SLAM3::KeyFrame*> mvpAllKeyFrames = opM->GetAllKeyFrames();
+          const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
             if(kf && !msErasedKFs.count(kf->mnId))
@@ -209,7 +208,7 @@ namespace Converter {
               if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
               {
 
-                orbslam3_interfaces::msg::KeyFrameUpdate msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
+                const orbslam3_interfaces::msg::KeyFrameUpdate& msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
                 mpRosMap->msp_keyframes.push_back(msgKf);
                 for(const auto& mpMsg : msgKf.mvp_map_points)
                 {
