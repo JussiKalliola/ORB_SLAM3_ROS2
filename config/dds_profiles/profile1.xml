@@ -1,8 +1,39 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
 <profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    
+    <!-- default publisher profile -->
+    <publisher profile_name="default_publisher" is_default_profile="false">
+        <historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+    </publisher>
 
-    <transport_descriptors>
+    <!-- default subscriber profile -->
+    <subscriber profile_name="default_subscriber" is_default_profile="false">
+        <historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+    </subscriber>
+
+    <!-- publisher profile for topic /KeyFrame/New -->
+    <publisher profile_name="/KeyFrame/New">
+        <historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+        <qos>
+            <publishMode>
+                <kind>SYNCHRONOUS</kind>
+            </publishMode>
+        </qos>
+    </publisher>
+
+    <!-- publisher profile for topic async_topic -->
+    <publisher profile_name="/Map">
+        <historyMemoryPolicy>DYNAMIC</historyMemoryPolicy>
+        <qos>
+            <publishMode>
+                <kind>ASYNCHRONOUS</kind>
+            </publishMode>
+        </qos>
+    </publisher>
+
+
+    <!-- <transport_descriptors>
         <transport_descriptor>
             <transport_id>CustomUDPTransport</transport_id>
             <type>UDPv4</type>
@@ -19,6 +50,6 @@
                 <transport_id>CustomUDPTransport</transport_id>
             </userTransports>
         </rtps>
-    </participant>
+      </participant> -->
 
 </profiles>

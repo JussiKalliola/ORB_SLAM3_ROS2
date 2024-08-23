@@ -16,6 +16,7 @@
   <depend>message_filters</depend>
   <depend>orbslam3_interfaces</depend>
   <depend>Pangolin</depend>
+  <depend>rosbag2_transport</depend>
 
   <export>
     <build_type>ament_cmake</build_type>

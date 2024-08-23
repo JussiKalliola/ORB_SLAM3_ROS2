@@ -43,6 +43,9 @@ class MapHandler
 
     void InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate);
     void InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPtr mRosAtlas);
+
+    void InsertNewUpdatedLocalKF(ORB_SLAM3::KeyFrame* pKF);
+    void InsertNewUpdatedLocalMP(ORB_SLAM3::MapPoint* pMP);
     
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
@@ -54,6 +57,12 @@ class MapHandler
 
 
     void ResetQueue();
+    void ResetLocalQueue();
+    
+    std::set<unsigned long int> msToBeErasedKFs;
+    std::set<std::string> msToBeErasedMPs;
+
+    ORB_SLAM3::KeyFrame* mpLastGlobalKF;
 
     //vector<long int> vnNumberOfNewMapPoints;
     //vector<long int> vnNumberOfUpdatedMapPoints;
@@ -111,12 +120,10 @@ class MapHandler
     void ProcessNewSubGlobalMap2();
 
     std::set<std::string> msErasedMPs;
-    std::set<std::string> msToBeErasedMPs;
     std::set<unsigned long int> msUpdatedLocalKFs;
     std::set<std::string> msUpdatedLocalMPs;
 
     std::set<unsigned long int> msErasedKFs;
-    std::set<unsigned long int> msToBeErasedKFs;
     std::set<unsigned long int> msUpdatedGlobalKFs;
     std::set<std::string> msUpdatedGlobalMPs;
     std::mutex mMutexUpdates;

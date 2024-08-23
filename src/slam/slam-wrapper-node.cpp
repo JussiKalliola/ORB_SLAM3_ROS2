@@ -166,10 +166,10 @@ void SlamWrapperNode::publishMap(const orbslam3_interfaces::msg::Map::SharedPtr 
 /*        MapPoint        */
 void SlamWrapperNode::publishMapPoint(ORB_SLAM3::MapPoint* pMP) {
     //RCLCPP_INFO(this->get_logger(), "Publishing a new mappoint with id: %d", pMp->mnId);
-    orbslam3_interfaces::msg::MapPoint mRosMP = Converter::MapPointConverter::ORBSLAM3MapPointToROS(pMP);
-    mRosMP.system_id = std::getenv("SLAM_SYSTEM_ID");
-    
-    map_point_publisher_->publish(mRosMP);
+    //orbslam3_interfaces::msg::MapPoint::SharedPtr mRosMP = Converter::MapPointConverter::ORBSLAM3MapPointToROS(pMP);
+    //mRosMP->system_id = std::getenv("SLAM_SYSTEM_ID");
+    //
+    //map_point_publisher_->publish(*mRosMP);
 }
 
 /*        Local Mapping - Active        */
@@ -326,8 +326,8 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
     mpObserver->UpdateLastResetTime();
 
     mpKeyFramePublisher->ResetQueue();
-    mpKeyFrameSubscriber->ResetQueue();
-    mpMapHandler->ResetQueue();
+    //mpKeyFrameSubscriber->ResetQueue();
+    //mpMapHandler->ResetQueue();
 
     
     RCLCPP_INFO(this->get_logger(), "Reset requested for Active map id=%d", msg->data);
@@ -414,12 +414,12 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
     if(bMsg->data)
     {
         //mpTracker_->mbStep = true;
-        //mpLocalMapper_->mbGBARunning = true;
+        mpLocalMapper_->mbGBARunning = true;
+        //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
         //mpLocalMapper_->RequestStop();
         //mpMapHandler->ResetQueue();
-        //mpKeyFrameSubscriber->ResetQueue();
+        //mpKeyFrameSubscriber->ResetQueue(false);
         //mpKeyFramePublisher->ResetQueue();
-        //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
     } else {
       //mpLocalMapper_->mbGBARunning = false;
       //mpLocalMapper_->Release();
@@ -432,41 +432,68 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
 
 void SlamWrapperNode::CreatePublishers() {
 
-    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(1));
-    qosMap.best_effort();
-    //qosMap.deadline(rclcpp::Duration(1000));
-    //qosMap.lifespan(rclcpp::Duration(1));
+    int nTaskId = mpObserver->GetTaskModule();
+
+    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(5));
+    qosMap.reliable();
+    //qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
+    qosMap.lifespan(rclcpp::Duration(0, 50000000)); // 100ms
+
+    rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(5));
+    qosKF.reliable();
+    //qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
+    qosKF.lifespan(rclcpp::Duration(0, 20000000)); // 50ms
+                                                   
+
+    rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(5));
+    qosAtlas.reliable();
+    //qosAtlas.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
+    qosAtlas.lifespan(rclcpp::Duration(0, 100000000)); // 80ms
+
+    if(nTaskId==1)
+    {
+        /* KEYFRAME */
+        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
+        keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
+            "/KeyFrame/New", 
+            qosKF);
+            //rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
+    }
 
     /* KEYFRAME */
-    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
-    keyframe_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrame>(
-        "/KeyFrame/New", 
-        rclcpp::QoS(rclcpp::KeepLast(10),  rmw_qos_profile_sensor_data));//rmw_qos_profile_sensor_data));
-
-    /* KEYFRAME */
-    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
-    keyframe_update_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameUpdate>(
-        "/KeyFrame/Update", 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
+    //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /KeyFrame");
+    //keyframe_update_publisher_ = this->create_publisher<orbslam3_interfaces::msg::KeyFrameUpdate>(
+    //    "/KeyFrame/Update", 
+    //    rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));//rmw_qos_profile_sensor_data));
     
-    /* MAP */
-    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
-    map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
-        "/Map", 
-        //qosMap);
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
+    if(nTaskId==2)
+    {
+        /* MAP */
+        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Map");
+        map_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Map>(
+            "/Map", 
+            qosMap);
+            //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+    }
     
     /* MAPPOINT */
-    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
-    map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
-        "/MapPoint", 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
+    //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /MapPoint");
+    //map_point_publisher_ = this->create_publisher<orbslam3_interfaces::msg::MapPoint>(
+    //    "/MapPoint", 
+    //    rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default));
     
-    /* ATLAS */
-    RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
-    atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
-        "/Atlas", 
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+    if(nTaskId==3)
+    {
+        /* ATLAS */
+        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
+        atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
+            "/Atlas", 
+            qosAtlas);
+            //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+    }
     
     /* LocalMapping Active*/
     //RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Active");
@@ -497,7 +524,7 @@ void SlamWrapperNode::CreatePublishers() {
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /worker");
     worker_publisher_ = this->create_publisher<std_msgs::msg::Int32>(
         "/worker", 
-        rclcpp::QoS(rclcpp::KeepLast(1)).transient_local().reliable()) ;
+        rclcpp::QoS(rclcpp::KeepLast(5)).transient_local().reliable()) ;
 
     /* Stop LM */
     RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /LocalMapping/Stop");
@@ -517,55 +544,82 @@ void SlamWrapperNode::CreatePublishers() {
 /*   INIT SUBSCRIBERS   */
 
 void SlamWrapperNode::CreateSubscribers() {
-    //rclcpp::SubscriptionOptions options1;
-    //rclcpp::SubscriptionOptions options2;
-    //rclcpp::SubscriptionOptions options3;
-    //options1.callback_group = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-    //options2.callback_group = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-    //options3.callback_group = create_callback_group(rclcpp::CallbackGroupType::Reentrant);
-    
-    
-    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(1));
-    qosMap.best_effort();
-    //qosMap.deadline(rclcpp::Duration(1000));
-    //qosMap.lifespan(rclcpp::Duration(1));
-    
 
-    /* KF */  
-    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
-    m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
-        "KeyFrame/New",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
-        std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));//, options1);
+    int nTaskId = mpObserver->GetTaskModule();
+    
+    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(5));
+    if(nTaskId==3)
+        qosMap.best_effort();
+    else
+        qosMap.reliable();
+    //qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
+    qosMap.lifespan(rclcpp::Duration(0, 50000000)); // 100ms
+
+
+    rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(5));
+    if(nTaskId==3)
+        qosKF.best_effort();
+    else
+        qosKF.reliable();
+    //qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
+    qosKF.lifespan(rclcpp::Duration(0, 20000000)); // 50ms
+                                                   
+
+    rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(5));
+    qosAtlas.reliable();
+    //qosAtlas.durability(rclcpp::DurabilityPolicy(0)); // Volatile
+    //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
+    qosAtlas.lifespan(rclcpp::Duration(0, 100000000)); // 150ms
+
+
+    if(nTaskId != 1)
+    {
+        /* KF */  
+        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame/New");
+        m_keyframe_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrame>(
+            "KeyFrame/New",
+            qosKF,
+            //rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
+            std::bind(&SlamWrapperNode::GrabKeyFrame, this, std::placeholders::_1));//, options1);
+    }
     
     // KF Update
-    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
-    m_keyframe_update_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameUpdate>(
-        "KeyFrame/Update",
-        rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default), //rmw_qos_profile_sensor_data),
-        std::bind(&SlamWrapperNode::GrabKeyFrameUpdate, this, std::placeholders::_1));//, options1);
+    //RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /KeyFrame");
+    //m_keyframe_update_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::KeyFrameUpdate>(
+    //    "KeyFrame/Update",
+    //    rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default), //rmw_qos_profile_sensor_data),
+    //    std::bind(&SlamWrapperNode::GrabKeyFrameUpdate, this, std::placeholders::_1));//, options1);
     
-    /* Map */
-    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
-    m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
-        "Map",
-        //qosMap, 
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),//rmw_qos_profile_sensor_data),
-        std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
+    if(nTaskId!=2)
+    {
+        /* Map */
+        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Map");
+        m_map_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Map>(
+            "Map",
+            qosMap, 
+            //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
+            std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
+    }
 
-    /* Atlas */
-    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
-    m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
-        "Atlas",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
-        std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);
+    if(nTaskId==2)
+    {
+        /* Atlas */
+        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
+        m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
+            "Atlas",
+            qosAtlas,
+            //rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
+            std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);
+    }
     
     /* MapPoint */
-    RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
-    m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
-        "MapPoint",
-        rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
-        std::bind(&SlamWrapperNode::GrabMapPoint, this, std::placeholders::_1));//, options3);
+    //RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /MapPoint");
+    //m_map_point_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::MapPoint>(
+    //    "MapPoint",
+    //    rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
+    //    std::bind(&SlamWrapperNode::GrabMapPoint, this, std::placeholders::_1));//, options3);
     
 
     /* LocalMapping active */
@@ -598,7 +652,7 @@ void SlamWrapperNode::CreateSubscribers() {
         std::bind(&SlamWrapperNode::endCallback, this, std::placeholders::_1));//, options3);
 
     /* Worker node */
-    rclcpp::QoS qosLatching = rclcpp::QoS(rclcpp::KeepLast(1));
+    rclcpp::QoS qosLatching = rclcpp::QoS(rclcpp::KeepLast(5));
     qosLatching.transient_local();
     qosLatching.reliable();
     

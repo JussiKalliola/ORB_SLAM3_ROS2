@@ -44,20 +44,38 @@ namespace Converter {
 
         //std::cout << " #################### num of map points "<< opM->GetAllMapPoints().size() << std::endl;
         std::set<std::string> mspUpdatedMapPointIds = opM->GetUpdatedMPIds();
-        std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.begin(), mspUpdatedMapPointIds.end()); 
+        std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
+        for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
+        {
+          mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
+        }
         mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
         
         std::set<unsigned long int> mspUpdatedKFIds = opM->GetUpdatedKFIds();
-        std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.begin(), mspUpdatedKFIds.end()); 
+        std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.size()); 
+        for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
+        {
+          mvpUpdatedKFIds[std::distance(mspUpdatedKFIds.begin(),it)] = *it;
+        }
         mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
         
         std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
-        std::vector<unsigned long int> mvpErasedKFIds(mspErasedKFIds.begin(), mspErasedKFIds.end()); 
+        std::vector<unsigned long int> mvpErasedKFIds(mspErasedKFIds.size()); 
+        for(std::set<unsigned long int>::iterator it = mspErasedKFIds.begin(); it != mspErasedKFIds.end(); ++it)
+        {
+          mvpErasedKFIds[std::distance(mspErasedKFIds.begin(),it)] = *it;
+        }
 
         std::set<std::string> mspErasedMPIds = opM->GetErasedMPIds();
-        std::vector<std::string> mvpErasedMPIds(mspErasedMPIds.begin(), mspErasedMPIds.end()); 
+        std::vector<std::string> mvpErasedMPIds(mspErasedMPIds.size()); 
+        for(std::set<std::string>::iterator it = mspErasedMPIds.begin(); it != mspErasedMPIds.end(); ++it)
+        {
+          mvpErasedMPIds[std::distance(mspErasedMPIds.begin(),it)] = *it;
+        }
         
         std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << mspUpdatedMapPointIds.size() << std::endl;
+        std::vector<orbslam3_interfaces::msg::KeyFrameUpdate> mvRosKFUpdates;
+        mvRosKFUpdates.reserve(opM->GetAllKeyFrames().size());
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0) {
           const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
@@ -69,16 +87,17 @@ namespace Converter {
               {
                 if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
                 {
-                  mpRosMap->msp_keyframes.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
+                  mvRosKFUpdates.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
                 }
 
               } else {
-                mpRosMap->msp_keyframes.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
+                mvRosKFUpdates.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
               }
             }
             kf->mnNextTarget=0;
           }
         }
+        mpRosMap->msp_keyframes = mvRosKFUpdates;
 
         //for(ORB_SLAM3::MapPoint* mp : opM->GetAllMapPoints())
         //{
@@ -186,33 +205,49 @@ namespace Converter {
         std::set<std::string> mspUpdatedMapPointIds;
         
         std::set<unsigned long int>& mspUpdatedKFIds = msUpdatedKFs;
-        const std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.begin(), mspUpdatedKFIds.end()); 
+        std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.size()); 
+        for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
+        {
+          mvpUpdatedKFIds[std::distance(mspUpdatedKFIds.begin(),it)] = *it;
+        }
         mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
         
 
         std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << msUpdatedMPs.size() << std::endl;
         //std::set<std::string>& mspErasedMPIds = opM->GetErasedMPIds();
-        const std::vector<std::string> mvpErasedMPIds(msErasedMPs.begin(), msErasedMPs.end()); 
+        std::vector<std::string> mvpErasedMPIds; 
+        mvpErasedMPIds.reserve(msErasedMPs.size());
+        for(std::set<std::string>::iterator it = msErasedMPs.begin(); it != msErasedMPs.end(); ++it)
+        {
+          mvpErasedMPIds.push_back(*it);
+        }
 
         //std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
-        const std::vector<unsigned long int> mvpErasedKFIds(msErasedKFs.begin(), msErasedKFs.end()); 
+        std::vector<unsigned long int> mvpErasedKFIds(msErasedKFs.size()); 
 
+        for(std::set<unsigned long int>::iterator it = msErasedKFs.begin(); it != msErasedKFs.end(); ++it)
+        {
+          mvpErasedKFIds[std::distance(msErasedKFs.begin(),it)] = *it;
+        }
+
+        std::vector<orbslam3_interfaces::msg::KeyFrameUpdate> mvRosKFUpdates;
+        mvRosKFUpdates.reserve(opM->GetAllKeyFrames().size());
 
         //std::cout << "before all keyframes" << std::endl;
         if(opM->GetAllKeyFrames().size() > 0 && !mspUpdatedKFIds.empty()) {
           const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
-            if(kf && !msErasedKFs.count(kf->mnId))
+            if(kf && !kf->isBad())//!msErasedKFs.count(kf->mnId))
             {
               if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
               {
 
                 const orbslam3_interfaces::msg::KeyFrameUpdate& msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
-                mpRosMap->msp_keyframes.push_back(msgKf);
+                                                                                                                                mvRosKFUpdates.push_back(msgKf);
                 for(const auto& mpMsg : msgKf.mvp_map_points)
                 {
-                    mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 
+                  mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 
                 }
               }
 
@@ -224,7 +259,13 @@ namespace Converter {
           }
         }
 
-        const std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.begin(), mspUpdatedMapPointIds.end()); 
+        mpRosMap->msp_keyframes = mvRosKFUpdates;
+
+        std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
+        for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
+        {
+          mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
+        }
         mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
 
         //if(!mspUpdatedMapPointIds.empty())

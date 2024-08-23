@@ -221,14 +221,15 @@ namespace Converter {
       }
 
       static std::vector<int_tuple> MapToRosIntTupleVector(const std::map<long unsigned int, int>& map) {
-        std::vector<int_tuple> msgIt;
+        std::vector<int_tuple> msgIt(map.size());
 
-        for (const auto& entry : map) {
+        for(std::map<long unsigned int, int>::const_iterator it = map.begin(); it != map.end(); ++it)
+        {
           int_tuple t;
-          t.x1 = entry.first; //std::get<0>(entry.second);
-          t.x2 = entry.second; //std::get<1>(entry.second);
+          t.x1 = it->first; //std::get<0>(entry.second);
+          t.x2 = it->second; //std::get<1>(entry.second);
 
-          msgIt.push_back(t);
+          msgIt[std::distance(map.begin(),it)] = t;
         }
 
         return msgIt;
@@ -236,17 +237,18 @@ namespace Converter {
 
 
       static std::vector<key_value_pair> MapToRosKeyValuePairVector(const std::map<orb_keyframe*, std::tuple<int,int>>& map) {
-        std::vector<key_value_pair> msgKvp;
+        std::vector<key_value_pair> msgKvp(map.size());
 
-        for (const auto& entry : map) {
+        for(std::map<orb_keyframe*,std::tuple<int,int>>::const_iterator it = map.begin(); it != map.end(); ++it)
+        {
           key_value_pair kvp;
           int_tuple t;
-          kvp.key = entry.first->mnId;
-          t.x1 = std::get<0>(entry.second);
-          t.x2 = std::get<1>(entry.second);
+          kvp.key = it->first->mnId;
+          t.x1 = std::get<0>(it->second);
+          t.x2 = std::get<1>(it->second);
 
           kvp.value = t;
-          msgKvp.push_back(kvp);
+          msgKvp[std::distance(map.begin(),it)]=kvp;
         }
 
         return msgKvp;
@@ -300,11 +302,13 @@ namespace Converter {
         size_t depthIdx = 0;
         for (size_t x = 0; x < width; ++x)
         {
+          //mGrid.reserve(width);
           //std::cout << ", x=" << x;
           unsigned int height = rG.height[x];
           std::vector<std::vector<size_t>> matrix;
           for (size_t y = 0; y < height; ++y)
           {
+            //mGrid[x].reserve(height);
             //std::cout << ", y=" << y;
             unsigned int depth = rG.depth[depthIdx];
             //std::cout << ", depth=" << depth;
@@ -312,9 +316,7 @@ namespace Converter {
             //mGrid[x][y].push_back(std::vector<size_t>());
             for (size_t z = 0; z < depth; ++z)
             {
-              //std::cout << ", z=" << z;
-              //std::cout << ", data=" << data[index++];
-              //std::cout << data[index++];
+              //mGrid[x][y].reserve(depth);
               row[z] = data[index];
               index++;
               //mGrid[x][y][z] = data[index++];
@@ -347,11 +349,13 @@ namespace Converter {
 
 
       static std::vector<cv::KeyPoint> KeypointVectorToCVKeypointVector(const std::vector<keypoint>& rKPs) {
-        std::vector<cv::KeyPoint> cppKPs;
-
-        for (const auto& rKP : rKPs) {
-          cv::KeyPoint cvKP = cv::KeyPoint(rKP.x, rKP.y, rKP.size, rKP.angle, rKP.response, rKP.octave, rKP.class_id);
-          cppKPs.push_back(cvKP);
+        std::vector<cv::KeyPoint> cppKPs(rKPs.size());
+        
+        for(size_t i=0;i<rKPs.size();i++)
+        {
+            const keypoint& rKP = rKPs[i];
+            cv::KeyPoint cvKP = cv::KeyPoint(rKP.x, rKP.y, rKP.size, rKP.angle, rKP.response, rKP.octave, rKP.class_id);
+            cppKPs[i]=cvKP;
         }
 
         return cppKPs;

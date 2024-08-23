@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 project(orbslam3)
 
 IF(NOT CMAKE_BUILD_TYPE)
-  SET(CMAKE_BUILD_TYPE Release)
+  SET(CMAKE_BUILD_TYPE Debug)
 ENDIF()
 
 
@@ -32,6 +32,7 @@ find_package(Sophus REQUIRED)
 find_package(Pangolin REQUIRED)
 find_package(ORB_SLAM3 REQUIRED)
 find_package(orbslam3_interfaces REQUIRED)
+find_package(rosbag2_transport REQUIRED)
 
 #Jussi: Switch to OpenCV 4.2 from 4.4 to make it work with ros2 wrapper
 find_package(OpenCV 4.2)
@@ -58,7 +59,7 @@ add_executable(mono
   src/monocular/mono.cpp
   src/monocular/monocular-slam-node.cpp
 )
-ament_target_dependencies(mono rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces)
+ament_target_dependencies(mono rclcpp sensor_msgs std_msgs cv_bridge ORB_SLAM3 Pangolin orbslam3_interfaces rosbag2_transport)
 
 #add_executable(rgbd
 #  src/rgbd/rgbd.cpp

@@ -41,7 +41,7 @@ class Observer : public ORB_SLAM3::Distributor
     ~Observer();
 
     // Routing data
-    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule);
+    void ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule, const bool mbNew);
 
     // Injetion functions. Inject received data back into SLAM
     void InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap, const int nFromModule);
@@ -61,6 +61,7 @@ class Observer : public ORB_SLAM3::Distributor
     void EraseMapPoint(std::string mnId);
     bool CheckIfMapPointExists(ORB_SLAM3::MapPoint* pMP);
     bool CheckIfMapPointExists(std::string mstrId);
+    bool HasMapPointBeenErased(std::string mnId);
     ORB_SLAM3::MapPoint* GetMapPoint(std::string mnId);
     void ClearMapPointsFromMap(ORB_SLAM3::Map* pM);
     std::map<std::string, ORB_SLAM3::MapPoint*>& GetAllMapPoints();
@@ -72,12 +73,14 @@ class Observer : public ORB_SLAM3::Distributor
     ORB_SLAM3::KeyFrame* GetKeyFrame(unsigned long int mnId);
     bool CheckIfKeyFrameExists(ORB_SLAM3::KeyFrame* pKF);
     bool CheckIfKeyFrameExists(unsigned long int mnId);
+    bool HasKeyFrameBeenErased(unsigned long int mnId);
     void ClearKeyFramesFromMap(ORB_SLAM3::Map* pM);
     std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& GetAllKeyFrames();
     std::set<ORB_SLAM3::KeyFrame*>& GetAllKeyFramesSet();
 
     void AddMap(ORB_SLAM3::Map* pM);
     void EraseMap(ORB_SLAM3::Map* pM);
+    void EraseMap(unsigned long int mnId);
     std::map<unsigned long int, ORB_SLAM3::Map*>& GetAllMaps();
 
     
@@ -100,6 +103,10 @@ class Observer : public ORB_SLAM3::Distributor
     unsigned long int mnLastKFId;
 
     std::set<unsigned long int> msAllErasedKFIds;
+    std::set<std::string> msAllErasedMPIds;
+
+    unsigned long int GetMaxMPId();
+    void UpdateMaxMPId(unsigned long int mnId);
     
     // Override inherited public functions from ORBSLAM3
     void onNewMap(ORB_SLAM3::Map* pM) override;
@@ -134,6 +141,7 @@ class Observer : public ORB_SLAM3::Distributor
     std::map<unsigned long int, ORB_SLAM3::Map*> mOrbMaps;
     std::mutex mMutexMap;
 
+    unsigned long int mnMaxMPId;
     std::map<std::string, ORB_SLAM3::MapPoint*> mOrbMapPoints;
     std::set<ORB_SLAM3::MapPoint*> msOrbMapPoints;
     std::mutex mMutexMapPoint;

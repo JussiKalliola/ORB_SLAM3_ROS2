@@ -40,7 +40,7 @@ class KeyFrameSubscriber
     void RequestFinish();
     bool isFinished();
 
-    void ResetQueue();
+    void ResetQueue(const bool bAll);
 
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachObserver(std::shared_ptr<Observer> pObserver);

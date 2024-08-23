@@ -179,9 +179,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     // Convert ros msg to ORB_SLAM3 Objects
     ORB_SLAM3::KeyFrame* tempKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); //mpObserver->ConvertKeyFrame(pRosKF, mMaps);
-    if(mpObserver->CheckIfKeyFrameExists(pRosKF->mn_id)) //mFusedKFs.find(pRosKF->mn_id) != mFusedKFs.end())
+    ORB_SLAM3::KeyFrame* mpCopyKF = mpObserver->GetKeyFrame(pRosKF->mn_id);
+    if(mpCopyKF) //mFusedKFs.find(pRosKF->mn_id) != mFusedKFs.end())
     {
-      ORB_SLAM3::KeyFrame* mpCopyKF = mFusedKFs[pRosKF->mn_id];
       tempKF = new ORB_SLAM3::KeyFrame(*mpCopyKF);
       mpObserver->ConvertKeyFrame(pRosKF, tempKF);
       mbNewKF=false;
@@ -208,6 +208,17 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
 
     std::vector<ORB_SLAM3::MapPoint*> mvpTempMPs;
+    mvpTempMPs.reserve(pRosKF->mvp_map_points.size());
+    for(size_t i=0;i<pRosKF->mvp_map_points.size();++i)
+    {
+        unsigned long int mnId = pRosKF->mvp_map_points[i].mn_id;
+        mpObserver->UpdateMaxMPId(mnId);
+    }
+
+    mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
+
+    std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
+    ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
     
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartConvMP = std::chrono::steady_clock::now();
@@ -239,7 +250,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(true);
           mpObserver->AddMapPoint(tempMP);
-          mFusedMPs[tempMP->mstrHexId] = tempMP;
+          //mFusedMPs[tempMP->mstrHexId] = tempMP;
           news++;
         }
 
@@ -353,6 +364,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
       ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
       if(!mpExistingMP)
           continue;
+
+
       mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
         //mpObserver->InjectMapPoint(tempMP, mMapMPs);
     }
@@ -373,7 +386,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     {
         //if(mpObserver->GetTaskModule() == 1)
         //    mpTracker->UpdateReference(pKF);
-        mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id);
+        mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, true);
     }
     
     //if(pCurrentMap->KeyFramesInMap() < 10)
@@ -417,6 +430,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
   
     if(!pRosKF)
         return;
+
     
     double timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
     if(timeSinceReset < 50)
@@ -441,11 +455,15 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
     }
+    
+    //if(pCurrentMap->KeyFramesInMap() >= 10 && mpObserver->HasKeyFrameBeenErased(pRosKF->mn_id))
+    //    return;
 
     // Create map data structures for postloads
     std::map<std::string, ORB_SLAM3::MapPoint*>& mFusedMPs = mpObserver->GetAllMapPoints(); 
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*>& mFusedKFs = mpObserver->GetAllKeyFrames(); 
     std::vector<bool> mvbNewMPs;
+    mvbNewMPs.reserve(pRosKF->mvp_map_points.size());
     std::map<unsigned int, ORB_SLAM3::GeometricCamera*> mCameras; 
     
     //std::vector<ORB_SLAM3::KeyFrame*> mvpKFs = pCurrentMap->GetAllKeyFrames(); 
@@ -521,6 +539,20 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
 
     std::vector<ORB_SLAM3::MapPoint*> mvpTempMPs;
+    mvpTempMPs.reserve(pRosKF->mvp_map_points.size());
+
+    for(size_t i=0;i<pRosKF->mvp_map_points.size();++i)
+    {
+        unsigned long int mnId = pRosKF->mvp_map_points[i].mn_id;
+        mpObserver->UpdateMaxMPId(mnId);
+        
+    }
+
+    mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
+
+    std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
+    ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
+
     
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartConvMP = std::chrono::steady_clock::now();
@@ -531,6 +563,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     int news=0;
     for(int i=0; i<pRosKF->mvp_map_points.size(); ++i)
     {
+        //if(pCurrentMap->KeyFramesInMap() >= 10 && mpObserver->HasMapPointBeenErased(pRosKF->mvp_map_points[i].m_str_hex_id))
+        //    continue;
         //if(pRosKF->mvp_map_points[i].mn_last_module > mnTaskModule || mFusedMPs.find(pRosKF->mvp_map_points[i].m_str_hex_id) == mFusedMPs.end()) 
         //{
         orbslam3_interfaces::msg::MapPoint::SharedPtr mpRosMP = std::make_shared<orbslam3_interfaces::msg::MapPoint>(pRosKF->mvp_map_points[i]);
@@ -542,20 +576,21 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
               continue;
           ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
-          mvbNewMPs.push_back(false);
+          mvbNewMPs.emplace_back(false);
           updates++;
 
         } else {
 
           ORB_SLAM3::MapPoint* mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
-          mvbNewMPs.push_back(true);
+          mvbNewMPs.emplace_back(true);
           news++;
-          mFusedMPs[tempMP->mstrHexId] = tempMP;
+          mpObserver->AddMapPoint(tempMP);
+          //mFusedMPs[tempMP->mstrHexId] = tempMP;
         }
 
         //mMapMPs[tempMP->mstrHexId] = tempMP;
-        mvpTempMPs.push_back(tempMP);
+        mvpTempMPs.emplace_back(tempMP);
             //ORB_SLAM3::MapPoint* tempMPi = mpObserver->ConvertMapPoint(std::make_shared<orbslam3_interfaces::msg::MapPoint>(pRosKF->mvp_map_points[i]), mMaps);
             //if(tempMPi)
             //{
@@ -595,8 +630,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
-        
         tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
+        //tempMP->ComputeDistinctiveDescriptors();
     }
 
     // End of timer
@@ -684,7 +719,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     if(pKF)
     {
         // Update reference for all modules
-        mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id);
+        mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, mbNewKF);
     }
     
     std::cout << "Got a new keyframe. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
@@ -748,13 +783,20 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
     }
 }
 
-void KeyFrameSubscriber::ResetQueue()
+void KeyFrameSubscriber::ResetQueue(const bool bAll)
 {
   unique_lock<mutex> lock(mMutexNewRosKFs);
 
-  mlpRosKeyFrameQueue.clear();
-  mlpRosKeyFrameUpdateQueue.clear();
-  mpRosKeyFrameUpdateQueue.clear();
+  if(bAll)
+  {
+      mlpRosKeyFrameQueue.clear();
+      mlpRosKeyFrameUpdateQueue.clear();
+      mpRosKeyFrameUpdateQueue.clear();
+  } else 
+  {
+      mlpRosKeyFrameUpdateQueue.clear();
+      mpRosKeyFrameUpdateQueue.clear();
+  }
 
 }
 

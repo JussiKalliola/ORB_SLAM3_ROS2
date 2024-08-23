@@ -87,8 +87,15 @@ namespace Converter {
 
 
       static map_point ORBSLAM3MapPointToROS(orb_map_point* pMp, long unsigned int hostKfId=-1) {
-          map_point msgMp = FormDefaultMapPointMessage();
+          //map_point msgMp = FormDefaultMapPointMessage();
           
+          map_point msgMp;
+
+          msgMp.mp_host_kf_id = -1;
+          msgMp.m_backup_ref_kf_id = -1; 
+          msgMp.m_backup_replaced_id= "";       
+          msgMp.mp_map_id = -1;
+
           // public
           msgMp.mn_id = pMp->mnId;
           msgMp.m_str_hex_id = pMp->mstrHexId;
@@ -202,12 +209,12 @@ namespace Converter {
           const long long int mBackupHostKFId = rMp->mp_host_kf_id;
           
           const unsigned int mnOriginMapId = rMp->mn_origin_map_id;
-          const Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
+          const Eigen::Vector3f& mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
 
           const std::map<long unsigned int, int>& mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
           const std::map<long unsigned int, int>& mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
 
-          const Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
+          const Eigen::Vector3f& mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
          
 
           const long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
@@ -241,11 +248,11 @@ namespace Converter {
           const long unsigned int mnLoopPointForKF = rMp->mn_loop_point_for_kf;
           const long unsigned int mnCorrectedByKF = rMp->mn_corrected_by_kf;
           const long unsigned int mnCorrectedReference = rMp->mn_corrected_referece;
-          const Eigen::Vector3f mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
+          const Eigen::Vector3f& mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
           const long unsigned int mnBAGlobalForKF = rMp->mn_ba_global_for_kf;
           const long unsigned int mnBALocalForMerge = rMp->mn_ba_local_for_merge;
-          const Eigen::Vector3f mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
-          const Eigen::Vector3f mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
+          const Eigen::Vector3f& mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
+          const Eigen::Vector3f& mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
           const double mInvDepth = rMp->m_inv_depth;
           const double mInitU = rMp->m_init_u;
           const double mInitV = rMp->m_init_v;
@@ -253,12 +260,12 @@ namespace Converter {
           const long long int mBackupHostKFId = rMp->mp_host_kf_id;
           
           const unsigned int mnOriginMapId = rMp->mn_origin_map_id;
-          const Eigen::Vector3f mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
+          const Eigen::Vector3f& mWorldPos = RosToCpp::Vector3ToEigenVector3f(rMp->m_world_pos);
 
           const std::map<long unsigned int, int>& mBackupObservationsId1 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id1);
           const std::map<long unsigned int, int>& mBackupObservationsId2 = RosToCpp::IntTupleVectorToMap(rMp->m_backup_observations_id2);
 
-          const Eigen::Vector3f mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
+          const Eigen::Vector3f& mNormalVector = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector);
           
           const long long int mBackupRefKFId = rMp->m_backup_ref_kf_id;
           const int mnVisible = rMp->mn_visible;

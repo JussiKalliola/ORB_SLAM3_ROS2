@@ -8,7 +8,7 @@
 //{
 
 Observer::Observer(MapHandler* pMapHandler, KeyFramePublisher* pKeyFramePublisher, KeyFrameSubscriber* pKeyFrameSubscriber)
-  : mdSinceReset(0.0)
+  : mdSinceReset(0.0), mnMaxMPId(0)
 {
     // init task
     char* systemId = std::getenv("SLAM_SYSTEM_ID");
@@ -24,6 +24,14 @@ Observer::Observer(MapHandler* pMapHandler, KeyFramePublisher* pKeyFramePublishe
     }
     
     UpdateLastResetTime();
+    
+    mOrbMapPoints = std::map<std::string, ORB_SLAM3::MapPoint*>();
+    msOrbMapPoints = std::set<ORB_SLAM3::MapPoint*>();
+
+    mOrbKeyFrames = std::map<unsigned long int, ORB_SLAM3::KeyFrame*>();
+    msOrbKeyFrames = std::set<ORB_SLAM3::KeyFrame*>();
+
+    mOrbMaps = std::map<unsigned long int, ORB_SLAM3::Map*>();
 
     // Attach handlers internally
     mpKeyFramePublisher = pKeyFramePublisher;
@@ -40,9 +48,12 @@ Observer::~Observer()
 void Observer::AddMapPoint(ORB_SLAM3::MapPoint* pMP)
 {
     unique_lock<std::mutex> lock(mMutexMapPoint); 
+    if(pMP->mnId > mnMaxMPId)
+      mnMaxMPId=pMP->mnId;
     //std::cout << "adding mappoint=" << pMP->mstrHexId << std::endl;
     mOrbMapPoints[pMP->mstrHexId] = pMP;
     msOrbMapPoints.insert(pMP);
+    std::cout << "MapPoint count=" << mOrbMapPoints.size() << std::endl;
 }
 
 void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
@@ -50,6 +61,7 @@ void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     mOrbMapPoints.erase(pMP->mstrHexId);
     msOrbMapPoints.erase(pMP);
+    //msAllErasedMPIds.insert(pMP->mstrHexId);
 }
 
 void Observer::EraseMapPoint(std::string mnId)
@@ -57,6 +69,7 @@ void Observer::EraseMapPoint(std::string mnId)
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     msOrbMapPoints.erase(mOrbMapPoints[mnId]);
     mOrbMapPoints.erase(mnId);
+    //msAllErasedMPIds.insert(mnId);
 }
 
 bool Observer::CheckIfMapPointExists(ORB_SLAM3::MapPoint* pMP)
@@ -81,6 +94,11 @@ bool Observer::CheckIfMapPointExists(std::string mstrId)
       return true;
     else 
       return false;
+}
+
+bool Observer::HasMapPointBeenErased(std::string mnId)
+{
+    return msAllErasedMPIds.count(mnId);
 }
 
 ORB_SLAM3::MapPoint* Observer::GetMapPoint(std::string mnId)
@@ -115,6 +133,21 @@ std::map<std::string, ORB_SLAM3::MapPoint*>& Observer::GetAllMapPoints()
     return mOrbMapPoints;
 }
 
+
+unsigned long int Observer::GetMaxMPId()
+{
+    unique_lock<std::mutex> lock(mMutexMapPoint); 
+    return mnMaxMPId;
+}
+
+
+void Observer::UpdateMaxMPId(unsigned long int mnId)
+{
+    unique_lock<std::mutex> lock(mMutexMapPoint); 
+    if(mnId>mnMaxMPId)
+        mnMaxMPId=mnId;
+}
+
 void Observer::AddMap(ORB_SLAM3::Map* pM)
 {
     unique_lock<std::mutex> lock(mMutexMap); 
@@ -125,6 +158,12 @@ void Observer::EraseMap(ORB_SLAM3::Map* pM)
 {
     unique_lock<std::mutex> lock(mMutexMap); 
     mOrbMaps.erase(pM->GetId());
+}
+
+void Observer::EraseMap(unsigned long int mnId)
+{
+    unique_lock<std::mutex> lock(mMutexMap); 
+    mOrbMaps.erase(mnId);
 }
 
 std::map<unsigned long int, ORB_SLAM3::Map*>& Observer::GetAllMaps()
@@ -162,6 +201,7 @@ void Observer::EraseKeyFrame(unsigned long int mnId)
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
     msOrbKeyFrames.erase(mOrbKeyFrames[mnId]);
     mOrbKeyFrames.erase(mnId);
+    msAllErasedKFIds.insert(mnId);
 }
 
 void Observer::EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF)
@@ -169,6 +209,7 @@ void Observer::EraseKeyFrame(ORB_SLAM3::KeyFrame* pKF)
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
     msOrbKeyFrames.erase(pKF);
     mOrbKeyFrames.erase(pKF->mnId);
+    msAllErasedKFIds.insert(pKF->mnId);
 }
 
 bool Observer::CheckIfKeyFrameExists(ORB_SLAM3::KeyFrame* pKF)
@@ -183,6 +224,7 @@ bool Observer::CheckIfKeyFrameExists(ORB_SLAM3::KeyFrame* pKF)
       return false;
 }
 
+
 bool Observer::CheckIfKeyFrameExists(unsigned long int mnId)
 {
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
@@ -193,6 +235,11 @@ bool Observer::CheckIfKeyFrameExists(unsigned long int mnId)
       return true;
     else 
       return false;
+}
+
+bool Observer::HasKeyFrameBeenErased(unsigned long int mnId)
+{
+    return msAllErasedKFIds.count(mnId);
 }
 
 ORB_SLAM3::KeyFrame* Observer::GetKeyFrame(unsigned long int mnId)
@@ -233,6 +280,7 @@ void Observer::InjectMap(ORB_SLAM3::Map* tempMap, ORB_SLAM3::Map* pCurrentMap, c
     // copy tempMP -> MP
     // Create copy constructor
     // Delete tempMP
+    std::cout << "UPDATE MAP, FROM MODULE=" << nFromModule << std::endl;
     pCurrentMap->UpdateMap(*tempMap, nFromModule);
     delete tempMap;
 }
@@ -250,6 +298,8 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
     
     if(mbNew)
     {
+        if (tempMP->GetLastModule() == 3)
+            tempMP->SetLastModule(mnTaskModule);
         mpAtlas->AddMapPoint(tempMP);
         //AddMapPoint(tempMP);
     }
@@ -257,21 +307,27 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
     {
         //unique_lock<std::mutex> lock(mMutexMapPoint); 
         mpExistingMP->UpdateMapPoint(*tempMP);
+        if (mpExistingMP->GetLastModule() == 3)
+            mpExistingMP->SetLastModule(mnTaskModule);
         mpAtlas->AddMapPoint(mpExistingMP);
         delete tempMP;
     }
 }
 
 
-void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule)
+void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule, const bool mbNew)
 {
     
     std::cout << " ----- Got new KF=" << pKF->mnId << ", from=" << nFromModule << ", to=" << pKF->mnNextTarget << ", MPs=" << pKF->GetMapPoints().size() << " ----- " << std::endl;
     if(!pKF)
         return;
 
-    mpAtlas->AddKeyFrame(pKF);
-
+    if(nFromModule==2)
+    {
+        pKF->ComputeBoW();
+        mpKeyFrameDB->erase(pKF);
+        mpKeyFrameDB->add(pKF);
+    }
 
     // Just update state and do not insert to any module
     if(mnTaskModule == 0) {
@@ -284,28 +340,26 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     } else if (mnTaskModule == 1) {
         // in this case the system is mainly performing tracking
         // For now, tracking does not grab any KFs, only Maps 
-        if(nFromModule==2)
-        {
-            std::cout << "#MPs in KF=" << pKF->GetMapPoints().size() << " **************** " << std::endl;
-            //pKF->UpdateConnections();
-            pKF->ComputeBoW();
-            //mpAtlas->AddKeyFrame(pKF);
-            mpKeyFrameDB->erase(pKF);
-            mpKeyFrameDB->add(pKF);
-            //if(nFromModule == 3)
-            //{
-            //    mpKeyFrameDB->erase(pKF);
-            //    mpKeyFrameDB->add(pKF);
-            //}
 
-        }
+        mpAtlas->AddKeyFrame(pKF);
+
     } else if (mnTaskModule == 2) {
+        if(mpLocalMapper->mbGBARunning && nFromModule!=3)
+            mpMapHandler->msToBeErasedKFs.insert(pKF->mnId);
+
+
+
         // in this case the system mainly performing local mapping
         if(pKF->mnNextTarget == 2) {
             // if the KF is meant to be inserted to LM
             // Insert to Local Mapping
             mpLocalMapper->InsertKeyframeFromRos(pKF);
-        } else {
+        } else if (pKF->GetLastModule() == 3) {
+            pKF->SetLastModule(mnTaskModule);
+            mpAtlas->AddKeyFrame(pKF);
+        } else 
+        {
+            mpAtlas->AddKeyFrame(pKF);
 
             //if(nFromModule==3)
             //{
@@ -323,11 +377,45 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     } else if (mnTaskModule == 3) {
         // in this case the system mainly performing loop closing
         // not sure what to do here yet. 
+        AddKeyFrame(pKF);
         
-        if(nFromModule==2)
-            pKF->ComputeBoW();
 
         if(pKF->mnNextTarget == 3) {
+            mpAtlas->AddKeyFrame(pKF);
+            
+            //for(std::set<unsigned long int>::iterator it = msAllErasedKFIds.begin(); it != msAllErasedKFIds.end(); ++it)
+            //{
+            //    unsigned long int mnId = *it;
+            //    EraseKeyFrame(mnId);
+            //    ORB_SLAM3::KeyFrame* pEraseKF = GetKeyFrame(mnId);
+            //    if(pEraseKF)
+            //    {
+            //        mpKeyFrameDB->erase(pEraseKF);
+            //        pEraseKF->SetBadFlag();
+            //    }
+            //
+            //}
+            
+            {
+                unique_lock<std::mutex> lock(mMutexKeyFrame); 
+                msAllErasedKFIds.clear();
+            }
+
+            for(std::set<std::string>::iterator it = msAllErasedMPIds.begin(); it != msAllErasedMPIds.end(); ++it)
+            {
+                std::string mnId = *it;
+                EraseMapPoint(mnId);
+                ORB_SLAM3::MapPoint* pEraseMP = GetMapPoint(mnId);
+                if(pEraseMP)
+                {
+                    pEraseMP->SetBadFlag();
+                }
+            }
+
+            {
+                unique_lock<std::mutex> lock(mMutexMapPoint); 
+                msAllErasedMPIds.clear();
+            }
             //pKF->UpdateConnections();
             mpLoopCloser->InsertKeyFrame(pKF);
         } 
@@ -508,7 +596,7 @@ bool Observer::CheckIfWorkerExists(const unsigned int mnTargetID)
 int Observer::KeyFramesInQueue()
 {
     //unique_lock<std::mutex> lock(mMutexNewKFs);
-    return mpKeyFrameSubscriber->KeyFrameUpdatesInQueue();
+    return mpKeyFramePublisher->KeyFramesInQueue();
     //return 0;
 }
 
@@ -574,10 +662,19 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> m
       if(CheckIfWorkerExists(nTarget))
       {
           std::cout << "Worker exists, sending it to the device." << std::endl;
-          //if(nTarget == 2)
-          mpKeyFramePublisher->InsertNewKeyFrame(pKF, msNewMapPointIds);
+          if(nTarget == 2)
+              mpKeyFramePublisher->InsertNewKeyFrame(pKF);
+          else if(nTarget==3)
+              mpMapHandler->InsertNewUpdatedLocalKF(pKF);
           // Other wise its send with map
-      } 
+      } else 
+      {
+          if(nTarget==2)
+              mpLocalMapper->InsertKeyFrame(pKF);
+          //else if(nTarget==3)
+          //    mpLoopCloser->InsertKeyFrame(pKF);
+
+      }
   }
   else {
       std::cout << "Worker does not exist, Keeping it here." << std::endl;
@@ -597,10 +694,19 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF)
       if(CheckIfWorkerExists(nTarget))
       {
           std::cout << "Worker exists, sending it to the device." << std::endl;
-          //if(nTarget == 2)
-          mpKeyFramePublisher->InsertNewKeyFrame(pKF);
+          if(nTarget == 2)
+              mpKeyFramePublisher->InsertNewKeyFrame(pKF);
+          else if(nTarget==3)
+              mpMapHandler->InsertNewUpdatedLocalKF(pKF);
           // Other wise its send with map
-      } 
+      } else 
+      {
+          if(nTarget==2)
+              mpLocalMapper->InsertKeyFrame(pKF);
+          //else if(nTarget==3)
+          //    mpLoopCloser->InsertKeyFrame(pKF);
+
+      }
   }
   else {
       std::cout << "Worker does not exist, Keeping it here." << std::endl;
@@ -620,11 +726,14 @@ void Observer::onLocalMapUpdated(ORB_SLAM3::Map* pM)
 
 void Observer::onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds)
 {
-  if(GetWorkerNumber() >= 1&& pSLAMNode)
+  if(GetWorkerNumber() >= 1 && CheckIfWorkerExists(3) && pSLAMNode)
   {
       std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate = std::tuple<bool, bool, std::vector<unsigned long int>>(mbMerged, mbLoopClosure, mvMeergedIds);
       mpMapHandler->InsertNewPubGlobalMap(mtAtlasUpdate);
-  } 
+  } else 
+  {
+      onLocalMapUpdated(mpAtlas->GetCurrentMap());
+  }
 }
 
 //} // namespave TempDistributor

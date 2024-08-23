@@ -3,6 +3,10 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/image.hpp"
+#include "std_msgs/msg/int32.hpp"
+
+#include "rclcpp/serialization.hpp"
+#include "rosbag2_transport/reader_writer_factory.hpp"
 
 #include "../slam/slam-wrapper-node.hpp"
 
@@ -21,8 +25,21 @@ class MonocularSlamNode : public rclcpp::Node
 {
 public:
     MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename);
+    void TimeStats2File();
 
     ~MonocularSlamNode();
+    
+    vector<double> vdTrackingTimes_ms;
+
+protected:
+    void StopTimer();
+    void StartTimer();
+    void timer_callback();
+    void workerCallback(std_msgs::msg::Int32::SharedPtr msg);
+
+    bool mbTimerRunning;
+
+    std::set<int> msWorkers;
 
 private:
     using ImageMsg = sensor_msgs::msg::Image;
@@ -35,8 +52,15 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr m_image_subscriber;
     
+    rclcpp::Subscription<std_msgs::msg::Int32>::SharedPtr worker_subscriber_;
+
     std::string savePath;
     std::string mstrResultFilename;
+
+    rclcpp::TimerBase::SharedPtr timer_;
+
+    rclcpp::Serialization<ImageMsg> serialization_;
+    std::unique_ptr<rosbag2_cpp::Reader> reader_;
 };
 
 #endif

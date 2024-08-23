@@ -36,7 +36,11 @@ namespace Converter {
         const Sophus::SE3f mTcp = RosToCpp::PoseToSophusSE3f(rKf->m_tcp);
         // sophus poses
         const Sophus::SE3<float> mTcw = RosToCpp::PoseToSophusSE3f(rKf->m_tcw);
-        const std::vector<std::string> mvBackupMapPointsId(rKf->mv_backup_map_points_id.begin(), rKf->mv_backup_map_points_id.end());//std::vector<long long int> mvBackupMapPointsId = rKf->mv_backup_map_points_id;
+        std::vector<std::string> mvBackupMapPointsId(rKf->mv_backup_map_points_id.size());
+        for(size_t i=0;i<rKf->mv_backup_map_points_id.size();i++)
+        {
+          mvBackupMapPointsId[i]=rKf->mv_backup_map_points_id[i];
+        }
         //std::vector<orb_keyframe*> mvpOrderedConnectedKeyFrames = std::vector<orb_keyframe*>(); //std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames = rKf->;
         const std::vector<int>& mvOrderedWeights = rKf->mv_ordered_weights;
         // For save relation without pointer, this is necessary for save/load function
@@ -169,7 +173,11 @@ namespace Converter {
         // MapPoints associated to keypoints
         // For save relation without pointer, this is necessary for save/load function
         
-        const std::vector<std::string> mvBackupMapPointsId(rKf->mv_backup_map_points_id.begin(), rKf->mv_backup_map_points_id.end());//std::vector<long long int> mvBackupMapPointsId = rKf->mv_backup_map_points_id;
+        std::vector<std::string> mvBackupMapPointsId(rKf->mv_backup_map_points_id.size());
+        for(size_t i=0;i<rKf->mv_backup_map_points_id.size();i++)
+        {
+          mvBackupMapPointsId[i]=rKf->mv_backup_map_points_id[i];
+        }
 
 
 
@@ -318,8 +326,12 @@ namespace Converter {
 
         // MapPoints associated to keypoints
         // For save relation without pointer, this is necessary for save/load function
-        
-        const std::vector<std::string> mvBackupMapPointsId(rKf->mv_backup_map_points_id.begin(), rKf->mv_backup_map_points_id.end());//std::vector<long long int> mvBackupMapPointsId = rKf->mv_backup_map_points_id;
+        std::vector<std::string> mvBackupMapPointsId;
+        mvBackupMapPointsId.reserve(rKf->mv_backup_map_points_id.size()*3);
+        for(size_t i=0;i<rKf->mv_backup_map_points_id.size();i++)
+        {
+          mvBackupMapPointsId.emplace_back(rKf->mv_backup_map_points_id[i]);
+        }
 
 
 
@@ -486,10 +498,11 @@ namespace Converter {
         msgKf.m_rcw = mTcw.orientation; //Eigen::Matrix3f mRcw;
         
         // MapPoints associated to keypoints
-        std::vector<map_point> msgMps;
-        
-        std::vector<std::string> mvpMapPointBackup = std::vector<std::string>();
         const std::vector<ORB_SLAM3::MapPoint*>& mvpMapPoints = pKf->GetMapPointMatches();
+        std::vector<std::string> mvpMapPointBackup(mvpMapPoints.size());
+
+        //std::vector<map_point> msgMps;
+        msgKf.mvp_map_points.reserve(mvpMapPoints.size());
         //std::set<std::string> mspErasedMPIds = pKf->GetMap()->GetErasedMPIds();
         //std::cout << " ************ mspUpdateMapPointIds.size()=" << mspUpdateMapPointIds.size() << std::endl;
         //std::pair<std::set<ORB_SLAM3::MapPoint*>, std::vector<unsigned long int>> MPsAndInidices = pKf->GetMapPointsAndIndices();
@@ -498,11 +511,11 @@ namespace Converter {
         // For save relation without pointer, this is necessary for save/load function
         for(size_t i=0; i<mvpMapPoints.size(); ++i)
         {
-            const ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-            if(mp && !mspErasedMPIds.count(mp->mstrHexId))
-                mvpMapPointBackup.push_back(mp->mstrHexId);
+            ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
+            if(mp && !mp->isBad())//&& !mspErasedMPIds.count(mp->mstrHexId))
+                mvpMapPointBackup[i] = mp->mstrHexId;
             else 
-                mvpMapPointBackup.push_back("");
+                mvpMapPointBackup[i] = "";
         }
         msgKf.mv_backup_map_points_id = mvpMapPointBackup; //std::vector<long long int> mvBackupMapPointsId;
 
@@ -512,16 +525,18 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
-                    if(!mspErasedMPIds.count(mp->mstrHexId) && mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
+                    if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
 
+                        msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
+                        mspUpdateMapPointIds.erase(mp->mstrHexId);
                         //msgIndices.push_back(mvpIndices[i]);
-                          const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
-                        msgMps.push_back(mRosMP);
+                        //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
+                        //msgMps.push_back(mRosMP);
+                        //msgMps.push_back(mRosMP);
                     }
-                    mspUpdateMapPointIds.erase(mp->mstrHexId);
                     //mspErasedMPIds.erase(mp->mstrHexId);
                 }
                 //if(msgMps.size() >= 200)
@@ -535,15 +550,12 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
-                      if(!mspErasedMPIds.count(mp->mstrHexId))
-                      {
-                          //msgIndices.push_back(mvpIndices[i]);
-                          const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
-                          msgMps.push_back(mRosMP);
-                      }
-                      mspUpdateMapPointIds.erase(mp->mstrHexId);
+                        msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
+                      //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
+                      //msgMps.push_back(mRosMP);
+                      //mspUpdateMapPointIds.erase(mp->mstrHexId);
                       //mspErasedMPIds.erase(mp->mstrHexId);
                 }
                 //if(msgMps.size() >= 200)
@@ -553,23 +565,33 @@ namespace Converter {
             }
         }
         
-        msgKf.mvp_map_points = msgMps; //std::vector<MapPoint*> mvpMapPoints;
+        //msgKf.mvp_map_points = &msgMps; //std::vector<MapPoint*> mvpMapPoints;
         //msgKf.mv_map_points_indices = msgIndices;
 
 
         
         const std::vector<orb_keyframe*>& mvpOrderedConnectedKeyFrames = pKf->GetVectorCovisibleKeyFrames();
         std::vector<long unsigned int> mvpOrderedConnectedKeyFramesId;
-        for (const orb_keyframe* kf : mvpOrderedConnectedKeyFrames) {
-          mvpOrderedConnectedKeyFramesId.push_back(kf->mnId);
+        mvpOrderedConnectedKeyFramesId.reserve(mvpOrderedConnectedKeyFrames.size());
+        for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
+        {
+          orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
+          if(tempKF && !tempKF->isBad())
+            continue;
+          mvpOrderedConnectedKeyFramesId.push_back(tempKF->mnId);
         }
         msgKf.mvp_ordered_connected_keyframes_id = mvpOrderedConnectedKeyFramesId; //std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;      
         
         std::vector<int> mvOrderedWeights;
-
-        for(orb_keyframe* kf : mvpOrderedConnectedKeyFrames) {
-          mvOrderedWeights.push_back(pKf->GetWeight(kf));
+        mvOrderedWeights.reserve(mvpOrderedConnectedKeyFrames.size());
+        for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
+        {
+          orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
+          if(tempKF && !tempKF->isBad())
+            continue;
+          mvOrderedWeights.push_back(pKf->GetWeight(tempKF));
         }
+
         msgKf.mv_ordered_weights = mvOrderedWeights; //std::vector<int> mvOrderedWeights;
         
         // For save relation without pointer, this is necessary for save/load function
@@ -579,12 +601,16 @@ namespace Converter {
         orb_keyframe* pKfP = pKf->GetParent();
         msgKf.m_backup_parent_id = (pKfP != nullptr) ? pKfP->mnId : -1;
 
-        std::set<orb_keyframe*> mspChildrens;
         std::vector<long unsigned int> mspChildrensId;
-        mspChildrens=pKf->GetChilds();
+        mspChildrensId.reserve(pKf->GetChilds().size());
+        const std::set<orb_keyframe*>& mspChildrens=pKf->GetChilds();
         
-        for(const orb_keyframe* c : mspChildrens) {
-          mspChildrensId.push_back(c->mnId);
+        for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspChildrens.begin(); it != mspChildrens.end(); ++it)
+        {
+          orb_keyframe* pKF = *it;
+          if(pKF && !pKF->isBad())
+            continue;
+          mspChildrensId.push_back(pKF->mnId);
         }
         msgKf.mv_backup_childrens_id = mspChildrensId; //std::vector<long unsigned int> mvBackupChildrensId;
         
@@ -746,16 +772,26 @@ namespace Converter {
         
         std::vector<orb_keyframe*> mvpLoopCandKFs=pKf->mvpLoopCandKFs;
         std::vector<long unsigned int> mvpLoopCandKFsId;
+        mvpLoopCandKFsId.reserve(mvpLoopCandKFs.size());
         
         std::vector<orb_keyframe*> mvpMergeCandKFs=pKf->mvpMergeCandKFs;
         std::vector<long unsigned int> mvpMergeCandKFsId;
+        mvpMergeCandKFsId.reserve(mvpMergeCandKFs.size());
 
-        for (const auto& kf : mvpLoopCandKFs) {
-          mvpLoopCandKFsId.push_back(kf->mnId);
+        for(size_t i = 0; i<mvpLoopCandKFs.size();i++)
+        {
+            ORB_SLAM3::KeyFrame* tempKF = mvpLoopCandKFs[i];
+            if(tempKF && !tempKF->isBad())
+                continue;
+            mvpLoopCandKFsId.push_back(tempKF->mnId);
         }
 
-        for (const auto& kf : mvpMergeCandKFs) {
-          mvpMergeCandKFsId.push_back(kf->mnId);
+        for(size_t i = 0; i<mvpMergeCandKFs.size();i++)
+        {
+            ORB_SLAM3::KeyFrame* tempKF = mvpMergeCandKFs[i];
+            if(tempKF && !tempKF->isBad())
+                continue;
+            mvpMergeCandKFsId.push_back(tempKF->mnId);
         }
 
         mpRosKF->mvp_loop_cand_kfs_id = mvpLoopCandKFsId;
@@ -786,11 +822,14 @@ namespace Converter {
 
         //std::cout << "line 548" << std::endl;
         // MapPoints associated to keypoints
-        std::vector<map_point> msgMps;
         //std::vector<unsigned long int> msgIndices;
         
-        std::vector<std::string> mvpMapPointBackup = std::vector<std::string>();
         const std::vector<ORB_SLAM3::MapPoint*>& mvpMapPoints = pKf->GetMapPointMatches();
+        std::vector<std::string> mvpMapPointBackup(mvpMapPoints.size());
+
+        std::vector<map_point> msgMps;
+        mpRosKF->mvp_map_points.reserve(mvpMapPoints.size());
+
         std::set<std::string>& mspErasedMPIds = pKf->GetMap()->GetErasedMPIds();
         std::cout << " ************ mspUpdateMapPointIds.size()=" << mspUpdateMapPointIds.size() << ", mspErasedMPIds.size()=" << mspErasedMPIds.size() << std::endl;
         //std::pair<std::set<ORB_SLAM3::MapPoint*>, std::vector<unsigned long int>> MPsAndInidices = pKf->GetMapPointsAndIndices();
@@ -799,11 +838,11 @@ namespace Converter {
         // For save relation without pointer, this is necessary for save/load function
         for(size_t i=0; i<mvpMapPoints.size(); ++i)
         {
-            const ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-            if(mp && !mspErasedMPIds.count(mp->mstrHexId))
-                mvpMapPointBackup.push_back(mp->mstrHexId);
+            ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
+            if(mp && !mp->isBad())//&& !mspErasedMPIds.count(mp->mstrHexId))
+                mvpMapPointBackup[i] = mp->mstrHexId;
             else 
-                mvpMapPointBackup.push_back("");
+                mvpMapPointBackup[i] = "";
         }
         mpRosKF->mv_backup_map_points_id = mvpMapPointBackup; //std::vector<long long int> mvBackupMapPointsId;
          
@@ -813,16 +852,18 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
-                    if(!mspErasedMPIds.count(mp->mstrHexId) && mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
+                    if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
 
                         //msgIndices.push_back(mvpIndices[i]);
-                        msgMps.push_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
+                        mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
+                      //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
+                      //msgMps.push_back(mRosMP);
+                      mspUpdateMapPointIds.erase(mp->mstrHexId);
                     }
                     mspUpdateMapPointIds.erase(mp->mstrHexId);
-                    mspErasedMPIds.erase(mp->mstrHexId);
                 }
 
             }
@@ -831,21 +872,20 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
-                      if(!mspErasedMPIds.count(mp->mstrHexId))
-                      {
-                          //msgIndices.push_back(mvpIndices[i]);
-                          msgMps.push_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
-                      }
+                      //msgIndices.push_back(mvpIndices[i]);
+                        mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
+                      //const orbslam3_interfaces::msg::MapPoint& mRosMP =  
+                      //msgMps.push_back(mRosMP);
+                      mspUpdateMapPointIds.erase(mp->mstrHexId);
                       //mspUpdateMapPointIds.erase(mp->mstrHexId);
-                      mspErasedMPIds.erase(mp->mstrHexId);
                 }
 
             }
         }
         
-        mpRosKF->mvp_map_points = msgMps; //std::vector<MapPoint*> mvpMapPoints;
+        //mpRosKF->mvp_map_points = &msgMps; //std::vector<MapPoint*> mvpMapPoints;
         //mpRosKF->mv_map_points_indices = msgIndices;
 
 
@@ -861,16 +901,26 @@ namespace Converter {
         
         const std::vector<orb_keyframe*>& mvpOrderedConnectedKeyFrames = pKf->GetVectorCovisibleKeyFrames();
         std::vector<long unsigned int> mvpOrderedConnectedKeyFramesId;
-        for (orb_keyframe* kf : mvpOrderedConnectedKeyFrames) {
-          mvpOrderedConnectedKeyFramesId.push_back(kf->mnId);
+        mvpOrderedConnectedKeyFramesId.reserve(mvpOrderedConnectedKeyFrames.size());
+        for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
+        {
+          orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
+          if(tempKF && !tempKF->isBad())
+            continue;
+          mvpOrderedConnectedKeyFramesId.push_back(tempKF->mnId);
         }
         mpRosKF->mvp_ordered_connected_keyframes_id = mvpOrderedConnectedKeyFramesId; //std::vector<KeyFrame*> mvpOrderedConnectedKeyFrames;      
         
         std::vector<int> mvOrderedWeights;
-
-        for(orb_keyframe* kf : mvpOrderedConnectedKeyFrames) {
-          mvOrderedWeights.push_back(pKf->GetWeight(kf));
+        mvOrderedWeights.reserve(mvpOrderedConnectedKeyFrames.size());
+        for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
+        {
+          orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
+          if(tempKF && !tempKF->isBad())
+            continue;
+          mvOrderedWeights.push_back(pKf->GetWeight(tempKF));
         }
+
         mpRosKF->mv_ordered_weights = mvOrderedWeights; //std::vector<int> mvOrderedWeights;
         
         // For save relation without pointer, this is necessary for save/load function
@@ -884,26 +934,42 @@ namespace Converter {
         mpRosKF->m_backup_parent_id = (pKfP != nullptr) ? pKfP->mnId : -1;
 
         std::vector<long unsigned int> mspChildrensId;
+        mspChildrensId.reserve(pKf->GetChilds().size());
         const std::set<orb_keyframe*>& mspChildrens=pKf->GetChilds();
         
-        for(const orb_keyframe* c : mspChildrens) {
-          mspChildrensId.push_back(c->mnId);
+        for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspChildrens.begin(); it != mspChildrens.end(); ++it)
+        {
+          orb_keyframe* pKF = *it;
+          if(pKF && !pKF->isBad())
+            continue;
+          mspChildrensId.push_back(pKF->mnId);
         }
         mpRosKF->mv_backup_childrens_id = mspChildrensId; //std::vector<long unsigned int> mvBackupChildrensId;
         
         std::vector<long unsigned int> mspLoopEdgesId;
+        mspLoopEdgesId.reserve(pKf->GetLoopEdges().size());
         const std::set<orb_keyframe*>& mspLoopEdges=pKf->GetLoopEdges();
 
-        for(const orb_keyframe* e : mspLoopEdges) {
-          mspLoopEdgesId.push_back(e->mnId);
+        for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspLoopEdges.begin(); it != mspLoopEdges.end(); ++it)
+        {
+          orb_keyframe* pKF = *it;
+          if(pKF && !pKF->isBad())
+            continue;
+          mspLoopEdgesId.push_back(pKF->mnId);
         }
         mpRosKF->mv_backup_loop_edges_id = mspLoopEdgesId; //std::vector<long unsigned int> mvBackupLoopEdgesId;
           
         std::vector<long unsigned int> mspMergeEdgesId;
+        mspMergeEdgesId.reserve(pKf->GetMergeEdges().size());
         const std::set<orb_keyframe*>& mspMergeEdges=pKf->GetMergeEdges();
 
-        for(const orb_keyframe* m : mspMergeEdges) {
-          mspMergeEdgesId.push_back(m->mnId);
+        for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspMergeEdges.begin(); it != mspMergeEdges.end(); ++it)
+        {
+          orb_keyframe* pKF = *it;
+          if(pKF && !pKF->isBad())
+            continue;
+
+          mspMergeEdgesId.push_back(pKF->mnId);
         }
         mpRosKF->mv_backup_merge_edges_id = mspMergeEdgesId; //std::vector<long unsigned int> mvBackupMergeEdgesId;
         

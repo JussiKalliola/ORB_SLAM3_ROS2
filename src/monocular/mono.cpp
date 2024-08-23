@@ -175,6 +175,7 @@ int main(int argc, char **argv)
     // Save camera trajectory
     std::cout << "Saving data to the path=" << strSaveToPath  << strResultFileName << std::endl;
     SLAM.SaveKeyFrameTrajectoryTUM(strSaveToPath + strResultFileName);
+    SLAM.SaveTrajectoryEuRoC(strSaveToPath + "Trajectory-" + systemId + ".txt");
     std::cout << "Shutdown SLAM System" << std::endl;
     SLAM.Shutdown();
     mpDistSystem->ShutDown();
