@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(5), maxUpdateGlobalN(10)
+    maxUpdateN(3), maxUpdateGlobalN(10)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -805,7 +805,11 @@ void MapHandler::ProcessNewPubLocalMap()
                 mRosMap->mb_first_batch = true;
             // Decrease the rate of publishing so that the network does not congest
             mnMapFreq_ms=50;
-            maxUpdateN+=3;
+            if(maxUpdateN<10)
+            {
+                mnMapFreq_ms+=50;
+                maxUpdateN+=2;
+            }
             mnPubIters++;
             //msErasedMPs.clear();
             //msErasedKFs.clear();
@@ -822,7 +826,7 @@ void MapHandler::ProcessNewPubLocalMap()
             //msErasedMPs.clear();
             
             // Make next update instant
-            maxUpdateN=5;
+            maxUpdateN=3;
             mnMapFreq_ms=0;
             mnPubIters=0;
         }
@@ -1786,7 +1790,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     
     // Make next update instant
     mnMapFreq_ms=0;
-    maxUpdateN=5;
+    maxUpdateN=3;
     mnPubIters=0;
 
     // Make next update instant
