@@ -1828,7 +1828,6 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
       }
 
       mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
-      std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
       ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
 
 

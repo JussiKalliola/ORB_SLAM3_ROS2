@@ -550,7 +550,6 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
 
-    std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
     ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
 
     

@@ -53,7 +53,6 @@ void Observer::AddMapPoint(ORB_SLAM3::MapPoint* pMP)
     //std::cout << "adding mappoint=" << pMP->mstrHexId << std::endl;
     mOrbMapPoints[pMP->mstrHexId] = pMP;
     msOrbMapPoints.insert(pMP);
-    std::cout << "MapPoint count=" << mOrbMapPoints.size() << std::endl;
 }
 
 void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
