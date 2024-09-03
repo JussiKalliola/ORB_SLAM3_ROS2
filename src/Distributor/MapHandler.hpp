@@ -46,6 +46,7 @@ class MapHandler
 
     void InsertNewUpdatedLocalKF(ORB_SLAM3::KeyFrame* pKF);
     void InsertNewUpdatedLocalMP(ORB_SLAM3::MapPoint* pMP);
+    void InsertNewUpdatedLocalMP(std::string mnId);
     
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
@@ -112,11 +113,9 @@ class MapHandler
     bool CheckSubGlobalMaps();
 
     void ProcessNewPubLocalMap();
-    void ProcessNewSubLocalMap();
     void ProcessNewSubLocalMap2();
 
     void ProcessNewPubGlobalMap();
-    void ProcessNewSubGlobalMap();
     void ProcessNewSubGlobalMap2();
 
     std::set<std::string> msErasedMPs;

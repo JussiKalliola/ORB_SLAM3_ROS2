@@ -132,7 +132,10 @@ void SlamWrapperNode::publishAtlas(const orbslam3_interfaces::msg::Atlas::Shared
     header.stamp = this->now();
     mRosAtlas->header = header;
     
-    atlas_publisher_->publish(*mRosAtlas);
+    if(mRosAtlas->mb_map_merge)
+        atlas_merge_publisher_->publish(*mRosAtlas);
+    else if(mRosAtlas->mb_loop_closer)
+        atlas_lc_publisher_->publish(*mRosAtlas);
 
     RCLCPP_INFO(this->get_logger(), " ********************* Publishing Atlas after Merge=%d or LoopClosure=%d, #KFs=%d", mRosAtlas->mb_map_merge, mRosAtlas->mb_loop_closer, mRosAtlas->mp_current_map.msp_keyframes.size());
     RCLCPP_INFO(this->get_logger(), "Map Stats : #updated KFs=%d, #updated MPs=%d, #del KFs=%d, #del MPs=%d", 
@@ -204,6 +207,9 @@ void SlamWrapperNode::publishResetActiveMap(unsigned long int mnMapId) {
     msg.header = header;
 
     mpObserver->UpdateLastResetTime();
+    mpMapHandler->ResetQueue();
+    mpKeyFrameSubscriber->ResetQueue(true);
+    mpKeyFramePublisher->ResetQueue();
     
     sys_reset_active_map_publisher_->publish(msg);
 }
@@ -326,8 +332,8 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
     mpObserver->UpdateLastResetTime();
 
     mpKeyFramePublisher->ResetQueue();
-    //mpKeyFrameSubscriber->ResetQueue();
-    //mpMapHandler->ResetQueue();
+    mpKeyFrameSubscriber->ResetQueue(true);
+    mpMapHandler->ResetQueue();
 
     
     RCLCPP_INFO(this->get_logger(), "Reset requested for Active map id=%d", msg->data);
@@ -414,6 +420,31 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
     if(bMsg->data)
     {
         //mpTracker_->mbStep = true;
+        if(!mpLocalMapper_->mbGBARunning)
+        {
+            for(const auto& mnId : mpMapHandler->msToBeErasedKFs)
+            {
+                ORB_SLAM3::KeyFrame* pKFi = mpObserver->GetKeyFrame(mnId);
+                if(pKFi)
+                {
+                  pKFi->SetBadFlag();
+                  mpObserver->EraseKeyFrame(pKFi);
+                }
+            }
+
+            for(const auto& mnId : mpMapHandler->msToBeErasedMPs)
+            {
+                ORB_SLAM3::MapPoint* pMPi = mpObserver->GetMapPoint(mnId);
+                if(pMPi)
+                {
+                  pMPi->SetBadFlag();
+                  mpObserver->EraseMapPoint(pMPi);
+                }
+            }
+
+            mpMapHandler->msToBeErasedKFs.clear();
+            mpMapHandler->msToBeErasedMPs.clear();
+        }
         mpLocalMapper_->mbGBARunning = true;
         //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
         //mpLocalMapper_->RequestStop();
@@ -488,9 +519,20 @@ void SlamWrapperNode::CreatePublishers() {
     if(nTaskId==3)
     {
         /* ATLAS */
-        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas");
-        atlas_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
-            "/Atlas", 
+        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas/LoopClosing");
+        atlas_lc_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
+            "/Atlas/LoopClosing", 
+            qosAtlas);
+            //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
+    }
+
+
+    if(nTaskId==3)
+    {
+        /* ATLAS */
+        RCLCPP_INFO(this->get_logger(), "Creating a publisher for a topic /Atlas/MapMerge");
+        atlas_merge_publisher_ = this->create_publisher<orbslam3_interfaces::msg::Atlas>(
+            "/Atlas/MapMerge", 
             qosAtlas);
             //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_default));
     }
@@ -548,20 +590,20 @@ void SlamWrapperNode::CreateSubscribers() {
     int nTaskId = mpObserver->GetTaskModule();
     
     rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(25));
-    //if(nTaskId==3)
-    //    qosMap.best_effort();
-    //else
-    qosMap.reliable();
+    if(nTaskId==3)
+        qosMap.best_effort();
+    else
+        qosMap.reliable();
     //qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
     //qosMap.lifespan(rclcpp::Duration(0, 50000000)); // 100ms
 
 
     rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(25));
-    //if(nTaskId==3)
-    //    qosKF.best_effort();
-    //else
-    qosKF.reliable();
+    if(nTaskId==3)
+        qosKF.best_effort();
+    else
+        qosKF.reliable();
     //qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
     //qosKF.lifespan(rclcpp::Duration(0, 20000000)); // 50ms
@@ -603,12 +645,24 @@ void SlamWrapperNode::CreateSubscribers() {
             std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
     }
 
-    if(nTaskId==2)
+    if(nTaskId!=3)
     {
         /* Atlas */
-        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas");
-        m_atlas_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
-            "Atlas",
+        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/LoopClosing");
+        m_atlas_lc_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
+            "Atlas/LoopClosing",
+            qosAtlas,
+            //rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
+            std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);
+    }
+
+
+    if(nTaskId!=3)
+    {
+        /* Atlas */
+        RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/MapMerge");
+        m_atlas_merge_subscriber_ = this->create_subscription<orbslam3_interfaces::msg::Atlas>(
+            "Atlas/MapMerge",
             qosAtlas,
             //rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
             std::bind(&SlamWrapperNode::GrabAtlas, this, std::placeholders::_1));//, options3);

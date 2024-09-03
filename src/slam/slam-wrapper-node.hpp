@@ -102,7 +102,8 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrameUpdate>::SharedPtr keyframe_update_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::Map>::SharedPtr map_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::MapPoint>::SharedPtr map_point_publisher_;  
-    rclcpp::Publisher<orbslam3_interfaces::msg::Atlas>::SharedPtr atlas_publisher_;  
+    rclcpp::Publisher<orbslam3_interfaces::msg::Atlas>::SharedPtr atlas_lc_publisher_;  
+    rclcpp::Publisher<orbslam3_interfaces::msg::Atlas>::SharedPtr atlas_merge_publisher_;  
     
     //rclcpp::Publisher<orbslam3_interfaces::msg::Bool>::SharedPtr lm_active_publisher_;  
     rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr lm_reset_requested_publisher_;  
@@ -118,7 +119,8 @@ class SlamWrapperNode : public rclcpp::Node
     rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrameUpdate>::SharedPtr m_keyframe_update_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::Map>::SharedPtr m_map_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::MapPoint>::SharedPtr m_map_point_subscriber_;
-    rclcpp::Subscription<orbslam3_interfaces::msg::Atlas>::SharedPtr m_atlas_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::Atlas>::SharedPtr m_atlas_lc_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::Atlas>::SharedPtr m_atlas_merge_subscriber_;
     
     rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr m_lm_reset_requested_subscriber_;     
     //rclcpp::Subscription<orbslam3_interfaces::msg::Bool>::SharedPtr m_lm_active_subscriber_;     

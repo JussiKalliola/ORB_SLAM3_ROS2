@@ -525,13 +525,15 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp && !mp->isBad())
+                if(mp)
                 {
+                    //if((pKf->GetLastModule() <= 2 && mp->GetLastModule() == 3))
+                    //    continue;
                     if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
 
                         msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
-                        mspUpdateMapPointIds.erase(mp->mstrHexId);
+                        //mspUpdateMapPointIds.erase(mp->mstrHexId);
                         //msgIndices.push_back(mvpIndices[i]);
                         //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
                         //msgMps.push_back(mRosMP);
@@ -550,8 +552,10 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp && !mp->isBad())
+                if(mp)
                 {
+                        //if((pKf->GetLastModule() <= 2 && mp->GetLastModule() == 3))
+                        //    continue;
                         msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
                       //msgMps.push_back(mRosMP);
@@ -861,7 +865,6 @@ namespace Converter {
                         mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
                       //msgMps.push_back(mRosMP);
-                      mspUpdateMapPointIds.erase(mp->mstrHexId);
                     }
                     mspUpdateMapPointIds.erase(mp->mstrHexId);
                 }
