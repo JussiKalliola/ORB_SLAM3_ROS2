@@ -645,7 +645,7 @@ void SlamWrapperNode::CreateSubscribers() {
             std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
     }
 
-    if(nTaskId!=3)
+    if(nTaskId==2)
     {
         /* Atlas */
         RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/LoopClosing");
