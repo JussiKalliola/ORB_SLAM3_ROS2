@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(3), maxUpdateGlobalN(10)
+    maxUpdateN(3), maxUpdateGlobalN(30)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -288,8 +288,8 @@ void MapHandler::ProcessNewPubGlobalMap()
             msErasedMPs.clear();
             
             // Make next update instant
-            mnGlobalMapFreq_ms=50;
-            maxUpdateGlobalN=10;
+            mnGlobalMapFreq_ms=100;
+            maxUpdateGlobalN=30;
             mRosAtlas->mb_last_batch = true;
             //mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -304,7 +304,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=10;
+            maxUpdateGlobalN=30;
             mRosAtlas->mb_last_batch = true;
             //mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -490,10 +490,11 @@ void MapHandler::ProcessNewPubLocalMap()
                 mRosMap->mb_first_batch = true;
             // Decrease the rate of publishing so that the network does not congest
             mnMapFreq_ms=50;
-            if(maxUpdateN<10)
-            {
-                maxUpdateN+=2;
-            }
+            maxUpdateN=5;
+            //if(maxUpdateN<10)
+            //{
+            //    maxUpdateN+=2;
+            //}
             mnPubIters++;
             //msErasedMPs.clear();
             //msErasedKFs.clear();

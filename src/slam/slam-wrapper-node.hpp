@@ -38,7 +38,7 @@ class SlamWrapperNode : public rclcpp::Node
     ~SlamWrapperNode();
     
     // Publishers
-    void publishKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF);
+    void publishKeyFrame(const orbslam3_interfaces::msg::KeyFrame::SharedPtr mRosKF, unsigned int mnTarget=2);
     void publishKeyFrame(orbslam3_interfaces::msg::KeyFrameUpdate mRosKFUpdate);
     void publishMap(const orbslam3_interfaces::msg::Map::SharedPtr mRosMap);
     void publishMapPoint(ORB_SLAM3::MapPoint* pMp);
@@ -98,7 +98,8 @@ class SlamWrapperNode : public rclcpp::Node
     
 
     // Publishers
-    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_publisher_;  
+    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_lm_publisher_;  
+    rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrame>::SharedPtr keyframe_lc_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::KeyFrameUpdate>::SharedPtr keyframe_update_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::Map>::SharedPtr map_publisher_;  
     rclcpp::Publisher<orbslam3_interfaces::msg::MapPoint>::SharedPtr map_point_publisher_;  
@@ -115,7 +116,8 @@ class SlamWrapperNode : public rclcpp::Node
     
 
     // Subscribers
-    rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_lm_subscriber_;
+    rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrame>::SharedPtr m_keyframe_lc_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::KeyFrameUpdate>::SharedPtr m_keyframe_update_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::Map>::SharedPtr m_map_subscriber_;
     rclcpp::Subscription<orbslam3_interfaces::msg::MapPoint>::SharedPtr m_map_point_subscriber_;
