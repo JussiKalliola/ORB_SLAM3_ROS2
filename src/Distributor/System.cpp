@@ -782,9 +782,9 @@ void System::ShutDown()
 
 void System::LaunchThreads()
 {
-    mptMapHandler = new thread(&MapHandler::Run, mpMapHandler);
-    mptKeyFramePublisher = new thread(&KeyFramePublisher::Run, mpKeyFramePublisher);
-    mptKeyFrameSubscriber = new thread(&KeyFrameSubscriber::Run, mpKeyFrameSubscriber);
+    //mptMapHandler = new thread(&MapHandler::Run, mpMapHandler);
+    //mptKeyFramePublisher = new thread(&KeyFramePublisher::Run, mpKeyFramePublisher);
+    //mptKeyFrameSubscriber = new thread(&KeyFrameSubscriber::Run, mpKeyFrameSubscriber);
     mptSystemTracker = new thread(&Tracker::Run, mpSystemTracker);
 }
 MapHandler* System::GetMapHandler()
