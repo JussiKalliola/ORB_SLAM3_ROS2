@@ -683,7 +683,7 @@ void SlamWrapperNode::CreateSubscribers() {
     }
 
 
-    if(nTaskId!=3)
+    if(nTaskId==2)
     {
         /* Atlas */
         RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/MapMerge");

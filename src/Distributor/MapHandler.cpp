@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(3), maxUpdateGlobalN(30)
+    maxUpdateN(3), maxUpdateGlobalN(10)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -288,8 +288,8 @@ void MapHandler::ProcessNewPubGlobalMap()
             msErasedMPs.clear();
             
             // Make next update instant
-            mnGlobalMapFreq_ms=100;
-            maxUpdateGlobalN=30;
+            mnGlobalMapFreq_ms=50;
+            maxUpdateGlobalN=10;
             mRosAtlas->mb_last_batch = true;
             //mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -304,7 +304,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=30;
+            maxUpdateGlobalN=10;
             mRosAtlas->mb_last_batch = true;
             //mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -961,19 +961,19 @@ void MapHandler::ProcessNewSubLocalMap2()
 
     }
     
-    //if(mpRosMap->ms_bad_maps.size() > 0)
-    //{
-    //    for(const auto& mnId : mpRosMap->ms_bad_maps)
-    //    {
-    //        ORB_SLAM3::Map* pTempMap = mMaps[mnId];
-    //        if(pTempMap && !pTempMap->IsBad())
-    //        {
-    //            mpAtlas->SetMapBad(pTempMap);
-    //            //mpObserver->EraseMap(pTempMap);
-    //        }
+    if(mpRosMap->ms_bad_maps.size() > 0)
+    {
+        for(const auto& mnId : mpRosMap->ms_bad_maps)
+        {
+            ORB_SLAM3::Map* pTempMap = mMaps[mnId];
+            if(pTempMap && !pTempMap->IsBad())
+            {
+                mpAtlas->SetMapBad(pTempMap);
+                //mpObserver->EraseMap(pTempMap);
+            }
 
-    //    }
-    //}
+        }
+    }
 
 
 }
@@ -1130,7 +1130,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     // Make next update instant
     //mnMapFreq_ms=100;
 
-    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << std::endl;
+    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
     //mlpMapPubQueue.push_back(pMap);
 }
 
@@ -1263,7 +1263,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     mpAtlas->GetCurrentMap()->ClearUpdatedKFIds();
     mpAtlas->GetCurrentMap()->ClearUpdatedMPIds();
       
-    {
+    if(std::get<0>(mtAtlasUpdate)){
         unique_lock<mutex> lock(mMutexUpdates);
         for(const auto& pKFi : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
         {
@@ -1285,7 +1285,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     // Make next update instant
     mnGlobalMapFreq_ms=0;
     mnAtlasBatchNumber=0;
-    maxUpdateGlobalN=20;
+    maxUpdateGlobalN=10;
     
 }
 
@@ -1358,8 +1358,7 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
               if(pKF)
               {
                   pKF->SetLastModule(3);
-                  if(pRosAtlas->mb_loop_closer)
-                      InsertNewUpdatedLocalKF(pKF);
+                  InsertNewUpdatedLocalKF(pKF);
               }
           }
 
@@ -1370,8 +1369,7 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
               if(pMP)
               {
                   pMP->SetLastModule(3);
-                  if(pRosAtlas->mb_loop_closer)
-                      InsertNewUpdatedLocalMP(pMP);
+                  InsertNewUpdatedLocalMP(pMP);
               }
           }
 
