@@ -481,7 +481,7 @@ void SlamWrapperNode::CreatePublishers() {
     qosKF.reliable();
     qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
-    qosKF.lifespan(rclcpp::Duration(0, 5000000)); // 50ms
+    qosKF.lifespan(rclcpp::Duration(0, 10000000)); // 50ms
                                                    
 
     rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(25));
@@ -616,13 +616,13 @@ void SlamWrapperNode::CreateSubscribers() {
 
 
     rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(25));
-    //if(nTaskId==3)
-    //    qosKF.best_effort();
-    //else
-    qosKF.reliable();
+    if(nTaskId==3)
+        qosKF.best_effort();
+    else
+        qosKF.reliable();
     qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
    // qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
-    qosKF.lifespan(rclcpp::Duration(0, 5000000)); // 50ms
+    qosKF.lifespan(rclcpp::Duration(0, 10000000)); // 50ms
                                                    
 
     rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(25));
