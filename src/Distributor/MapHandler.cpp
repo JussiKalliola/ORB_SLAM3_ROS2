@@ -35,6 +35,11 @@ void MapHandler::Run()
     
     while(1)
     {
+        if(mpObserver->GetTaskModule() == 2 && CheckNewUpdates())
+        {
+            InsertNewPubLocalMap();
+        }
+        
         // Local map publish/subscription 
         if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()  && !mpLocalMapper->IsLMRunning())
             ProcessNewPubLocalMap();
@@ -993,6 +998,12 @@ int MapHandler::LocalMapsInQueue()
     return mlpMapPubQueue.size();
 }
 
+bool MapHandler::CheckNewUpdates()
+{
+    unique_lock<mutex> lock(mMutexNewMaps);
+    return(mpAtlas->GetCurrentMap()->GetUpdatedKFIds().size()>0);
+}
+
 bool MapHandler::CheckPubLocalMaps()
 {
     unique_lock<mutex> lock(mMutexNewMaps);
@@ -1048,6 +1059,97 @@ void MapHandler::InsertNewUpdatedLocalMP(std::string mnId)
 {
     unique_lock<mutex> lock(mMutexUpdates);
     msUpdatedLocalMPs.insert(mnId);
+}
+
+
+
+void MapHandler::InsertNewPubLocalMap()
+{
+    double timeSinceReset = mpObserver->TimeSinceReset();
+    if(timeSinceReset < 100)
+        return;
+
+    unique_lock<mutex> lock(mMutexNewMaps);
+
+    //if(!mlpAtlasSubQueue.empty())
+    //    return;
+    
+    //if(mpNewRosAtlas != NULL)
+    //    return;
+
+    std::cout << "***** SEND LOCAL MAP ******" << std::endl;
+
+    ORB_SLAM3::Map* pMap = mpAtlas->GetCurrentMap();
+    const std::set<unsigned long int>& tempUpdatedKFs=pMap->GetUpdatedKFIds();
+    std::set<std::string> tempUpdatedMPs=pMap->GetUpdatedMPIds();
+    
+    const std::set<std::string>& tempErasedMPs=pMap->GetErasedMPIds();
+    const std::set<unsigned long int>& tempErasedKFs=pMap->GetErasedKFIds();
+
+
+
+
+
+    {
+        unique_lock<mutex> lock2(mMutexUpdates);
+        for(auto const& mnId : tempErasedKFs)
+        {
+          msErasedKFs.insert(mnId);
+          //mpObserver->EraseKeyFrame(mnId);
+        }
+
+        for(auto const& mnId : tempErasedMPs)
+        {
+          msErasedMPs.insert(mnId);
+          mpObserver->EraseMapPoint(mnId);
+        }
+    }
+
+    //msErasedKFs.insert(tempErasedKFs.begin(), tempErasedKFs.end());
+    //msErasedMPs.insert(tempErasedMPs.begin(), tempErasedMPs.end());
+        
+    {
+        unique_lock<mutex> lock2(mMutexUpdates);
+        msUpdatedLocalKFs.insert(tempUpdatedKFs.begin(), tempUpdatedKFs.end());
+    }
+
+    for(std::set<std::string>::iterator it = tempUpdatedMPs.begin(); it != tempUpdatedMPs.end(); ++it)
+    {
+        InsertNewUpdatedLocalMP(*it);
+    }
+        
+    if(mpLocalMapper->mbGBARunning)
+    {
+        //for(const auto& mnId : tempUpdatedKFs)
+        //{
+        //  msToBeErasedKFs.insert(mnId);
+        //}
+
+        for(const auto& mnId : mpLocalMapper->msNewMapPointIds)
+        {
+          msToBeErasedMPs.insert(mnId);
+        }
+    }
+
+
+
+    pMap->ClearErasedData();
+    pMap->ClearUpdatedMPIds();
+    pMap->ClearUpdatedKFIds();
+    
+    // Make next update instant
+    mnMapFreq_ms=0;
+    //if(mpLocalMapper->mbGBARunning)
+    //    maxUpdateN=15;
+    //else
+    maxUpdateN=3;
+    mnPubIters=0;
+
+    // Make next update instant
+    //mnMapFreq_ms=100;
+
+    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
+    //mlpMapPubQueue.push_back(pMap);
 }
 
 void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)

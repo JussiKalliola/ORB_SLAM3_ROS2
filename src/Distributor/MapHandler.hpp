@@ -39,6 +39,7 @@ class MapHandler
     int LocalMapsInQueue();
 
     void InsertNewPubLocalMap(ORB_SLAM3::Map* pM);
+    void InsertNewPubLocalMap();
     void InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr pRosMap);
 
     void InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate);
@@ -106,6 +107,8 @@ class MapHandler
 
 
   protected:  
+    bool CheckNewUpdates();
+
     bool CheckPubLocalMaps();
     bool CheckSubLocalMaps();
 
