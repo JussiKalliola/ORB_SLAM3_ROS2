@@ -81,8 +81,11 @@ namespace Converter {
           const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
-            if(kf && !mspErasedKFIds.count(kf->mnId))
+            if(kf)
             {
+              //if(kf->GetLastModule() == 4)
+              //  continue;
+
               if(!mspUpdatedKFIds.empty())
               {
                 if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
@@ -242,9 +245,11 @@ namespace Converter {
             {
               if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
               {
+                //if(kf->GetLastModule() == 4)
+                //  continue;
 
                 const orbslam3_interfaces::msg::KeyFrameUpdate& msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
-                                                                                                                    mvRosKFUpdates.push_back(msgKf);
+                                                                                                                                mvRosKFUpdates.push_back(msgKf);
                 for(const auto& mpMsg : msgKf.mvp_map_points)
                 {
                   mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 

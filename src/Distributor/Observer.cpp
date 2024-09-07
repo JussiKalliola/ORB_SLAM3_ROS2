@@ -289,6 +289,10 @@ ORB_SLAM3::KeyFrame* Observer::InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, ORB_S
     //unique_lock<std::mutex> lock(mMutexKeyFrame); 
     mpExistingKF->UpdateKeyFrame(*tempKF, nFromModule);
     delete tempKF;
+
+    if(mpExistingKF->GetLastModule() == 3) 
+        mpMapHandler->InsertNewUpdatedLocalKF(mpExistingKF);
+
     return mpExistingKF; 
 }
 
@@ -297,20 +301,28 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
     
     if(mbNew)
     {
-        if (tempMP->GetLastModule() == 3)
-            tempMP->SetLastModule(mnTaskModule);
         mpAtlas->AddMapPoint(tempMP);
         //AddMapPoint(tempMP);
+        if(tempMP->GetLastModule() == 3) 
+        {
+            mpMapHandler->InsertNewUpdatedLocalMP(tempMP);
+            tempMP->SetLastModule(mnTaskModule);
+        }
     }
     else 
     {
         //unique_lock<std::mutex> lock(mMutexMapPoint); 
         mpExistingMP->UpdateMapPoint(*tempMP);
-        if (mpExistingMP->GetLastModule() == 3)
-            mpExistingMP->SetLastModule(mnTaskModule);
         mpAtlas->AddMapPoint(mpExistingMP);
         delete tempMP;
+
+        if(mpExistingMP->GetLastModule() == 3) 
+        {
+            mpMapHandler->InsertNewUpdatedLocalMP(mpExistingMP);
+            mpExistingMP->SetLastModule(mnTaskModule);
+        }
     }
+
 }
 
 

@@ -554,7 +554,7 @@ namespace Converter {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
                 if(mp)
                 {
-                        //if((pKf->GetLastModule() <= 2 && mp->GetLastModule() == 3))
+                        //if(mp->GetLastModule() == 4)
                         //    continue;
                         msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 

@@ -90,10 +90,15 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
         } else 
         {
-            auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
-            pRosKF = it->second;
-            mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
-
+            for(auto it = mpRosKeyFrameUpdateQueue.rbegin(); it != mpRosKeyFrameUpdateQueue.rend(); it++)
+            {
+                //auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
+                if(it->second->mn_id == mpTracker->GetReferenceID())
+                    continue;
+                pRosKF = it->second;
+                mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
+                break;
+            }
         }
 
         //mlpRosKeyFrameUpdateQueue.pop_front();
@@ -124,11 +129,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap != mpAtlas->GetCurrentMap())
-    {
-        std::cout << " ------------ ProcessNewKeyFrameUpdate::pCurrentMap!=mpAtlas->GetCurrentMap() " << std::endl;
-        return;
-    }
+    } 
 
     // Create map data structures for postloads
     std::map<std::string, ORB_SLAM3::MapPoint*>& mFusedMPs = mpObserver->GetAllMapPoints(); 
@@ -422,17 +423,17 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     orbslam3_interfaces::msg::KeyFrame::SharedPtr pRosKF = static_cast<orbslam3_interfaces::msg::KeyFrame::SharedPtr>(NULL);
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
-        if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
-        {
-            pRosKF = mlpRosKeyFrameQueue.back();
-            mlpRosKeyFrameQueue.pop_back();
-        }
-        else 
-        {
-            pRosKF = mlpRosKeyFrameQueue.front();
-            mlpRosKeyFrameQueue.pop_front();
+        //if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
+        //{
+        //    pRosKF = mlpRosKeyFrameQueue.back();
+        //    mlpRosKeyFrameQueue.pop_back();
+        //}
+        //else 
+        //{
+        pRosKF = mlpRosKeyFrameQueue.front();
+        mlpRosKeyFrameQueue.pop_front();
 
-        }
+        //}
 
         std::cout << "processing new KF=" << pRosKF->mn_id << "." << std::endl;
     }
@@ -463,11 +464,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap != mpAtlas->GetCurrentMap())
-    {
-        std::cout << " ------------ ProcessNewKeyFrame::pCurrentMap!=mpAtlas->GetCurrentMap() " << std::endl;
-        return;
-    }
+    } 
     
     //if(pCurrentMap->KeyFramesInMap() >= 10 && mpObserver->HasKeyFrameBeenErased(pRosKF->mn_id))
     //    return;
