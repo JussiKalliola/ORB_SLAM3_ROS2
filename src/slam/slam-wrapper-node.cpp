@@ -472,16 +472,19 @@ void SlamWrapperNode::CreatePublishers() {
     int nTaskId = mpObserver->GetTaskModule();
 
     rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(25));
-    qosMap.best_effort();
+    qosMap.reliable();
     qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
     qosMap.lifespan(rclcpp::Duration(0, 100000000)); // 100ms
 
     rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(25));
-    qosKF.best_effort();
+    if(nTaskId==1)
+        qosKF.reliable();
+    else if(nTaskId==2)
+        qosKF.best_effort();
     qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
-    qosKF.lifespan(rclcpp::Duration(0, 100000000)); // 50ms
+    qosKF.lifespan(rclcpp::Duration(0, 80000000)); // 50ms
                                                    
 
     rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(25));
@@ -607,19 +610,19 @@ void SlamWrapperNode::CreateSubscribers() {
     rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(25));
     //qosMap.best_effort();
     //if(nTaskId==3)
-    qosMap.best_effort();
+    qosMap.reliable();
     //else
     //    qosMap.reliable();
     qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
-    qosMap.lifespan(rclcpp::Duration(0, 150000000)); // 100ms
+    qosMap.lifespan(rclcpp::Duration(0, 100000000)); // 100ms
 
 
     rclcpp::QoS qosKF = rclcpp::QoS(rclcpp::KeepLast(25));
-    //if(nTaskId==3)
-    //    qosKF.best_effort();
-    //else
-    qosKF.best_effort();
+    if(nTaskId==2)
+        qosKF.reliable();
+    else if(nTaskId==3)
+        qosKF.best_effort();
     qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
    // qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
     qosKF.lifespan(rclcpp::Duration(0, 60000000)); // 50ms
