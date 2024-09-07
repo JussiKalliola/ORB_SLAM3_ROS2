@@ -646,11 +646,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap != mpAtlas->GetCurrentMap())
-    {
-        std::cout << " ------------ ProcessNewSubGlobalMap2::pCurrentMap!=mpAtlas->GetCurrentMap() " << std::endl;
-        mpAtlas->ChangeMap(pCurrentMap);
-    }
+    } 
     
     std::map<long unsigned int, ORB_SLAM3::KeyFrame*>& mFusedKFs = mpObserver->GetAllKeyFrames(); 
     std::map<std::string, ORB_SLAM3::MapPoint*>& mFusedMPs = mpObserver->GetAllMapPoints(); 
@@ -860,16 +856,11 @@ void MapHandler::ProcessNewSubLocalMap2()
     std::map<unsigned long int, ORB_SLAM3::Map*>& mMaps = mpObserver->GetAllMaps();
     ORB_SLAM3::Map* pCurrentMap = mMaps[mpRosMap->mn_id];
 
-    double timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
-    if(!pCurrentMap && timeSinceReset <= 2000)
+    if(!pCurrentMap)
     {
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap != mpAtlas->GetCurrentMap() && timeSinceReset>2000)
-    {
-        std::cout << " ------------ ProcessNewSubLocalMap2::pCurrentMap!=mpAtlas->GetCurrentMap() " << std::endl;
-        mpAtlas->ChangeMap(pCurrentMap);
     }
 
     // Create map data structures for postloads
