@@ -619,7 +619,7 @@ void SlamWrapperNode::CreateSubscribers() {
     //if(nTaskId==3)
     //    qosKF.best_effort();
     //else
-    qosKF.reliable();
+    qosKF.best_effort();
     qosKF.durability(rclcpp::DurabilityPolicy(0)); // Volatile
    // qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
     qosKF.lifespan(rclcpp::Duration(0, 60000000)); // 50ms
