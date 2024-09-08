@@ -290,7 +290,7 @@ ORB_SLAM3::KeyFrame* Observer::InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, ORB_S
     mpExistingKF->UpdateKeyFrame(*tempKF, nFromModule);
     delete tempKF;
 
-    if(mpExistingKF->GetLastModule() == 3) 
+    if(mpExistingKF->GetLastModule() == 3 && mpMapHandler->mnLastGlobalAction == 1)
         mpMapHandler->InsertNewUpdatedLocalKF(mpExistingKF);
 
     return mpExistingKF; 
@@ -305,7 +305,8 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
         //AddMapPoint(tempMP);
         if(tempMP->GetLastModule() == 3) 
         {
-            mpMapHandler->InsertNewUpdatedLocalMP(tempMP);
+            if(mpMapHandler->mnLastGlobalAction == 1)
+                mpMapHandler->InsertNewUpdatedLocalMP(tempMP);
             tempMP->SetLastModule(mnTaskModule);
         }
     }
@@ -318,7 +319,8 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
 
         if(mpExistingMP->GetLastModule() == 3) 
         {
-            mpMapHandler->InsertNewUpdatedLocalMP(mpExistingMP);
+            if(mpMapHandler->mnLastGlobalAction == 1)
+                mpMapHandler->InsertNewUpdatedLocalMP(mpExistingMP);
             mpExistingMP->SetLastModule(mnTaskModule);
         }
     }
@@ -341,6 +343,7 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     }
 
     if (nFromModule==3 && pKF->GetLastModule() == 3) {
+        //pKF->UpdateConnections();
         pKF->SetLastModule(mnTaskModule);
     }
 

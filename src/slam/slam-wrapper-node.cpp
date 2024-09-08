@@ -340,6 +340,7 @@ void SlamWrapperNode::GrabResetActiveMap(const orbslam3_interfaces::msg::Int64::
     mpKeyFramePublisher->ResetQueue();
     mpKeyFrameSubscriber->ResetQueue(true);
     mpMapHandler->ResetQueue();
+    mpLoopCloser_->StopGBA();
 
     
     RCLCPP_INFO(this->get_logger(), "Reset requested for Active map id=%d", msg->data);
@@ -686,7 +687,7 @@ void SlamWrapperNode::CreateSubscribers() {
     }
 
 
-    if(nTaskId==2)
+    if(nTaskId!=3)
     {
         /* Atlas */
         RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/MapMerge");

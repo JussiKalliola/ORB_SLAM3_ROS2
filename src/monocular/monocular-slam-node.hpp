@@ -24,7 +24,7 @@
 class MonocularSlamNode : public rclcpp::Node
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName);
     void TimeStats2File();
 
     ~MonocularSlamNode();
@@ -56,6 +56,7 @@ private:
 
     std::string savePath;
     std::string mstrResultFilename;
+    std::string mstrDatasetName;
 
     rclcpp::TimerBase::SharedPtr timer_;
 

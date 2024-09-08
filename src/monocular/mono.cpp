@@ -54,6 +54,8 @@ int main(int argc, char **argv)
     bool subscribe_to_slam = true;
     bool main_system = true;
     bool mbOnlyTrack = false;
+    
+
     // Check visualization 
     if (argc > 4)
     {
@@ -96,6 +98,13 @@ int main(int argc, char **argv)
     }
 
     strSaveToPath += "monocular/";
+
+
+    std::string strDatasetName="EuRoC";
+
+    if (strSaveToPath.find("TUM") != std::string::npos) {
+        strDatasetName="TUM";
+    }
 
 
     
@@ -144,7 +153,7 @@ int main(int argc, char **argv)
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
-      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName);
+      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName);
       rclcpp::executors::MultiThreadedExecutor multiThreadExecutor;
       
       multiThreadExecutor.add_node(mono_node);

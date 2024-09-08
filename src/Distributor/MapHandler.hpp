@@ -66,6 +66,8 @@ class MapHandler
 
     ORB_SLAM3::KeyFrame* mpLastGlobalKF;
 
+    long int mnLastGlobalAction; // -1=none, 0=map merge, 1=LC/GBA
+
     //vector<long int> vnNumberOfNewMapPoints;
     //vector<long int> vnNumberOfUpdatedMapPoints;
     vector<double> vdRos2OrbConvMap_ms;

@@ -90,15 +90,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
         } else 
         {
-            for(auto it = mpRosKeyFrameUpdateQueue.rbegin(); it != mpRosKeyFrameUpdateQueue.rend(); it++)
-            {
-                //auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
-                if(it->second->mn_id == mpTracker->GetReferenceID())
-                    continue;
-                pRosKF = it->second;
-                mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
-                break;
-            }
+            auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
+            pRosKF = it->second;
+            mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
         }
 
         //mlpRosKeyFrameUpdateQueue.pop_front();
@@ -129,7 +123,13 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } 
+    } else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
+    {
+      //mpAtlas->ChangeMap(pCurrentMap);
+      //pCurrentMap->SetCurrentMap();
+      pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
+      pCurrentMap = mpAtlas->GetCurrentMap();
+    }
 
     // Create map data structures for postloads
     std::map<std::string, ORB_SLAM3::MapPoint*>& mFusedMPs = mpObserver->GetAllMapPoints(); 
@@ -241,6 +241,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         if(mnTaskModule==3 && mpRosMP->mn_last_module == 3)
             continue;
 
+        mpRosMP->mp_map_id = mpAtlas->GetCurrentMap()->GetId();
         ORB_SLAM3::MapPoint* tempMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
         if(mpObserver->CheckIfMapPointExists(mpRosMP->m_str_hex_id))//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
         {
@@ -464,7 +465,13 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } 
+    } else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
+    {
+      //mpAtlas->ChangeMap(pCurrentMap);
+      //pCurrentMap->SetCurrentMap();
+      pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
+      pCurrentMap = mpAtlas->GetCurrentMap();
+    }
     
     //if(pCurrentMap->KeyFramesInMap() >= 10 && mpObserver->HasKeyFrameBeenErased(pRosKF->mn_id))
     //    return;
@@ -577,6 +584,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         //if(pRosKF->mvp_map_points[i].mn_last_module > mnTaskModule || mFusedMPs.find(pRosKF->mvp_map_points[i].m_str_hex_id) == mFusedMPs.end()) 
         //{
         orbslam3_interfaces::msg::MapPoint::SharedPtr mpRosMP = std::make_shared<orbslam3_interfaces::msg::MapPoint>(pRosKF->mvp_map_points[i]);
+
+        mpRosMP->mp_map_id = mpAtlas->GetCurrentMap()->GetId();
         ORB_SLAM3::MapPoint* tempMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
         if(mpObserver->CheckIfMapPointExists(mpRosMP->m_str_hex_id))//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
         {
