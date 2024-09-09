@@ -5,7 +5,7 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename) : Node("MonocularSlamNode") 
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName) : Node("MonocularSlamNode") 
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Monocular SLAM node.");
   m_SLAM = pSLAM;
@@ -13,6 +13,7 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<S
 
   savePath = path;
   mstrResultFilename = strResultFilename;
+  mstrDatasetName = strDatasetName;
 
     // std::cout << "slam changed" << std::endl;
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /camera");
@@ -46,7 +47,14 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
         return;
     }
 
+    cv::Mat im = m_cvImPtr->image;
+    if(mstrDatasetName=="TUM")
+    {
+      cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8,8));
+      clahe->apply(im,im);
+    }
+
     // publisher_node_->publishMessage("Was able to grab image.");
     //std::cout<<"one frame has been sent"<<std::endl;
-    m_SLAM->TrackMonocular(m_cvImPtr->image, Utility::StampToSec(msg->header.stamp));
+    m_SLAM->TrackMonocular(im, Utility::StampToSec(msg->header.stamp));
 }
