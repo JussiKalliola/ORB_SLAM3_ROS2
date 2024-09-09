@@ -500,12 +500,8 @@ void MapHandler::ProcessNewPubLocalMap()
             if(mnPubIters==0)
                 mRosMap->mb_first_batch = true;
             // Decrease the rate of publishing so that the network does not congest
-            mnMapFreq_ms=50;
+            //mnMapFreq_ms=50;
             //maxUpdateN=5;
-            if(maxUpdateN<15)
-            {
-                maxUpdateN+=3;
-            }
             mnPubIters++;
             //msErasedMPs.clear();
             //msErasedKFs.clear();
@@ -540,6 +536,11 @@ void MapHandler::ProcessNewPubLocalMap()
 
     mRosMap->from_module_id = mpObserver->GetTaskModule();
 
+    if(maxUpdateN<15)
+    {
+        maxUpdateN+=3;
+        mnMapFreq_ms+=50;
+    }
 
     
     if(mpAtlas->GetBadMaps().size()>0)

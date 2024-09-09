@@ -184,9 +184,13 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
 
 
     cv::Mat im = m_cvImPtr->image;
-    cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
-    // clahe
-    clahe->apply(im,im);
+    if(mstrDatasetName=="TUM")
+    {
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+        // clahe
+        clahe->apply(im,im);
+
+    }
     // publisher_node_->publishMessage("Was able to grab image.");
     //std::cout<<"one frame has been sent"<<std::endl;
     //thread t1(&ORB_SLAM3::System::TrackMonocular, 
