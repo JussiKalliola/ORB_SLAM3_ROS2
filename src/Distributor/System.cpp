@@ -766,15 +766,15 @@ void System::PrintTimeStats()
 
 void System::ShutDown()
 {
-    mpMapHandler->RequestFinish();
-    mpKeyFrameSubscriber->RequestFinish();
-    mpKeyFramePublisher->RequestFinish();
+    //mpMapHandler->RequestFinish();
+    //mpKeyFrameSubscriber->RequestFinish();
+    //mpKeyFramePublisher->RequestFinish();
     mpSystemTracker->RequestFinish();
 
-    TrackStats2File();
-    LoopClosingStats2File();
-    LocalMapStats2File();
-    TimeStats2File();
+    //TrackStats2File();
+    //LoopClosingStats2File();
+    //LocalMapStats2File();
+    //TimeStats2File();
     SystemStats2File();
 
     PrintTimeStats();

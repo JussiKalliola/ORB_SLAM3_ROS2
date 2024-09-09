@@ -63,6 +63,14 @@ int main(int argc, char **argv)
     if(main_system)
       mbOnlyTrack=false;
 
+    char* systemId = std::getenv("SLAM_SYSTEM_ID");
+    if(!systemId) {
+        std::random_device rd;  // Obtain a random number from hardware
+        std::mt19937 gen(rd()); // Seed the generator
+        std::uniform_int_distribution<> distr(1, 100); // Define the range 
+        setenv("SLAM_SYSTEM_ID", std::to_string(distr(gen)).c_str(),1);
+        systemId = std::getenv("SLAM_SYSTEM_ID");
+    }
     
     
 
@@ -70,7 +78,7 @@ int main(int argc, char **argv)
     // First create the base directory and then sub directory
     if (Utility::createDirectory(strSaveToPath)) {
       if (Utility::createDirectory(strSaveToPath + "monocular/")) {
-        if (!Utility::createDirectory(strSaveToPath + "monocular/" + "stats/")) 
+        if (!Utility::createDirectory(strSaveToPath + "monocular/" + systemId + "/")) 
             exit(1);
       } else {
         // Failer to create directory or it doesnt exists
@@ -91,14 +99,6 @@ int main(int argc, char **argv)
     }
 
 
-    char* systemId = std::getenv("SLAM_SYSTEM_ID");
-    if(!systemId) {
-        std::random_device rd;  // Obtain a random number from hardware
-        std::mt19937 gen(rd()); // Seed the generator
-        std::uniform_int_distribution<> distr(1, 100); // Define the range 
-        setenv("SLAM_SYSTEM_ID", std::to_string(distr(gen)).c_str(),1);
-        systemId = std::getenv("SLAM_SYSTEM_ID");
-    }
     
     std::cout << "\n===================" << std::endl; 
     std::cout << "Given parameters" << std::endl; 
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     std::signal(SIGINT, signalHandler);
     rclcpp::init(argc, argv); 
 
-    std::string mStatSavePath=strSaveToPath+"stats/"; 
+    std::string mStatSavePath=strSaveToPath+ systemId + "/"; 
     std::shared_ptr<System> mpDistSystem= std::make_shared<System>(mStatSavePath);
     std::shared_ptr<Observer> mpDistObserver = mpDistSystem->GetObserver();
     //std::shared_ptr<Distributor> mpDistributor = std::make_shared<Distributor>();
