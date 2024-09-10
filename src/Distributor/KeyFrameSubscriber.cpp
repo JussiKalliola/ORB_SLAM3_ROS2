@@ -7,6 +7,11 @@
 KeyFrameSubscriber::KeyFrameSubscriber()
 {
 
+  mlpReadyKeyFrames = std::vector<ORB_SLAM3::KeyFrame*>();
+  mlpReadyMapPoints= std::vector<ORB_SLAM3::MapPoint*>();
+  mlpReadyMapPoints.reserve(5000);
+  mlpReadyKeyFrames.reserve(200);
+
 }
 
 KeyFrameSubscriber::~KeyFrameSubscriber()
@@ -33,10 +38,41 @@ void KeyFrameSubscriber::Run()
           {
             ProcessNewKeyFrame();
           }
-          else if(CheckNewKeyFrameUpdates())
+          else if(CheckNewKeyFrameUpdates() && mpObserver->mbMapIsUpToDate)
           {
             ProcessNewKeyFrameUpdate();
           }
+          
+          //if((!CheckNewKeyFrameUpdates() && !mlpReadyMapPoints.empty()) || mlpReadyMapPoints.size() >= 1000 )
+          //{
+          //    for(const auto& pMP : mlpReadyMapPoints)
+          //    {
+          //        //std::cout << "adding ready MP" << std::endl;
+          //        ORB_SLAM3::MapPoint* existingMP = mpObserver->GetMapPoint(pMP->mstrHexId);
+          //        if(existingMP)
+          //        {
+          //          mpObserver->InjectMapPoint(pMP, existingMP, false);
+          //        }
+          //    }
+
+          //    mlpReadyMapPoints.clear();
+          //}
+
+          //if((!CheckNewKeyFrameUpdates()&& !mlpReadyMapPoints.empty()) || mlpReadyKeyFrames.size() >= 50)
+          //{
+          //    for(const auto& pKF : mlpReadyKeyFrames)
+          //    {
+          //        ORB_SLAM3::KeyFrame* existingKF = mpObserver->GetKeyFrame(pKF->mnId);
+          //        if(existingKF)
+          //        {
+          //          //std::cout << "adding ready KF" << std::endl;
+          //          ORB_SLAM3::KeyFrame* pInjectedKF = mpObserver->InjectKeyFrame(pKF, existingKF, existingKF->GetLastModule());
+          //          mpObserver->ForwardKeyFrameToTarget(pInjectedKF, pInjectedKF->GetLastModule(), false);
+          //        }
+          //    }
+          //    mlpReadyKeyFrames.clear();
+
+          //}
       }
 
       usleep(1000);
@@ -90,9 +126,25 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
         } else 
         {
+            
             auto it = mpRosKeyFrameUpdateQueue.rbegin();//mlpRosKeyFrameUpdateQueue.front();
             pRosKF = it->second;
             mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
+            //for(std::map<unsigned long int, orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr>::reverse_iterator it = mpRosKeyFrameUpdateQueue.rbegin(); it != mpRosKeyFrameUpdateQueue.rend(); ++it)
+            //{
+            //    if(it->first != mpTracker->GetReferenceID())
+            //    {
+            //        pRosKF = it->second;
+            //        mpRosKeyFrameUpdateQueue.erase(pRosKF->mn_id);
+            //        break;
+            //    } else {
+            //        if(mpRosKeyFrameUpdateQueue.size()==1)
+            //        {
+            //            return;
+            //        } 
+            //    }
+
+            //}
         }
 
         //mlpRosKeyFrameUpdateQueue.pop_front();
@@ -123,13 +175,14 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
-    {
-      //mpAtlas->ChangeMap(pCurrentMap);
-      //pCurrentMap->SetCurrentMap();
-      pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
-      pCurrentMap = mpAtlas->GetCurrentMap();
-    }
+    } 
+    //else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
+    //{
+    //  //mpAtlas->ChangeMap(pCurrentMap);
+    //  //pCurrentMap->SetCurrentMap();
+    //  pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
+    //  pCurrentMap = mpAtlas->GetCurrentMap();
+    //}
 
     // Create map data structures for postloads
     std::map<std::string, ORB_SLAM3::MapPoint*>& mFusedMPs = mpObserver->GetAllMapPoints(); 
@@ -276,6 +329,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
             //}
         //}
     }
+    std::cout << " ================ KF=" << pRosKF->mn_id << ", MPs=" << mvpTempMPs.size() << " ============ " << std::endl;
     vnNewMPAmount.push_back(news);
     vnUpdateMPAmount.push_back(updates);
 
@@ -313,29 +367,6 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadMP = std::chrono::steady_clock::now();
 
-    // Start of a timer -------------
-    std::chrono::steady_clock::time_point time_StartInjectKF = std::chrono::steady_clock::now();
-
-    // -------------------- From here on we have unprocessed data -----------------------
-    // Here the data is injected into existing KF or the same one is returned. Function handles pointers etc.
-    ORB_SLAM3::KeyFrame* pKF; 
-    if(!mbNewKF)
-    {
-        ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
-        pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
-        //pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF);
-        //std::cout << pKF << "," << mFusedKFs[tempKF->mnId] << std::endl;
-    }
-    //else
-    //    pKF = tempKF;
-    //ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mFusedKFs);
-
-    // End of timer
-    std::chrono::steady_clock::time_point time_EndInjectKF = std::chrono::steady_clock::now();
-
-    // Calculate difference
-    double timeInjectKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectKF - time_StartInjectKF).count();
-    vdInjectKF_ms.push_back(timeInjectKF);
 
     //mFusedKFs[pKF->mnId] = pKF;
     
@@ -349,46 +380,64 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     
     //std::cout << "Got a new keyframe. 4. All MP PostLoads Completed." << std::endl;
 
-    // Start of a timer -------------
-    std::chrono::steady_clock::time_point time_StartInjectMP = std::chrono::steady_clock::now();
-    
-    //for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
-    for(size_t i=0;i<mvpTempMPs.size();++i)
+    ORB_SLAM3::KeyFrame* pKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); 
     {
-      //ORB_SLAM3::MapPoint* tempMP = mvpTempMPs[i];
-      //if(mvbNewMPs[i])
-      //{
-      //    mpAtlas->AddMapPoint(tempMP);
-      //}
-      //else
-      //{
-      //    ORB_SLAM3::MapPoint* mpExistingMP = mFusedMPs[tempMP->mstrHexId];
-      //    mpExistingMP->UpdateMapPoint(*tempMP);
-      //    //std::cout << "MPi addrs: " << mpExistingMP << "," << mFusedMPs[tempMP->mstrHexId] << std::endl;
-      //    delete tempMP;
-      //}
-      ORB_SLAM3::MapPoint* tempMP = mvpTempMPs[i];
-      if(!tempMP)
-        continue;
+        unique_lock<std::mutex> lock(ORB_SLAM3::MapPoint::mGlobalMutex);
+        // Start of a timer -------------
+        std::chrono::steady_clock::time_point time_StartInjectMP = std::chrono::steady_clock::now();
+        
+        //for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
+        for(size_t i=0;i<mvpTempMPs.size();++i)
+        {
+          ORB_SLAM3::MapPoint* tempMP = mvpTempMPs[i];
+          if(!tempMP)
+            continue;
 
-      ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
-      if(!mpExistingMP)
-          continue;
+          ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
+          if(!mpExistingMP)
+              continue;
 
+          //if(mvbNewMPs[i])
+          mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
+          //else
+          //   mlpReadyMapPoints.push_back(tempMP); 
+            //mpObserver->InjectMapPoint(tempMP, mMapMPs);
+        }
 
-      mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
-        //mpObserver->InjectMapPoint(tempMP, mMapMPs);
+        // End of timer
+        std::chrono::steady_clock::time_point time_EndInjectMP = std::chrono::steady_clock::now();
+
+        // Calculate difference
+        double timeInjectMP = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectMP - time_StartInjectMP).count();
+        vdInjectMP_ms.push_back(timeInjectMP);
+        // -------------------- To here -----------------------
+        
+        // Start of a timer -------------
+        std::chrono::steady_clock::time_point time_StartInjectKF = std::chrono::steady_clock::now();
+
+        // -------------------- From here on we have unprocessed data -----------------------
+        // Here the data is injected into existing KF or the same one is returned. Function handles pointers etc.
+        if(!mbNewKF)
+        {
+            ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
+            //if(tempKF->mnNextTarget==0)
+            //    mlpReadyKeyFrames.push_back(tempKF);
+            //else
+            pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
+        }
+        //else
+        //    pKF = tempKF;
+        //ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mFusedKFs);
+
+        // End of timer
+        std::chrono::steady_clock::time_point time_EndInjectKF = std::chrono::steady_clock::now();
+
+        // Calculate difference
+        double timeInjectKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectKF - time_StartInjectKF).count();
+        vdInjectKF_ms.push_back(timeInjectKF);
+        //std::cout << "Got a new keyframe. 5. All MPs are injected to ORB_SLAM3." << std::endl;
+
     }
-
-    // End of timer
-    std::chrono::steady_clock::time_point time_EndInjectMP = std::chrono::steady_clock::now();
-
-    // Calculate difference
-    double timeInjectMP = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectMP - time_StartInjectMP).count();
-    vdInjectMP_ms.push_back(timeInjectMP);
-    // -------------------- To here -----------------------
-    
-    //std::cout << "Got a new keyframe. 5. All MPs are injected to ORB_SLAM3." << std::endl;
     
     
     // If KF exists, forward it to target
@@ -465,13 +514,14 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
-    } else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
-    {
-      //mpAtlas->ChangeMap(pCurrentMap);
-      //pCurrentMap->SetCurrentMap();
-      pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
-      pCurrentMap = mpAtlas->GetCurrentMap();
-    }
+    } 
+    //else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
+    //{
+    //  //mpAtlas->ChangeMap(pCurrentMap);
+    //  //pCurrentMap->SetCurrentMap();
+    //  pRosKF->mp_map_id = pCurrentMap->GetId(); //mpAtlas->GetCurrentMap()->GetId();
+    //  pCurrentMap = mpAtlas->GetCurrentMap();
+    //}
     
     //if(pCurrentMap->KeyFramesInMap() >= 10 && mpObserver->HasKeyFrameBeenErased(pRosKF->mn_id))
     //    return;

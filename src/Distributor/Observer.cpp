@@ -8,7 +8,7 @@
 //{
 
 Observer::Observer(MapHandler* pMapHandler, KeyFramePublisher* pKeyFramePublisher, KeyFrameSubscriber* pKeyFrameSubscriber)
-  : mdSinceReset(0.0), mnMaxMPId(0)
+  : mdSinceReset(0.0), mnMaxMPId(0), mbMapIsUpToDate(true)
 {
     // init task
     char* systemId = std::getenv("SLAM_SYSTEM_ID");
@@ -60,7 +60,7 @@ void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     mOrbMapPoints.erase(pMP->mstrHexId);
     msOrbMapPoints.erase(pMP);
-    //msAllErasedMPIds.insert(pMP->mstrHexId);
+    msAllErasedMPIds.insert(pMP->mstrHexId);
 }
 
 void Observer::EraseMapPoint(std::string mnId)
@@ -68,7 +68,7 @@ void Observer::EraseMapPoint(std::string mnId)
     unique_lock<std::mutex> lock(mMutexMapPoint); 
     msOrbMapPoints.erase(mOrbMapPoints[mnId]);
     mOrbMapPoints.erase(mnId);
-    //msAllErasedMPIds.insert(mnId);
+    msAllErasedMPIds.insert(mnId);
 }
 
 bool Observer::CheckIfMapPointExists(ORB_SLAM3::MapPoint* pMP)
@@ -290,8 +290,8 @@ ORB_SLAM3::KeyFrame* Observer::InjectKeyFrame(ORB_SLAM3::KeyFrame* tempKF, ORB_S
     mpExistingKF->UpdateKeyFrame(*tempKF, nFromModule);
     delete tempKF;
 
-    if(mpExistingKF->GetLastModule() == 3 && mpMapHandler->mnLastGlobalAction == 1)
-        mpMapHandler->InsertNewUpdatedLocalKF(mpExistingKF);
+    //if(mpExistingKF->GetLastModule() == 3) // && mpMapHandler->mnLastGlobalAction == 1)
+    //    mpMapHandler->InsertNewUpdatedLocalKF(mpExistingKF);
 
     return mpExistingKF; 
 }
@@ -303,12 +303,12 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
     {
         mpAtlas->AddMapPoint(tempMP);
         //AddMapPoint(tempMP);
-        if(tempMP->GetLastModule() == 3) 
-        {
-            if(mpMapHandler->mnLastGlobalAction == 1)
-                mpMapHandler->InsertNewUpdatedLocalMP(tempMP);
-            tempMP->SetLastModule(mnTaskModule);
-        }
+        //if(tempMP->GetLastModule() == 3) 
+        //{
+        //    //if(mpMapHandler->mnLastGlobalAction == 1)
+        //    mpMapHandler->InsertNewUpdatedLocalMP(tempMP);
+        //    //tempMP->SetLastModule(mnTaskModule);
+        //}
     }
     else 
     {
@@ -317,12 +317,12 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
         mpAtlas->AddMapPoint(mpExistingMP);
         delete tempMP;
 
-        if(mpExistingMP->GetLastModule() == 3) 
-        {
-            if(mpMapHandler->mnLastGlobalAction == 1)
-                mpMapHandler->InsertNewUpdatedLocalMP(mpExistingMP);
-            mpExistingMP->SetLastModule(mnTaskModule);
-        }
+        //if(mpExistingMP->GetLastModule() == 3) 
+        //{
+        //    //if(mpMapHandler->mnLastGlobalAction == 1)
+        //    mpMapHandler->InsertNewUpdatedLocalMP(mpExistingMP);
+        //    //mpExistingMP->SetLastModule(mnTaskModule);
+        //}
     }
 
 }
@@ -331,7 +331,7 @@ void Observer::InjectMapPoint(ORB_SLAM3::MapPoint* tempMP, ORB_SLAM3::MapPoint* 
 void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned int nFromModule, const bool mbNew)
 {
     
-    std::cout << " ----- Got new KF=" << pKF->mnId << ", from=" << nFromModule << ", to=" << pKF->mnNextTarget << ", MPs=" << pKF->GetMapPoints().size() << " ----- " << std::endl;
+    std::cout << " ----- Got new KF=" << pKF->mnId << ", from=" << nFromModule << ", to=" << pKF->mnNextTarget << ", MPs=" << pKF->GetMapPoints().size() << ", lastModule=" << pKF->GetLastModule() << " ----- " << std::endl;
     if(!pKF)
         return;
 
@@ -342,10 +342,10 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
         //mpKeyFrameDB->add(pKF);
     }
 
-    if (nFromModule==3 && pKF->GetLastModule() == 3) {
-        //pKF->UpdateConnections();
-        pKF->SetLastModule(mnTaskModule);
-    }
+    //if (nFromModule==3 && pKF->GetLastModule() == 3) {
+    //    //pKF->UpdateConnections();
+    //    pKF->SetLastModule(mnTaskModule);
+    //}
 
     // Just update state and do not insert to any module
     if(mnTaskModule == 0) {
@@ -684,7 +684,15 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> m
           if(nTarget == 2)
               mpKeyFramePublisher->InsertNewKeyFrame(pKF);
           else
+          {
+              for(std::set<std::string>::iterator it = msNewMapPointIds.begin(); it != msNewMapPointIds.end(); ++it)
+              {
+                  mpMapHandler->InsertNewUpdatedLocalMP(*it);
+              }
+              
               mpMapHandler->InsertNewUpdatedLocalKF(pKF);
+
+          }
           // Other wise its send with map
       } else 
       {

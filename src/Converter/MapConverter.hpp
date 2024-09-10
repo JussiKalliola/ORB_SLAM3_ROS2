@@ -155,7 +155,7 @@ namespace Converter {
         // long unsigned int mnLastLoopKFid;
 
         // Index related to a big change in the map (loop closure, global BA)
-        mpRosMap->mn_big_change_idx = opM->GetBigChangeIdx();                   // int mnBigChangeIdx;
+        mpRosMap->mn_big_change_idx = opM->GetLastBigChangeIdx();                   // int mnBigChangeIdx;
 
 
 
@@ -241,7 +241,7 @@ namespace Converter {
           const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
-            if(kf)//!msErasedKFs.count(kf->mnId))
+            if(kf && kf->GetMapPoints().size() > 100)//!msErasedKFs.count(kf->mnId))
             {
               if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
               {
@@ -249,7 +249,7 @@ namespace Converter {
                 //  continue;
 
                 const orbslam3_interfaces::msg::KeyFrameUpdate& msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
-                                                                                                                                mvRosKFUpdates.push_back(msgKf);
+                                                                                                                                 mvRosKFUpdates.push_back(msgKf);
                 for(const auto& mpMsg : msgKf.mvp_map_points)
                 {
                   mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 
@@ -331,7 +331,7 @@ namespace Converter {
         // long unsigned int mnLastLoopKFid;
 
         // Index related to a big change in the map (loop closure, global BA)
-        mpRosMap->mn_big_change_idx = opM->GetBigChangeIdx();                   // int mnBigChangeIdx;
+        mpRosMap->mn_big_change_idx = opM->GetLastBigChangeIdx();                   // int mnBigChangeIdx;
 
 
 

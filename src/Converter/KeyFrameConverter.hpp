@@ -512,7 +512,7 @@ namespace Converter {
         for(size_t i=0; i<mvpMapPoints.size(); ++i)
         {
             ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-            if(mp && !mp->isBad())//&& !mspErasedMPIds.count(mp->mstrHexId))
+            if(mp)//&& !mspErasedMPIds.count(mp->mstrHexId))
                 mvpMapPointBackup[i] = mp->mstrHexId;
             else 
                 mvpMapPointBackup[i] = "";
@@ -580,7 +580,7 @@ namespace Converter {
         for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
         {
           orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
-          if(tempKF && !tempKF->isBad())
+          if(!tempKF)
             continue;
           mvpOrderedConnectedKeyFramesId.push_back(tempKF->mnId);
         }
@@ -591,7 +591,7 @@ namespace Converter {
         for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
         {
           orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
-          if(tempKF && !tempKF->isBad())
+          if(!tempKF)
             continue;
           mvOrderedWeights.push_back(pKf->GetWeight(tempKF));
         }
@@ -612,7 +612,7 @@ namespace Converter {
         for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspChildrens.begin(); it != mspChildrens.end(); ++it)
         {
           orb_keyframe* pKF = *it;
-          if(pKF && !pKF->isBad())
+          if(!pKF )
             continue;
           mspChildrensId.push_back(pKF->mnId);
         }
@@ -785,7 +785,7 @@ namespace Converter {
         for(size_t i = 0; i<mvpLoopCandKFs.size();i++)
         {
             ORB_SLAM3::KeyFrame* tempKF = mvpLoopCandKFs[i];
-            if(tempKF && !tempKF->isBad())
+            if(!tempKF)
                 continue;
             mvpLoopCandKFsId.push_back(tempKF->mnId);
         }
@@ -793,7 +793,7 @@ namespace Converter {
         for(size_t i = 0; i<mvpMergeCandKFs.size();i++)
         {
             ORB_SLAM3::KeyFrame* tempKF = mvpMergeCandKFs[i];
-            if(tempKF && !tempKF->isBad())
+            if(!tempKF)
                 continue;
             mvpMergeCandKFsId.push_back(tempKF->mnId);
         }
@@ -843,7 +843,7 @@ namespace Converter {
         for(size_t i=0; i<mvpMapPoints.size(); ++i)
         {
             ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-            if(mp && !mp->isBad())//&& !mspErasedMPIds.count(mp->mstrHexId))
+            if(mp)//&& !mspErasedMPIds.count(mp->mstrHexId))
                 mvpMapPointBackup[i] = mp->mstrHexId;
             else 
                 mvpMapPointBackup[i] = "";
@@ -856,7 +856,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp && !mp->isBad())
+                if(mp)
                 {
                     if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
@@ -875,7 +875,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp && !mp->isBad())
+                if(mp)
                 {
                       //msgIndices.push_back(mvpIndices[i]);
                         mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
@@ -908,7 +908,7 @@ namespace Converter {
         for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
         {
           orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
-          if(tempKF && !tempKF->isBad())
+          if(!tempKF)
             continue;
           mvpOrderedConnectedKeyFramesId.push_back(tempKF->mnId);
         }
@@ -919,7 +919,7 @@ namespace Converter {
         for(size_t i=0;i<mvpOrderedConnectedKeyFrames.size();i++)
         {
           orb_keyframe* tempKF = mvpOrderedConnectedKeyFrames[i];
-          if(tempKF && !tempKF->isBad())
+          if(!tempKF)
             continue;
           mvOrderedWeights.push_back(pKf->GetWeight(tempKF));
         }
@@ -943,7 +943,7 @@ namespace Converter {
         for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspChildrens.begin(); it != mspChildrens.end(); ++it)
         {
           orb_keyframe* pKF = *it;
-          if(pKF && !pKF->isBad())
+          if(!pKF)
             continue;
           mspChildrensId.push_back(pKF->mnId);
         }
@@ -956,7 +956,7 @@ namespace Converter {
         for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspLoopEdges.begin(); it != mspLoopEdges.end(); ++it)
         {
           orb_keyframe* pKF = *it;
-          if(pKF && !pKF->isBad())
+          if(!pKF)
             continue;
           mspLoopEdgesId.push_back(pKF->mnId);
         }
@@ -969,7 +969,7 @@ namespace Converter {
         for(std::set<ORB_SLAM3::KeyFrame*>::iterator it = mspMergeEdges.begin(); it != mspMergeEdges.end(); ++it)
         {
           orb_keyframe* pKF = *it;
-          if(pKF && !pKF->isBad())
+          if(!pKF)
             continue;
 
           mspMergeEdgesId.push_back(pKF->mnId);

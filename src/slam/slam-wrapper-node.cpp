@@ -429,30 +429,31 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
         //mpTracker_->mbStep = true;
         if(!mpLocalMapper_->mbGBARunning)
         {
-            for(const auto& mnId : mpMapHandler->msToBeErasedKFs)
-            {
-                ORB_SLAM3::KeyFrame* pKFi = mpObserver->GetKeyFrame(mnId);
-                if(pKFi)
-                {
-                  pKFi->SetBadFlag();
-                  mpObserver->EraseKeyFrame(pKFi);
-                }
-            }
+            //for(const auto& mnId : mpMapHandler->msToBeErasedKFs)
+            //{
+            //    ORB_SLAM3::KeyFrame* pKFi = mpObserver->GetKeyFrame(mnId);
+            //    if(pKFi)
+            //    {
+            //      pKFi->SetBadFlag();
+            //      mpObserver->EraseKeyFrame(pKFi);
+            //    }
+            //}
 
-            for(const auto& mnId : mpMapHandler->msToBeErasedMPs)
-            {
-                ORB_SLAM3::MapPoint* pMPi = mpObserver->GetMapPoint(mnId);
-                if(pMPi)
-                {
-                  pMPi->SetBadFlag();
-                  mpObserver->EraseMapPoint(pMPi);
-                }
-            }
+            //for(const auto& mnId : mpMapHandler->msToBeErasedMPs)
+            //{
+            //    ORB_SLAM3::MapPoint* pMPi = mpObserver->GetMapPoint(mnId);
+            //    if(pMPi)
+            //    {
+            //      pMPi->SetBadFlag();
+            //      mpObserver->EraseMapPoint(pMPi);
+            //    }
+            //}
 
-            mpMapHandler->msToBeErasedKFs.clear();
-            mpMapHandler->msToBeErasedMPs.clear();
+            //mpMapHandler->msToBeErasedKFs.clear();
+            //mpMapHandler->msToBeErasedMPs.clear();
         }
         mpLocalMapper_->mbGBARunning = true;
+        mpLocalMapper_->RequestStop();
         //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
         //mpLocalMapper_->RequestStop();
         //mpMapHandler->ResetQueue();
@@ -460,7 +461,8 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
         //mpKeyFramePublisher->ResetQueue();
     } else {
       //mpLocalMapper_->mbGBARunning = false;
-      //mpLocalMapper_->Release();
+      //if(mpObserver->GetTaskModule() == 1)
+      //    mpLocalMapper_->Release();
       //mpLocalMapper_->EmptyQueue();
     }
 }
@@ -675,7 +677,7 @@ void SlamWrapperNode::CreateSubscribers() {
             std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
     }
 
-    if(nTaskId==2)
+    if(nTaskId!=3)
     {
         /* Atlas */
         RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /Atlas/LoopClosing");

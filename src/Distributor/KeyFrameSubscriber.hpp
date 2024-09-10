@@ -71,6 +71,8 @@ class KeyFrameSubscriber
     void ProcessNewKeyFrame();
     void ProcessNewKeyFrameUpdate();
     
+    std::vector<ORB_SLAM3::KeyFrame*> mlpReadyKeyFrames;
+    std::vector<ORB_SLAM3::MapPoint*> mlpReadyMapPoints;
     std::list<orbslam3_interfaces::msg::KeyFrame::SharedPtr> mlpRosKeyFrameQueue;
     std::list<orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mlpRosKeyFrameUpdateQueue;
     std::map<unsigned long int, orbslam3_interfaces::msg::KeyFrameUpdate::SharedPtr> mpRosKeyFrameUpdateQueue;
