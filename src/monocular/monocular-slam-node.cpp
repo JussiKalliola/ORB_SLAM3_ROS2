@@ -7,7 +7,7 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName) : Node("MonocularSlamNode") 
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName, const std::string strCameratopic) : Node("MonocularSlamNode") 
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Monocular SLAM node.");
   m_SLAM = pSLAM;
@@ -16,11 +16,12 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<S
   savePath = path;
   mstrResultFilename = strResultFilename;
   mstrDatasetName= strDatasetName;
+  mstrCameraTopic = strCameratopic;
 
     // std::cout << "slam changed" << std::endl;
-  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /camera");
+  RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /'%s'", mstrCameraTopic);
   m_image_subscriber = this->create_subscription<ImageMsg>(
-      "camera",
+      mstrCameraTopic,
       rclcpp::QoS(rclcpp::KeepLast(10), rmw_qos_profile_default),
       std::bind(&MonocularSlamNode::GrabImage, this, std::placeholders::_1));
 

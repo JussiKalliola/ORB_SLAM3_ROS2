@@ -32,7 +32,7 @@ int main(int argc, char **argv)
 {
     if(argc < 4)
     {
-        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization [OPTIONAL] result_file_name [OPTIONAL] subscribe [OPTIONAL] main [OPTIONAL]" << std::endl;
+        std::cerr << "\nUsage: ros2 run orbslam mono path_to_vocabulary path_to_settings path_to_results visualization [OPTIONAL] result_file_name [OPTIONAL] subscribe [OPTIONAL] main [OPTIONAL] camera_topic [OPTIONAL]" << std::endl;
         exit(1);
     }
 
@@ -50,6 +50,10 @@ int main(int argc, char **argv)
     std::transform(strSystemId.begin(), strSystemId.end(), strSystemId.begin(), ::toupper);
 
     string strResultFileName = "KeyFrameTrajectory.txt";
+    string strCameraTopic = "camera";
+    if(argc > 8)
+      strCameraTopic = argv[8];
+
     bool visualization = false;
     bool subscribe_to_slam = true;
     bool main_system = true;
@@ -153,7 +157,7 @@ int main(int argc, char **argv)
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
-      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName);
+      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName, strCameraTopic);
       rclcpp::executors::MultiThreadedExecutor multiThreadExecutor;
       
       multiThreadExecutor.add_node(mono_node);
