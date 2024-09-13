@@ -417,7 +417,7 @@ void MapHandler::ProcessNewPubLocalMap()
             // First 20 kfs taken from covisible keyframes (KFs which needs the fastest updates)
             if(mnPubIters==0) //&& mpObserver->mpLastKeyFrame)
             {
-                mnMapFreq_ms=30;
+                mnMapFreq_ms=50;
                 //std::vector<ORB_SLAM3::KeyFrame*> vpConnected = mpObserver->mpLastKeyFrame->GetVectorCovisibleKeyFrames();
                 //int iters = maxUpdateN;
                 //if(vpConnected.size() < maxUpdateN)
@@ -555,7 +555,7 @@ void MapHandler::ProcessNewPubLocalMap()
     if(maxUpdateN<10)
     {
         maxUpdateN+=5;
-        mnMapFreq_ms+=100;
+        mnMapFreq_ms+=50;
     }
 
     
@@ -1103,7 +1103,7 @@ bool MapHandler::CheckPubLocalMaps()
     {
         return true;
     }
-    else if(dCount>mnMapFreq_ms && msUpdatedLocalMPs.size()>0) {
+    else if(dCount>mnMapFreq_ms && msUpdatedLocalMPs.size()>0 && msUpdatedLocalKFs.empty()) {
         return true;
     }
 
@@ -1336,7 +1336,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
 
 void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr pRosMap)
 {
-    if(!mlpAtlasPubQueue.empty() || mpLoopCloser->isRunningGBA() || !mpLoopCloser->CheckIfRunning())
+    if(!mlpAtlasPubQueue.empty() || mpLoopCloser->isRunningGBA() || mpLoopCloser->CheckIfRunning())
       return;
     //if(!mlpAtlasSubQueue.empty())
     //    return;
