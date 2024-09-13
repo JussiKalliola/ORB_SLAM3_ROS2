@@ -361,12 +361,21 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
 
         mpAtlas->AddKeyFrame(pKF);
         mpTracker->UpdateReference(pKF);
-        if(!mbReferenceUpdated && mnUpdateReferenceId>=0 && mnUpdateReferenceId==pKF->mnId)
-        {
-            mpTracker->UpdateFromLocalMapping(pKF);
-            mbReferenceUpdated=true;
-            mnUpdateReferenceId=-1;
-        }
+        //if(!mbReferenceUpdated && mnTaskModule==1 && mnUpdateReferenceId>=0 && mnUpdateReferenceId==pKF->mnId && mnUpdateReferenceId<mpTracker->GetReferenceID())
+        //{
+        //    std::cout << " =!=!=!==!=!=!=!=!==! UPDATING REFERENCE: mnUpdateReferenceId=" << mnUpdateReferenceId << ", mbReferenceUpdated=" << mbReferenceUpdated<< std::endl;
+        //    mpTracker->UpdateFromLocalMapping(pKF);
+        //    mbReferenceUpdated=true;
+        //    mnUpdateReferenceId=-1;
+
+        //}
+        //else if(!mbReferenceUpdated && pKF->mnId == mpTracker->GetReferenceID() && mnTaskModule==1) //&& mnUpdateReferenceId>=0 && mnUpdateReferenceId==pKF->mnId)
+        //{
+        //    std::cout << " =!=!=!==!=!=!=!=!==! UPDATING REFERENCE: mnUpdateReferenceId=" << mnUpdateReferenceId << ", mbReferenceUpdated=" << mbReferenceUpdated<< std::endl;
+        //    mpTracker->UpdateFromLocalMapping(pKF);
+        //    mbReferenceUpdated=true;
+        //    mnUpdateReferenceId=-1;
+        //}
 
     } else if (mnTaskModule == 2) {
 
@@ -401,11 +410,11 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     } else if (mnTaskModule == 3) {
         // in this case the system mainly performing loop closing
         // not sure what to do here yet. 
-        AddKeyFrame(pKF);
+        //AddKeyFrame(pKF);
+        mpAtlas->AddKeyFrame(pKF);
         
 
         if(pKF->mnNextTarget == 3) {
-            mpAtlas->AddKeyFrame(pKF);
             
             for(std::set<unsigned long int>::iterator it = msAllErasedKFIds.begin(); it != msAllErasedKFIds.end(); ++it)
             {

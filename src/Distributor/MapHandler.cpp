@@ -299,7 +299,7 @@ void MapHandler::ProcessNewPubGlobalMap()
                 mRosMap->mv_backup_keyframe_origins_id.clear();
             }
             // Decrease the rate of publishing so that the network does not congest
-            mnGlobalMapFreq_ms=200;
+            mnGlobalMapFreq_ms=100;
             mnAtlasBatchNumber+=1;
 
         }
@@ -417,6 +417,7 @@ void MapHandler::ProcessNewPubLocalMap()
             // First 20 kfs taken from covisible keyframes (KFs which needs the fastest updates)
             if(mnPubIters==0) //&& mpObserver->mpLastKeyFrame)
             {
+                mnMapFreq_ms=30;
                 //std::vector<ORB_SLAM3::KeyFrame*> vpConnected = mpObserver->mpLastKeyFrame->GetVectorCovisibleKeyFrames();
                 //int iters = maxUpdateN;
                 //if(vpConnected.size() < maxUpdateN)
@@ -844,7 +845,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
         //mlpAtlasSubQueue.clear();
         //mpLocalMapper->mbGBARunning = false;
         //if(mpObserver->GetTaskModule() == 1)
-        //  mpLocalMapper->Release();
+        //mpLocalMapper->Release();
 
         mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
     }
@@ -1424,6 +1425,9 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
 
 void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate)
 {
+    double timeSinceReset = mpObserver->TimeSinceReset();
+    if(timeSinceReset < 10000)
+        return;
     
     ResetLocalQueue();
     mpKeyFrameSubscriber->ResetQueue(false);
@@ -1437,6 +1441,14 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     const std::set<unsigned long int>& tempUpdatedKFs = mpAtlas->GetCurrentMap()->GetUpdatedKFIds();
     const std::set<std::string>&  tempUpdatedMPs = mpAtlas->GetCurrentMap()->GetUpdatedMPIds();
 
+    if(std::get<0>(mtAtlasUpdate))
+    {
+        unsigned long int pCurId = std::get<2>(mtAtlasUpdate)[1]; 
+        unsigned long int pMergeId = std::get<2>(mtAtlasUpdate)[0]; 
+        mpObserver->EraseMap(pCurId);
+        mpObserver->EraseMap(pMergeId);
+        mpObserver->AddMap(mpAtlas->GetCurrentMap());
+    }
 
     //for(const auto& pKF : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
     //{
@@ -1465,10 +1477,15 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
       
     //if(std::get<0>(mtAtlasUpdate)){
     unique_lock<mutex> lock(mMutexUpdates);
+    std::cout << "Current map ID=" << mpAtlas->GetCurrentMap()->GetId() << ", KFs in map=" << mpAtlas->GetCurrentMap()->GetAllKeyFrames().size() << ", MPs=" << mpAtlas->GetCurrentMap()->GetAllMapPoints().size() << ", number of maps in Atlas=" << mpAtlas->GetAllMaps().size() << std::endl;
     for(const auto& pKFi : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
     {
         if(pKFi)
+        {
+            pKFi->mbLCDone=true;
+            pKFi->SetLastModule(3);
             msUpdatedGlobalKFs.insert(pKFi->mnId);
+        }
     }
 
     for(const auto& pMPi : mpAtlas->GetCurrentMap()->GetAllMapPoints())
@@ -1557,11 +1574,12 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
           
           for(size_t i=0;i<pRosAtlas->mp_current_map.mvp_backup_keyframes_ids.size();++i)
           {
-              unsigned long int mnId = pRosAtlas->mp_current_map.mvp_backup_keyframes_ids[i];
+              long int mnId = static_cast<long int>(pRosAtlas->mp_current_map.mvp_backup_keyframes_ids[i]);
               ORB_SLAM3::KeyFrame* pKF=mpObserver->GetKeyFrame(mnId);
+              std::cout << mnId << ", found=" << (pKF!=nullptr) << ". ";
               if(pKF)
               {
-                  if(mnId > mpObserver->mnUpdateReferenceId)
+                  if(mnId >= mpObserver->mnUpdateReferenceId)
                   {
                     mpObserver->mnUpdateReferenceId=mnId;
                   }
@@ -1569,6 +1587,9 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
                   //InsertNewUpdatedLocalKF(pKF);
               }
           }
+          std::cout << "." << std::endl;
+
+          std::cout << " =!=!=!==!=!=!=!=!==! mnUpdateReferenceId=" << mpObserver->mnUpdateReferenceId << ", mbReferenceUpdated=" << mpObserver->mbReferenceUpdated << std::endl;
 
           for(size_t i=0;i<pRosAtlas->mp_current_map.mvp_backup_map_points_ids.size();++i)
           {
