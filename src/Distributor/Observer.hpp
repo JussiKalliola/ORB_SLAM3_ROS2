@@ -106,6 +106,8 @@ class Observer : public ORB_SLAM3::Distributor
     std::set<std::string> msAllErasedMPIds;
 
     bool mbMapIsUpToDate;
+    bool mbReferenceUpdated;
+    long int mnUpdateReferenceId;
 
     unsigned long int GetMaxMPId();
     void UpdateMaxMPId(unsigned long int mnId);

@@ -8,7 +8,7 @@
 //{
 
 Observer::Observer(MapHandler* pMapHandler, KeyFramePublisher* pKeyFramePublisher, KeyFrameSubscriber* pKeyFrameSubscriber)
-  : mdSinceReset(0.0), mnMaxMPId(0), mbMapIsUpToDate(true)
+  : mdSinceReset(0.0), mnMaxMPId(0), mbMapIsUpToDate(true), mbReferenceUpdated(true), mnUpdateReferenceId(-1)
 {
     // init task
     char* systemId = std::getenv("SLAM_SYSTEM_ID");
@@ -361,6 +361,12 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
 
         mpAtlas->AddKeyFrame(pKF);
         mpTracker->UpdateReference(pKF);
+        if(!mbReferenceUpdated && mnUpdateReferenceId>=0 && mnUpdateReferenceId==pKF->mnId)
+        {
+            mpTracker->UpdateFromLocalMapping(pKF);
+            mbReferenceUpdated=true;
+            mnUpdateReferenceId=-1;
+        }
 
     } else if (mnTaskModule == 2) {
 

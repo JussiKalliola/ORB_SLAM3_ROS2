@@ -296,20 +296,20 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
         mpRosMP->mp_map_id = mpAtlas->GetCurrentMap()->GetId();
         ORB_SLAM3::MapPoint* tempMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
-        if(mpObserver->CheckIfMapPointExists(mpRosMP->m_str_hex_id))//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
+        ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id);
+        if(mpExistingMP)//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
         {
           //ORB_SLAM3::MapPoint* mpCopyMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id); //mFusedMPs[mpRosMP->m_str_hex_id];
           //if(!mpCopyMP)
           //    continue;
-          //ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
-          ORB_SLAM3::MapPoint* mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
-          tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
+          ORB_SLAM3::MapPoint* mpCopyMP = new ORB_SLAM3::MapPoint(*mpExistingMP);
+          tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpCopyMP);
           mvbNewMPs.push_back(false);
           updates++;
 
         } else {
 
-          ORB_SLAM3::MapPoint* mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
+          mpExistingMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(true);
           mpObserver->AddMapPoint(tempMP);
@@ -383,6 +383,39 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     ORB_SLAM3::KeyFrame* pKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); 
     {
         unique_lock<std::mutex> lock(ORB_SLAM3::MapPoint::mGlobalMutex);
+
+
+        // Start of a timer -------------
+        std::chrono::steady_clock::time_point time_StartInjectKF = std::chrono::steady_clock::now();
+
+        // -------------------- From here on we have unprocessed data -----------------------
+        // Here the data is injected into existing KF or the same one is returned. Function handles pointers etc.
+        if(!mbNewKF && tempKF)
+        {
+            ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
+            if(mpExistingKF)
+                pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
+                
+
+            //if(tempKF->mnNextTarget==0)
+            //    mlpReadyKeyFrames.push_back(tempKF);
+            //else
+        }
+        //else
+        //    pKF = tempKF;
+        //ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mFusedKFs);
+
+        // End of timer
+        std::chrono::steady_clock::time_point time_EndInjectKF = std::chrono::steady_clock::now();
+
+        // Calculate difference
+        double timeInjectKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectKF - time_StartInjectKF).count();
+        vdInjectKF_ms.push_back(timeInjectKF);
+        //std::cout << "Got a new keyframe. 5. All MPs are injected to ORB_SLAM3." << std::endl;
+
+
+
+
         // Start of a timer -------------
         std::chrono::steady_clock::time_point time_StartInjectMP = std::chrono::steady_clock::now();
         
@@ -390,15 +423,22 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         for(size_t i=0;i<mvpTempMPs.size();++i)
         {
           ORB_SLAM3::MapPoint* tempMP = mvpTempMPs[i];
+          bool mbNew = mvbNewMPs[i];
           if(!tempMP)
             continue;
 
           ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
           if(!mpExistingMP)
-              continue;
+          {
+              mpExistingMP=static_cast<ORB_SLAM3::MapPoint*>(NULL);
+              mbNew = true;
+          }
+
+          if(pKF)
+              tempMP->SetReferenceKeyFrame(pKF);
 
           //if(mvbNewMPs[i])
-          mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
+          mpObserver->InjectMapPoint(tempMP, mpExistingMP, mbNew);
           //else
           //   mlpReadyMapPoints.push_back(tempMP); 
             //mpObserver->InjectMapPoint(tempMP, mMapMPs);
@@ -412,30 +452,6 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         vdInjectMP_ms.push_back(timeInjectMP);
         // -------------------- To here -----------------------
         
-        // Start of a timer -------------
-        std::chrono::steady_clock::time_point time_StartInjectKF = std::chrono::steady_clock::now();
-
-        // -------------------- From here on we have unprocessed data -----------------------
-        // Here the data is injected into existing KF or the same one is returned. Function handles pointers etc.
-        if(!mbNewKF)
-        {
-            ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
-            //if(tempKF->mnNextTarget==0)
-            //    mlpReadyKeyFrames.push_back(tempKF);
-            //else
-            pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
-        }
-        //else
-        //    pKF = tempKF;
-        //ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mFusedKFs);
-
-        // End of timer
-        std::chrono::steady_clock::time_point time_EndInjectKF = std::chrono::steady_clock::now();
-
-        // Calculate difference
-        double timeInjectKF = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndInjectKF - time_StartInjectKF).count();
-        vdInjectKF_ms.push_back(timeInjectKF);
-        //std::cout << "Got a new keyframe. 5. All MPs are injected to ORB_SLAM3." << std::endl;
 
     }
     
@@ -766,6 +782,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
       ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
       if(!mpExistingMP)
           continue;
+      tempMP->SetReferenceKeyFrame(pKF);
       mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
         //mpObserver->InjectMapPoint(tempMP, mMapMPs);
     }
@@ -844,6 +861,14 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
     double timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
     if(timeSinceReset < 50)
         return;
+
+
+
+    if(mpLocalMapper->isStopped())
+    {
+        mpAtlas->GetCurrentMap()->EraseKeyFrame(pRosKF->mn_id);
+        return;
+    }
 
     std::cout << "***** GOT KF ******" << std::endl;
     {
