@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(4), maxUpdateGlobalN(20), mnLastGlobalAction(-1)
+    maxUpdateN(5), maxUpdateGlobalN(20), mnLastGlobalAction(-1)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -554,8 +554,8 @@ void MapHandler::ProcessNewPubLocalMap()
 
     if(maxUpdateN<10)
     {
-        maxUpdateN+=2;
-        mnMapFreq_ms+=20;
+        maxUpdateN+=5;
+        mnMapFreq_ms+=100;
     }
 
     
@@ -1240,7 +1240,7 @@ void MapHandler::InsertNewPubLocalMap()
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=4;
+    maxUpdateN=5;
     mnPubIters=0;
 
     // Make next update instant
@@ -1324,7 +1324,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=4;
+    maxUpdateN=5;
     mnPubIters=0;
 
     // Make next update instant
@@ -1336,7 +1336,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
 
 void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr pRosMap)
 {
-    if(!mlpAtlasPubQueue.empty() || mpLoopCloser->isRunningGBA())
+    if(!mlpAtlasPubQueue.empty() || mpLoopCloser->isRunningGBA() || !mpLoopCloser->CheckIfRunning())
       return;
     //if(!mlpAtlasSubQueue.empty())
     //    return;

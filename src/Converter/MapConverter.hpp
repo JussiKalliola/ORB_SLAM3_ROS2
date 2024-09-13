@@ -261,9 +261,9 @@ namespace Converter {
         if(msUpdatedKFs.empty() && !msUpdatedMPs.empty())
         {
             std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
-            mvRosMPs.reserve(2000);
+            mvRosMPs.reserve(500);
             long int mpIter = 0;
-            while(mpIter < 2000 )
+            while(mpIter < 500 )
             {
                 if(msUpdatedMPs.empty())
                   break;
