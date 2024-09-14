@@ -771,6 +771,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
         }
     }
 
+
     //if(mpRosAtlas->mb_map_merge && mpRosAtlas->mv_merged_map_ids.size() == 2)
     //{
     //    //std::cout << "# of Backup KFs=" << mpRosMap->mvp_backup_keyframes_ids.size() << ", # of Backup MPs=" << mpRosMap->mvp_backup_map_points_ids.size() << std::endl;
@@ -1019,6 +1020,8 @@ void MapHandler::ProcessNewSubLocalMap2()
         {
           ORB_SLAM3::MapPoint* mpCopyMP = new ORB_SLAM3::MapPoint(*mpExistingMP);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpCopyMP);
+          mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
+          mpExistingMP->SetNormalVector(tempMP->GetNormal());
           mvbNewMPs.push_back(false);
         } else {
 
@@ -1406,7 +1409,7 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
       //}
 
       pRosMap->msp_keyframes.clear();
-      pRosMap->msp_map_points.clear();
+      //pRosMap->msp_map_points.clear();
 
       //if(pRosMap->mb_first_batch)
       mpNewRosMap = pRosMap;

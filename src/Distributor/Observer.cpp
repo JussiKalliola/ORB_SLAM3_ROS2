@@ -361,6 +361,14 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
 
         mpAtlas->AddKeyFrame(pKF);
         mpTracker->UpdateReference(pKF);
+        //if(!mbReferenceUpdated && mnTaskModule==1 && mnUpdateReferenceId>=0)
+        //{
+        //    std::cout << " =!=!=!==!=!=!=!=!==! UPDATING REFERENCE: mnUpdateReferenceId=" << mnUpdateReferenceId << ", mbReferenceUpdated=" << mbReferenceUpdated<< std::endl;
+        //    mpTracker->UpdateFromLocalMapping(pKF);
+        //    mbReferenceUpdated=true;
+        //    mnUpdateReferenceId=-1;
+
+        //}
         //if(!mbReferenceUpdated && mnTaskModule==1 && mnUpdateReferenceId>=0 && mnUpdateReferenceId==pKF->mnId && mnUpdateReferenceId<mpTracker->GetReferenceID())
         //{
         //    std::cout << " =!=!=!==!=!=!=!=!==! UPDATING REFERENCE: mnUpdateReferenceId=" << mnUpdateReferenceId << ", mbReferenceUpdated=" << mbReferenceUpdated<< std::endl;

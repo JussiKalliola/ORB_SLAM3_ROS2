@@ -243,6 +243,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     {
       tempKF = new ORB_SLAM3::KeyFrame(*mpCopyKF);
       mpObserver->ConvertKeyFrame(pRosKF, tempKF);
+      mpCopyKF->SetPose(tempKF->GetPose());
       mbNewKF=false;
       //mvbNewKF.push_back(false);
 
@@ -304,6 +305,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
           //    continue;
           ORB_SLAM3::MapPoint* mpCopyMP = new ORB_SLAM3::MapPoint(*mpExistingMP);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpCopyMP);
+          mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
+          mpExistingMP->SetNormalVector(tempMP->GetNormal());
           mvbNewMPs.push_back(false);
           updates++;
 

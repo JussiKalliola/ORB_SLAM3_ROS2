@@ -161,8 +161,8 @@ void SlamWrapperNode::publishMap(const orbslam3_interfaces::msg::Map::SharedPtr 
     
     RCLCPP_INFO(this->get_logger(), "Publishing a new map with id: %d", mRosMap->mn_id);
     RCLCPP_INFO(this->get_logger(), "Map Stats : #updated KFs=%d, #updated MPs=%d, #del KFs=%d, #del MPs=%d", 
-        mRosMap->mvp_updated_keyframes_ids.size(), 
-        mRosMap->mvp_updated_map_points_ids.size(), 
+        mRosMap->msp_keyframes.size(), 
+        mRosMap->msp_map_points.size(), 
         mRosMap->mvp_erased_keyframe_ids.size(), 
         mRosMap->mvp_erased_mappoint_ids.size());
 }

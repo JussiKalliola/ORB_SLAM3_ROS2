@@ -34,8 +34,8 @@ namespace Converter {
         mpRosMap->n_next_id = opM->nNextId;                          // static long unsigned int nNextId;
 
         // DEBUG: show KFs which are used in LBA
-        mpRosMap->ms_opt_kfs = opM->GetOptKFs();                       // std::set<long unsigned int> msOptKFs;
-        mpRosMap->ms_fixed_kfs = opM->GetFixedKFs();                     // std::set<long unsigned int> msFixedKFs;
+        //mpRosMap->ms_opt_kfs = opM->GetOptKFs();                       // std::set<long unsigned int> msOptKFs;
+        //mpRosMap->ms_fixed_kfs = opM->GetFixedKFs();                     // std::set<long unsigned int> msFixedKFs;
 
         // protected:
 
@@ -196,8 +196,8 @@ namespace Converter {
         mpRosMap->n_next_id = opM->nNextId;                          // static long unsigned int nNextId;
 
         // DEBUG: show KFs which are used in LBA
-        mpRosMap->ms_opt_kfs = opM->GetOptKFs();                       // std::set<long unsigned int> msOptKFs;
-        mpRosMap->ms_fixed_kfs = opM->GetFixedKFs();                     // std::set<long unsigned int> msFixedKFs;
+        //mpRosMap->ms_opt_kfs = opM->GetOptKFs();                       // std::set<long unsigned int> msOptKFs;
+        //mpRosMap->ms_fixed_kfs = opM->GetFixedKFs();                     // std::set<long unsigned int> msFixedKFs;
 
         // protected:
 
