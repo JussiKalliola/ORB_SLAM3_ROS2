@@ -702,6 +702,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
     tempKF->PostLoad(mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
+    tempKF->UpdateBestCovisibles();
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadKF = std::chrono::steady_clock::now();
@@ -805,7 +806,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     if(pKF)
     {
         // Update reference for all modules
-        std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
+        if(pKF->GetMap())
+            std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
         mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, mbNewKF);
     }
     

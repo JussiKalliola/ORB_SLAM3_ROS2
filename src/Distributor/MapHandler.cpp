@@ -1438,8 +1438,6 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     }
 
     std::cout << "***** SEND GLOBAL MAP ******" << std::endl;
-    const std::set<unsigned long int>& tempUpdatedKFs = mpAtlas->GetCurrentMap()->GetUpdatedKFIds();
-    const std::set<std::string>&  tempUpdatedMPs = mpAtlas->GetCurrentMap()->GetUpdatedMPIds();
 
     if(std::get<0>(mtAtlasUpdate))
     {
@@ -1450,6 +1448,8 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
         mpObserver->AddMap(mpAtlas->GetCurrentMap());
     }
 
+    const std::set<unsigned long int>& tempUpdatedKFs = mpAtlas->GetCurrentMap()->GetUpdatedKFIds();
+    const std::set<std::string>&  tempUpdatedMPs = mpAtlas->GetCurrentMap()->GetUpdatedMPIds();
     //for(const auto& pKF : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
     //{
     //    tempUpdatedKFs.insert(pKF->mnId);
