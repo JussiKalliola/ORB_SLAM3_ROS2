@@ -461,7 +461,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     {
         //if(mpObserver->GetTaskModule() == 1)
         //    mpTracker->UpdateReference(pKF);
-        std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
+        if(pKF->GetMap())
+            std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
         mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, true);
     }
     
