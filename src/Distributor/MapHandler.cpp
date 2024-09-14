@@ -43,13 +43,13 @@ void MapHandler::Run()
     
     while(1)
     {
-        //if(mpObserver->GetTaskModule() == 2 && CheckNewUpdates())
-        //{
-        //    InsertNewPubLocalMap();
-        //}
+        if(mpObserver->GetTaskModule() == 2 && CheckNewUpdates())
+        {
+            InsertNewPubLocalMap();
+        }
         
         // Local map publish/subscription 
-        if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()  && !mpLocalMapper->IsLMRunning() && mpObserver->GetTaskModule()==2)
+        if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()   && mpObserver->GetTaskModule()==2)
             ProcessNewPubLocalMap();
         else if(CheckSubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()  && !mpLocalMapper->IsLMRunning())
             ProcessNewSubLocalMap2();
@@ -584,7 +584,10 @@ void MapHandler::ProcessNewPubLocalMap()
     //pMap->ClearUpdatedKFIds();
     //pMap->ClearUpdatedMPIds();
 
-    pSLAMNode->publishMap(mRosMap);
+    if(!mRosMap->msp_keyframes.empty())
+        pSLAMNode->publishMap(mRosMap);
+    else if(mRosMap->msp_keyframes.empty() && !mRosMap->msp_map_points.empty())
+        pSLAMNode->publishMap(mRosMap);
 
     {
         unique_lock<mutex> lock2(mMutexUpdates);
@@ -1476,22 +1479,25 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     mpAtlas->GetCurrentMap()->ClearUpdatedMPIds();
       
     //if(std::get<0>(mtAtlasUpdate)){
-    unique_lock<mutex> lock(mMutexUpdates);
-    std::cout << "Current map ID=" << mpAtlas->GetCurrentMap()->GetId() << ", KFs in map=" << mpAtlas->GetCurrentMap()->GetAllKeyFrames().size() << ", MPs=" << mpAtlas->GetCurrentMap()->GetAllMapPoints().size() << ", number of maps in Atlas=" << mpAtlas->GetAllMaps().size() << std::endl;
-    for(const auto& pKFi : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
     {
-        if(pKFi)
+        unique_lock<mutex> lock(mMutexUpdates);
+        std::cout << "Current map ID=" << mpAtlas->GetCurrentMap()->GetId() << ", KFs in map=" << mpAtlas->GetCurrentMap()->GetAllKeyFrames().size() << ", MPs=" << mpAtlas->GetCurrentMap()->GetAllMapPoints().size() << ", number of maps in Atlas=" << mpAtlas->GetAllMaps().size() << std::endl;
+        for(const auto& pKFi : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
         {
-            pKFi->mbLCDone=true;
-            pKFi->SetLastModule(3);
-            msUpdatedGlobalKFs.insert(pKFi->mnId);
+            if(pKFi)
+            {
+                pKFi->mbLCDone=true;
+                pKFi->SetLastModule(3);
+                msUpdatedGlobalKFs.insert(pKFi->mnId);
+            }
         }
-    }
 
-    for(const auto& pMPi : mpAtlas->GetCurrentMap()->GetAllMapPoints())
-    {
-        if(pMPi)
-            msUpdatedGlobalMPs.insert(pMPi->mstrHexId);
+        for(const auto& pMPi : mpAtlas->GetCurrentMap()->GetAllMapPoints())
+        {
+            if(pMPi)
+                msUpdatedGlobalMPs.insert(pMPi->mstrHexId);
+        }
+
     }
 
     //}
