@@ -1437,7 +1437,7 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
 void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate)
 {
     double timeSinceReset = mpObserver->TimeSinceReset();
-    if(timeSinceReset < 10000)
+    if(timeSinceReset < 200)
         return;
     
     ResetLocalQueue();
