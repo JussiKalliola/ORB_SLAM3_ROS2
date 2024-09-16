@@ -970,34 +970,34 @@ void MapHandler::ProcessNewSubLocalMap2()
 
 
     // Remove KFs and MPs
-    if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
-    {
-        for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
-        {
-            unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
-            ORB_SLAM3::KeyFrame* pEraseKF = mpObserver->GetKeyFrame(mnId);
-            if(pEraseKF) // && pEraseKF->GetToBeErased())
-            {
-                std::cout << "Local. Delete KF=" << mnId << std::endl;
-                mpKeyFrameDB->erase(pEraseKF);
-                pEraseKF->SetBadFlag();
-                mpObserver->EraseKeyFrame(mnId);
-            }
-        }
+    //if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
+    //{
+    //    for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
+    //    {
+    //        unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
+    //        ORB_SLAM3::KeyFrame* pEraseKF = mpObserver->GetKeyFrame(mnId);
+    //        if(pEraseKF) // && pEraseKF->GetToBeErased())
+    //        {
+    //            std::cout << "Local. Delete KF=" << mnId << std::endl;
+    //            mpKeyFrameDB->erase(pEraseKF);
+    //            pEraseKF->SetBadFlag();
+    //            mpObserver->EraseKeyFrame(mnId);
+    //        }
+    //    }
 
 
-        for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
-        {
-            std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
-            ORB_SLAM3::MapPoint* pEraseMP=mpObserver->GetMapPoint(mnId);
-            if(pEraseMP)
-            {
-                pEraseMP->SetBadFlag();
-                mpObserver->EraseMapPoint(mnId);
-            }
-        }
+    //    for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
+    //    {
+    //        std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
+    //        ORB_SLAM3::MapPoint* pEraseMP=mpObserver->GetMapPoint(mnId);
+    //        if(pEraseMP)
+    //        {
+    //            pEraseMP->SetBadFlag();
+    //            mpObserver->EraseMapPoint(mnId);
+    //        }
+    //    }
 
-    }
+    //}
 
 
     std::vector<ORB_SLAM3::MapPoint*> mvpTempMPs;
@@ -1022,6 +1022,8 @@ void MapHandler::ProcessNewSubLocalMap2()
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpCopyMP);
           mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
           mpExistingMP->SetNormalVector(tempMP->GetNormal());
+          if(mMaps[mpRosMP->mp_map_id])
+              mpExistingMP->UpdateMap(mMaps[mpRosMP->mp_map_id]);
           mvbNewMPs.push_back(false);
         } else {
 
@@ -1029,6 +1031,8 @@ void MapHandler::ProcessNewSubLocalMap2()
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(true);
           mpObserver->AddMapPoint(tempMP);
+          //if(mMaps[mpRosMP->mp_map_id])
+          //    mpExistingMP->UpdateMap(mMaps[mpRosMP->mp_map_id]);
         }
 
         mvpTempMPs.push_back(tempMP);
@@ -1038,6 +1042,7 @@ void MapHandler::ProcessNewSubLocalMap2()
     {
         
         tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
+        tempMP->ComputeDistinctiveDescriptors();
     }
 
 

@@ -78,7 +78,7 @@ void KeyFramePublisher::ProcessNewKeyFrame()
     std::set<ORB_SLAM3::GeometricCamera*> mspCameras(mvpCameras.begin(), mvpCameras.end());
     
 
-    pKF->PreSave(msFusedKFs, msFusedMPs, mspCameras);
+    pKF->PreSave();//(msFusedKFs, msFusedMPs, mspCameras);
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPreSaveKF = std::chrono::steady_clock::now();
@@ -88,14 +88,14 @@ void KeyFramePublisher::ProcessNewKeyFrame()
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_StartPreSaveMP = std::chrono::steady_clock::now();
 
-    if(!msUpdatedMPs.empty())
-    {
-        for(ORB_SLAM3::MapPoint* pMP : pKF->GetMapPoints())
-        {
-            pMP->PreSave(msFusedKFs, msFusedMPs);
-        }
+    //if(!msUpdatedMPs.empty())
+    //{
+    //    for(ORB_SLAM3::MapPoint* pMP : pKF->GetMapPoints())
+    //    {
+    //        pMP->PreSave();//(msFusedKFs, msFusedMPs);
+    //    }
 
-    }
+    //}
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPreSaveMP = std::chrono::steady_clock::now();

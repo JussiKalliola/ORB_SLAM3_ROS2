@@ -531,6 +531,7 @@ namespace Converter {
                     //    continue;
                     if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
+                        mp->PreSave();
 
                         msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                         //mspUpdateMapPointIds.erase(mp->mstrHexId);
@@ -556,6 +557,7 @@ namespace Converter {
                 {
                         //if(mp->GetLastModule() == 4)
                         //    continue;
+                        mp->PreSave();
                         msgKf.mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
                       //msgMps.push_back(mRosMP);
@@ -860,7 +862,7 @@ namespace Converter {
                 {
                     if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
-
+                        mp->PreSave();
                         //msgIndices.push_back(mvpIndices[i]);
                         mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP = MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId); 
@@ -877,6 +879,7 @@ namespace Converter {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
                 if(mp)
                 {
+                        mp->PreSave();
                       //msgIndices.push_back(mvpIndices[i]);
                         mpRosKF->mvp_map_points.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(mp, pKf->mnId));
                       //const orbslam3_interfaces::msg::MapPoint& mRosMP =  

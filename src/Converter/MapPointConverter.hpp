@@ -55,7 +55,7 @@ namespace Converter {
           msgMp.m_normal_vector = CppToRos::EigenVector3fToVector3(pMp->GetNormal());
           
           // Best Descriptor to fast matching
-          msgMp.m_descriptor = CppToRos::CVMatToImage(pMp->GetDescriptor());
+          //msgMp.m_descriptor = CppToRos::CVMatToImage(pMp->GetDescriptor());
           
           // Refernce KeyFrame
           orb_keyframe* mpRefKF = pMp->GetReferenceKeyFrame();
@@ -106,36 +106,36 @@ namespace Converter {
           msgMp.n_obs = pMp-> nObs;
           
           // Variables used by the tracking
-          msgMp.m_track_proj_x = pMp->mTrackProjX;
-          msgMp.m_track_proj_y = pMp->mTrackProjY;
-          msgMp.m_track_depth = pMp->mTrackDepth;
-          msgMp.m_track_depth_r = pMp->mTrackDepthR;
-          msgMp.m_track_proj_xr = pMp->mTrackProjXR;
-          msgMp.m_track_proj_yr = pMp->mTrackProjYR;
-          msgMp.mb_track_in_view = pMp->mbTrackInView;
-          msgMp.mb_track_in_view_r = pMp->mbTrackInViewR;
-          msgMp.mn_track_scale_level = pMp->mnTrackScaleLevel;
-          msgMp.mn_track_scale_level_r = pMp->mnTrackScaleLevelR;
-          msgMp.m_track_view_cos = pMp->mTrackViewCos;
-          msgMp.m_track_view_cos_r = pMp->mTrackViewCosR;
-          msgMp.mn_track_reference_for_frame = pMp->mnTrackReferenceForFrame;
-          msgMp.mn_last_frame_seen = pMp->mnLastFrameSeen;
+          //msgMp.m_track_proj_x = pMp->mTrackProjX;
+          //msgMp.m_track_proj_y = pMp->mTrackProjY;
+          //msgMp.m_track_depth = pMp->mTrackDepth;
+          //msgMp.m_track_depth_r = pMp->mTrackDepthR;
+          //msgMp.m_track_proj_xr = pMp->mTrackProjXR;
+          //msgMp.m_track_proj_yr = pMp->mTrackProjYR;
+          //msgMp.mb_track_in_view = pMp->mbTrackInView;
+          //msgMp.mb_track_in_view_r = pMp->mbTrackInViewR;
+          //msgMp.mn_track_scale_level = pMp->mnTrackScaleLevel;
+          //msgMp.mn_track_scale_level_r = pMp->mnTrackScaleLevelR;
+          //msgMp.m_track_view_cos = pMp->mTrackViewCos;
+          //msgMp.m_track_view_cos_r = pMp->mTrackViewCosR;
+          //msgMp.mn_track_reference_for_frame = pMp->mnTrackReferenceForFrame;
+          //msgMp.mn_last_frame_seen = pMp->mnLastFrameSeen;
           
           // Variables used by local mapping
-          msgMp.mn_ba_local_for_kf = pMp->mnBALocalForKF;
-          msgMp.mn_fuse_candidate_for_kf = pMp->mnFuseCandidateForKF;
+          //msgMp.mn_ba_local_for_kf = pMp->mnBALocalForKF;
+          //msgMp.mn_fuse_candidate_for_kf = pMp->mnFuseCandidateForKF;
           
           // Variables used by loop closing
-          msgMp.mn_loop_point_for_kf = pMp->mnLoopPointForKF;
-          msgMp.mn_corrected_by_kf = pMp->mnCorrectedByKF;
-          msgMp.mn_corrected_referece = pMp->mnCorrectedReference;
-          msgMp.m_pos_gba = CppToRos::EigenVector3fToVector3(pMp->mPosGBA);
-          msgMp.mn_ba_global_for_kf = pMp->mnBAGlobalForKF;
-          msgMp.mn_ba_local_for_merge = pMp->mnBALocalForMerge;
+          //msgMp.mn_loop_point_for_kf = pMp->mnLoopPointForKF;
+          //msgMp.mn_corrected_by_kf = pMp->mnCorrectedByKF;
+          //msgMp.mn_corrected_referece = pMp->mnCorrectedReference;
+          //msgMp.m_pos_gba = CppToRos::EigenVector3fToVector3(pMp->mPosGBA);
+          //msgMp.mn_ba_global_for_kf = pMp->mnBAGlobalForKF;
+          //msgMp.mn_ba_local_for_merge = pMp->mnBALocalForMerge;
           
           // Variables used by merging
-          msgMp.m_pos_merge = CppToRos::EigenVector3fToVector3(pMp->mPosMerge);
-          msgMp.m_normal_vector_merge = CppToRos::EigenVector3fToVector3(pMp->mNormalVectorMerge);
+          //msgMp.m_pos_merge = CppToRos::EigenVector3fToVector3(pMp->mPosMerge);
+          //msgMp.m_normal_vector_merge = CppToRos::EigenVector3fToVector3(pMp->mNormalVectorMerge);
           // For inverse depth optimization
           msgMp.m_inv_depth = pMp->mInvDepth;
           msgMp.m_init_u = pMp->mInitU;
@@ -170,7 +170,7 @@ namespace Converter {
           msgMp.m_normal_vector = CppToRos::EigenVector3fToVector3(pMp->GetNormal());
           
           // Best Descriptor to fast matching
-          msgMp.m_descriptor = CppToRos::CVMatToImage(pMp->GetDescriptor());
+          //msgMp.m_descriptor = CppToRos::CVMatToImage(pMp->GetDescriptor());
           
           // Refernce KeyFrame
           orb_keyframe* mpRefKF = pMp->GetReferenceKeyFrame();
@@ -226,12 +226,12 @@ namespace Converter {
           const float mfMinDistance = rMp->mf_min_distance;
           const float mfMaxDistance = rMp->mf_max_distance;
           
-          const cv::Mat& mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
+          //const cv::Mat& mDescriptor = cv::Mat();//RosToCpp::ImageToCVMat(rMp->m_descriptor);
           
           const unsigned int mnLastModule = rMp->mn_last_module;
 
           mpExistingMP->UpdateMapPoint(nObs, /*mpHostKF,*/ mBackupHostKFId, mnOriginMapId, mWorldPos, 
-              /*mObservations,*/ mBackupObservationsId1, mBackupObservationsId2, mNormalVector, mDescriptor, 
+              /*mObservations,*/ mBackupObservationsId1, mBackupObservationsId2, mNormalVector, /*mDescriptor,*/ 
               /*mpRefKF,*/ mBackupRefKFId, mnVisible, mnFound, mbBad, /*mpReplaced,*/ mBackupReplacedId, 
               mfMinDistance, mfMaxDistance /*mpMap*/, mnLastModule);
       }
@@ -243,16 +243,16 @@ namespace Converter {
           const long int mnFirstKFid = rMp->mn_first_kf_id;
           const long int mnFirstFrame = rMp->mn_first_frame;
           const int nObs = rMp->n_obs;
-          const long unsigned int mnBALocalForKF = rMp->mn_ba_local_for_kf;
-          const long unsigned int mnFuseCandidateForKF = rMp->mn_fuse_candidate_for_kf;
-          const long unsigned int mnLoopPointForKF = rMp->mn_loop_point_for_kf;
-          const long unsigned int mnCorrectedByKF = rMp->mn_corrected_by_kf;
-          const long unsigned int mnCorrectedReference = rMp->mn_corrected_referece;
-          const Eigen::Vector3f& mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
-          const long unsigned int mnBAGlobalForKF = rMp->mn_ba_global_for_kf;
-          const long unsigned int mnBALocalForMerge = rMp->mn_ba_local_for_merge;
-          const Eigen::Vector3f& mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
-          const Eigen::Vector3f& mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
+          //const long unsigned int mnBALocalForKF = rMp->mn_ba_local_for_kf;
+          //const long unsigned int mnFuseCandidateForKF = rMp->mn_fuse_candidate_for_kf;
+          //const long unsigned int mnLoopPointForKF = rMp->mn_loop_point_for_kf;
+          //const long unsigned int mnCorrectedByKF = rMp->mn_corrected_by_kf;
+          //const long unsigned int mnCorrectedReference = rMp->mn_corrected_referece;
+          //const Eigen::Vector3f& mPosGBA = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_gba);
+          //const long unsigned int mnBAGlobalForKF = rMp->mn_ba_global_for_kf;
+          //const long unsigned int mnBALocalForMerge = rMp->mn_ba_local_for_merge;
+          //const Eigen::Vector3f& mPosMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_pos_merge);
+          //const Eigen::Vector3f& mNormalVectorMerge = RosToCpp::Vector3ToEigenVector3f(rMp->m_normal_vector_merge);
           const double mInvDepth = rMp->m_inv_depth;
           const double mInitU = rMp->m_init_u;
           const double mInitV = rMp->m_init_v;
@@ -276,7 +276,7 @@ namespace Converter {
           const float mfMinDistance = rMp->mf_min_distance;
           const float mfMaxDistance = rMp->mf_max_distance;
           
-          const cv::Mat& mDescriptor = RosToCpp::ImageToCVMat(rMp->m_descriptor);
+          //const cv::Mat& mDescriptor = cv::Mat();//RosToCpp::ImageToCVMat(rMp->m_descriptor);
           
           const unsigned int mnLastModule = rMp->mn_last_module;
 
@@ -285,36 +285,36 @@ namespace Converter {
               mpExistingMP->UpdateMapPoint(mnFirstKFid, mnFirstFrame, nObs, /*mTrackProjX, mTrackProjY, mTrackDepth,*/
                   /* mTrackDepthR, mTrackProjXR, mTrackProjYR, mbTrackInView, mbTrackInViewR, mnTrackScaleLevel,*/
                   /* mnTrackScaleLevelR, mTrackViewCos, mTrackViewCosR, mnTrackReferenceForFrame, mnLastFrameSeen,*/ 
-                  mnBALocalForKF, mnFuseCandidateForKF, mnLoopPointForKF, mnCorrectedByKF, mnCorrectedReference, 
-                  mPosGBA, mnBAGlobalForKF, mnBALocalForMerge, mPosMerge, mNormalVectorMerge, mInvDepth, mInitU, 
+                  /*mnBALocalForKF, mnFuseCandidateForKF, mnLoopPointForKF, mnCorrectedByKF, mnCorrectedReference, 
+                  mPosGBA, mnBAGlobalForKF, mnBALocalForMerge, mPosMerge, mNormalVectorMerge,*/ mInvDepth, mInitU, 
                   mInitV, /*mpHostKF,*/ mBackupHostKFId, mnOriginMapId, mWorldPos, /*mObservations,*/ mBackupObservationsId1, 
-                  mBackupObservationsId2, mNormalVector, mDescriptor, /*mpRefKF,*/ mBackupRefKFId, mnVisible, 
+                  mBackupObservationsId2, mNormalVector, /*mDescriptor,*/ /*mpRefKF,*/ mBackupRefKFId, mnVisible, 
                   mnFound, mbBad, /*mpReplaced,*/ mBackupReplacedId, mfMinDistance, mfMaxDistance /*mpMap*/, mnLastModule);
               return mpExistingMP;
           } else
           {
-              const float mTrackProjX = rMp->m_track_proj_x;
-              const float mTrackProjY = rMp->m_track_proj_y;
-              const float mTrackDepth = rMp->m_track_depth;
-              const float mTrackDepthR = rMp->m_track_depth_r;
-              const float mTrackProjXR = rMp->m_track_proj_xr;
-              const float mTrackProjYR = rMp->m_track_proj_yr;
-              const bool mbTrackInView = rMp->mb_track_in_view;
-              const bool mbTrackInViewR = rMp->mb_track_in_view_r;
-              const int mnTrackScaleLevel = rMp->mn_track_scale_level;
-              const int mnTrackScaleLevelR = rMp->mn_track_scale_level_r;
-              const float mTrackViewCos = rMp->m_track_view_cos;
-              const float mTrackViewCosR = rMp->m_track_view_cos_r;
-              const long unsigned int mnTrackReferenceForFrame = rMp->mn_track_reference_for_frame;
-              const long unsigned int mnLastFrameSeen = rMp->mn_last_frame_seen;
+              //const float mTrackProjX = rMp->m_track_proj_x;
+              //const float mTrackProjY = rMp->m_track_proj_y;
+              //const float mTrackDepth = rMp->m_track_depth;
+              //const float mTrackDepthR = rMp->m_track_depth_r;
+              //const float mTrackProjXR = rMp->m_track_proj_xr;
+              //const float mTrackProjYR = rMp->m_track_proj_yr;
+              //const bool mbTrackInView = rMp->mb_track_in_view;
+              //const bool mbTrackInViewR = rMp->mb_track_in_view_r;
+              //const int mnTrackScaleLevel = rMp->mn_track_scale_level;
+              //const int mnTrackScaleLevelR = rMp->mn_track_scale_level_r;
+              //const float mTrackViewCos = rMp->m_track_view_cos;
+              //const float mTrackViewCosR = rMp->m_track_view_cos_r;
+              //const long unsigned int mnTrackReferenceForFrame = rMp->mn_track_reference_for_frame;
+              //const long unsigned int mnLastFrameSeen = rMp->mn_last_frame_seen;
 
-              return new orb_map_point(mnId, mstrHexId, mnFirstKFid, mnFirstFrame, nObs, mTrackProjX, mTrackProjY, 
+              return new orb_map_point(mnId, mstrHexId, mnFirstKFid, mnFirstFrame, nObs, /*mTrackProjX, mTrackProjY, 
                   mTrackDepth, mTrackDepthR, mTrackProjXR, mTrackProjYR, mbTrackInView, mbTrackInViewR, mnTrackScaleLevel, 
                   mnTrackScaleLevelR, mTrackViewCos, mTrackViewCosR, mnTrackReferenceForFrame, mnLastFrameSeen, mnBALocalForKF, 
                   mnFuseCandidateForKF, mnLoopPointForKF, mnCorrectedByKF, mnCorrectedReference, mPosGBA, mnBAGlobalForKF, 
-                  mnBALocalForMerge, mPosMerge, mNormalVectorMerge, mInvDepth, mInitU, mInitV, /*mpHostKF,*/ 
+                  mnBALocalForMerge, mPosMerge, mNormalVectorMerge,*/ mInvDepth, mInitU, mInitV, /*mpHostKF,*/ 
                   mBackupHostKFId, mnOriginMapId, mWorldPos, /*mObservations,*/ mBackupObservationsId1, mBackupObservationsId2, 
-                  mNormalVector, mDescriptor, /*mpRefKF,*/ mBackupRefKFId, mnVisible, mnFound, mbBad, /*mpReplaced,*/ 
+                  mNormalVector, /*mDescriptor,*/ /*mpRefKF,*/ mBackupRefKFId, mnVisible, mnFound, mbBad, /*mpReplaced,*/ 
                   mBackupReplacedId, mfMinDistance, mfMaxDistance /*mpMap*/, mnLastModule);
           }
       }

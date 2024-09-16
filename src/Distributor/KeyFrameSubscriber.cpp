@@ -307,6 +307,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpCopyMP);
           mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
           mpExistingMP->SetNormalVector(tempMP->GetNormal());
+
+          if(mMaps[mpRosMP->mp_map_id])
+              mpExistingMP->UpdateMap(mMaps[mpRosMP->mp_map_id]);
+
           mvbNewMPs.push_back(false);
           updates++;
 
@@ -316,6 +320,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mvbNewMPs.push_back(true);
           mpObserver->AddMapPoint(tempMP);
+          //if(mMaps[mpRosMP->mp_map_id])
+          //    mpExistingMP->UpdateMap(mMaps[mpRosMP->mp_map_id]);
           //mFusedMPs[tempMP->mstrHexId] = tempMP;
           news++;
         }
@@ -365,6 +371,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     {
         
         tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
+        tempMP->ComputeDistinctiveDescriptors();
     }
 
     // End of timer
@@ -442,6 +449,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
           //if(mvbNewMPs[i])
           mpObserver->InjectMapPoint(tempMP, mpExistingMP, mbNew);
+          if(mpExistingMP->isBad())
+              mpExistingMP->SetBadFlag();
           //else
           //   mlpReadyMapPoints.push_back(tempMP); 
             //mpObserver->InjectMapPoint(tempMP, mMapMPs);

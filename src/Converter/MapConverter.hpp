@@ -45,19 +45,19 @@ namespace Converter {
         //std::cout << " #################### num of map points "<< opM->GetAllMapPoints().size() << std::endl;
         std::set<std::string> mspUpdatedMapPointIds = opM->GetUpdatedMPIds();
         std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
-        for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
-        {
-          mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
-        }
-        mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
+        //for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
+        //{
+        //  mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
+        //}
+        //mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
         
         std::set<unsigned long int> mspUpdatedKFIds = opM->GetUpdatedKFIds();
-        std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.size()); 
-        for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
-        {
-          mvpUpdatedKFIds[std::distance(mspUpdatedKFIds.begin(),it)] = *it;
-        }
-        mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
+        //std::vector<unsigned long int> mvpUpdatedKFIds(mspUpdatedKFIds.size()); 
+        //for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
+        //{
+        //  mvpUpdatedKFIds[std::distance(mspUpdatedKFIds.begin(),it)] = *it;
+        //}
+        //mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
         
         std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
         std::vector<unsigned long int> mvpErasedKFIds(mspErasedKFIds.size()); 
@@ -90,10 +90,12 @@ namespace Converter {
               {
                 if(mspUpdatedKFIds.find(kf->mnId) != mspUpdatedKFIds.end())
                 {
+                  kf->PreSave();
                   mvRosKFUpdates.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
                 }
 
               } else {
+                kf->PreSave();
                 mvRosKFUpdates.push_back(Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(kf, mspUpdatedMapPointIds, mspErasedMPIds, false));
               }
             }
@@ -127,7 +129,7 @@ namespace Converter {
 
         //std::cout << "before backups" << std::endl;
         // Save/load, the set structure is broken in libboost 1.58 for ubuntu 16.04, a vector is serializated
-        mpRosMap->mvp_backup_map_points_ids = opM->GetBackupMapPointsId();          // std::vector<MapPoint*> mvpBackupMapPoints;
+        //mpRosMap->mvp_backup_map_points_ids = opM->GetBackupMapPointsId();          // std::vector<MapPoint*> mvpBackupMapPoints;
         mpRosMap->mvp_backup_keyframes_ids = opM->GetBackupKeyFrames();           // std::vector<KeyFrame*> mvpBackupKeyFrames;
         
         mpRosMap->mvp_erased_keyframe_ids = mvpErasedKFIds;
@@ -208,13 +210,13 @@ namespace Converter {
         std::set<std::string> mspUpdatedMapPointIds;
         
         std::set<unsigned long int>& mspUpdatedKFIds = msUpdatedKFs;
-        std::vector<unsigned long int> mvpUpdatedKFIds; 
-        mvpUpdatedKFIds.reserve(mspUpdatedKFIds.size());
-        for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
-        {
-          mvpUpdatedKFIds.push_back(*it);
-        }
-        mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
+        //std::vector<unsigned long int> mvpUpdatedKFIds; 
+        //mvpUpdatedKFIds.reserve(mspUpdatedKFIds.size());
+        //for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
+        //{
+        //  mvpUpdatedKFIds.push_back(*it);
+        //}
+        //mpRosMap->mvp_updated_keyframes_ids = mvpUpdatedKFIds;
         
 
         //std::set<std::string>& mspErasedMPIds = opM->GetErasedMPIds();
@@ -282,12 +284,12 @@ namespace Converter {
         }
         mpRosMap->msp_keyframes = mvRosKFUpdates;
 
-        std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
-        for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
-        {
-          mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
-        }
-        mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
+        //std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
+        //for(std::set<std::string>::iterator it = mspUpdatedMapPointIds.begin(); it != mspUpdatedMapPointIds.end(); ++it)
+        //{
+        //  mvpUpdatedMPIds[std::distance(mspUpdatedMapPointIds.begin(),it)] = *it;
+        //}
+        //mpRosMap->mvp_updated_map_points_ids = mvpUpdatedMPIds;
 
         //if(!mspUpdatedMapPointIds.empty())
         //{
@@ -315,7 +317,7 @@ namespace Converter {
 
         //std::cout << "before backups" << std::endl;
         // Save/load, the set structure is broken in libboost 1.58 for ubuntu 16.04, a vector is serializated
-        mpRosMap->mvp_backup_map_points_ids = opM->GetBackupMapPointsId();          // std::vector<MapPoint*> mvpBackupMapPoints;
+        //mpRosMap->mvp_backup_map_points_ids = opM->GetBackupMapPointsId();          // std::vector<MapPoint*> mvpBackupMapPoints;
         mpRosMap->mvp_backup_keyframes_ids = opM->GetBackupKeyFrames();           // std::vector<KeyFrame*> mvpBackupKeyFrames;
         
         mpRosMap->mvp_erased_keyframe_ids = mvpErasedKFIds;
