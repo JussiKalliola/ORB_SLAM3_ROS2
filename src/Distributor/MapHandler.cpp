@@ -287,7 +287,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             std::set<unsigned long int>& msAllErasedKFs = mpObserver->msAllErasedKFIds;
             std::set<std::string>& msAllErasedMPs = mpObserver->msAllErasedMPIds;
             std::cout << "altas publish. msAllErasedMPs.size()=" << msAllErasedMPs.size() << ", msAllErasedKFs.size()=" << msAllErasedKFs.size() << std::endl;
-            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, s, msUpdatedGlobalMPs, msAllErasedKFs, msAllErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), true); 
+            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, s, msUpdatedGlobalMPs, msAllErasedKFs, msAllErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), false); 
 
 
             
@@ -305,7 +305,7 @@ void MapHandler::ProcessNewPubGlobalMap()
         }
         else {
             std::cout << "altas publish. msAllErasedMPs.size()=" << msErasedMPs.size() << ", msAllErasedKFs.size()=" << msErasedKFs.size() << std::endl;
-            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, msUpdatedGlobalKFs, msUpdatedGlobalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), true); 
+            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, msUpdatedGlobalKFs, msUpdatedGlobalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), false); 
 
             msUpdatedGlobalKFs.clear();
             msUpdatedGlobalMPs.clear();
@@ -1601,7 +1601,11 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
                   {
                     mpObserver->mnUpdateReferenceId=mnId;
                   }
-                  pKF->SetLastModule(3);
+
+                  if(pKF->GetLastModule() == 1)
+                      pKF->SetBadFlag();
+                  else
+                      pKF->SetLastModule(3);
                   //InsertNewUpdatedLocalKF(pKF);
               }
           }
@@ -1615,7 +1619,10 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
               ORB_SLAM3::MapPoint* pMP=mpObserver->GetMapPoint(mnId);
               if(pMP)
               {
-                  pMP->SetLastModule(3);
+                  if(pMP->GetLastModule() == 1)
+                      pMP->SetBadFlag();
+                  else
+                      pMP->SetLastModule(3);
                   //InsertNewUpdatedLocalMP(pMP);
               }
           }

@@ -677,6 +677,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
               continue;
           ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
+          mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
+          mpExistingMP->SetNormalVector(tempMP->GetNormal());
+
+          if(mMaps[mpRosMP->mp_map_id])
+              mpExistingMP->UpdateMap(mMaps[mpRosMP->mp_map_id]);
           mvbNewMPs.emplace_back(false);
           updates++;
 
@@ -733,7 +738,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
         tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
-        //tempMP->ComputeDistinctiveDescriptors();
+        tempMP->ComputeDistinctiveDescriptors();
     }
 
     // End of timer
@@ -801,9 +806,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         continue;
 
       ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
-      if(!mpExistingMP)
-          continue;
-      tempMP->SetReferenceKeyFrame(pKF);
+      //if(!mpExistingMP)
+      //    continue;
+      if(pKF)
+          tempMP->SetReferenceKeyFrame(pKF);
       mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
         //mpObserver->InjectMapPoint(tempMP, mMapMPs);
     }
