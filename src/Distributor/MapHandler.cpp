@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(5), maxUpdateGlobalN(20), mnLastGlobalAction(-1)
+    maxUpdateN(5), maxUpdateGlobalN(10), mnLastGlobalAction(-1)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -287,7 +287,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             std::set<unsigned long int>& msAllErasedKFs = mpObserver->msAllErasedKFIds;
             std::set<std::string>& msAllErasedMPs = mpObserver->msAllErasedMPIds;
             std::cout << "altas publish. msAllErasedMPs.size()=" << msAllErasedMPs.size() << ", msAllErasedKFs.size()=" << msAllErasedKFs.size() << std::endl;
-            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, s, msUpdatedGlobalMPs, msAllErasedKFs, msAllErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints()); 
+            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, s, msUpdatedGlobalMPs, msAllErasedKFs, msAllErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), true); 
 
 
             
@@ -305,7 +305,7 @@ void MapHandler::ProcessNewPubGlobalMap()
         }
         else {
             std::cout << "altas publish. msAllErasedMPs.size()=" << msErasedMPs.size() << ", msAllErasedKFs.size()=" << msErasedKFs.size() << std::endl;
-            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, msUpdatedGlobalKFs, msUpdatedGlobalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints()); 
+            mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, msUpdatedGlobalKFs, msUpdatedGlobalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), true); 
 
             msUpdatedGlobalKFs.clear();
             msUpdatedGlobalMPs.clear();
@@ -314,7 +314,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=20;
+            maxUpdateGlobalN=10;
             mRosAtlas->mb_last_batch = true;
             mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -329,7 +329,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=20;
+            maxUpdateGlobalN=10;
             mRosAtlas->mb_last_batch = true;
             mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -970,34 +970,34 @@ void MapHandler::ProcessNewSubLocalMap2()
 
 
     // Remove KFs and MPs
-    //if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
-    //{
-    //    for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
-    //    {
-    //        unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
-    //        ORB_SLAM3::KeyFrame* pEraseKF = mpObserver->GetKeyFrame(mnId);
-    //        if(pEraseKF) // && pEraseKF->GetToBeErased())
-    //        {
-    //            std::cout << "Local. Delete KF=" << mnId << std::endl;
-    //            mpKeyFrameDB->erase(pEraseKF);
-    //            pEraseKF->SetBadFlag();
-    //            mpObserver->EraseKeyFrame(mnId);
-    //        }
-    //    }
+    if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
+    {
+        for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
+        {
+            unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
+            ORB_SLAM3::KeyFrame* pEraseKF = mpObserver->GetKeyFrame(mnId);
+            if(pEraseKF) // && pEraseKF->GetToBeErased())
+            {
+                std::cout << "Local. Delete KF=" << mnId << std::endl;
+                mpKeyFrameDB->erase(pEraseKF);
+                pEraseKF->SetBadFlag();
+                mpObserver->EraseKeyFrame(mnId);
+            }
+        }
 
 
-    //    for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
-    //    {
-    //        std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
-    //        ORB_SLAM3::MapPoint* pEraseMP=mpObserver->GetMapPoint(mnId);
-    //        if(pEraseMP)
-    //        {
-    //            pEraseMP->SetBadFlag();
-    //            mpObserver->EraseMapPoint(mnId);
-    //        }
-    //    }
+        for(size_t i=0; i<mpRosMap->mvp_erased_mappoint_ids.size(); ++i)
+        {
+            std::string mnId = mpRosMap->mvp_erased_mappoint_ids[i];
+            ORB_SLAM3::MapPoint* pEraseMP=mpObserver->GetMapPoint(mnId);
+            if(pEraseMP)
+            {
+                pEraseMP->SetBadFlag();
+                mpObserver->EraseMapPoint(mnId);
+            }
+        }
 
-    //}
+    }
 
 
     std::vector<ORB_SLAM3::MapPoint*> mvpTempMPs;
@@ -1063,6 +1063,10 @@ void MapHandler::ProcessNewSubLocalMap2()
       //tempMP->SetReferenceKeyFrame(pKF);
 
       mpObserver->InjectMapPoint(tempMP, mpExistingMP, mbNew);
+      if(mpExistingMP && mpExistingMP->isBad())
+          mpExistingMP->SetBadFlag();
+      else if(tempMP && tempMP->isBad())
+          tempMP->SetBadFlag();
     }
 
     //if(mpRosMap->ms_bad_maps.size() > 0)

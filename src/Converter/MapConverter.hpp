@@ -178,7 +178,7 @@ namespace Converter {
       }
 
 
-      static orbslam3_interfaces::msg::Map::SharedPtr OrbMapToRosMap(orb_map* opM, std::set<unsigned long int>& msUpdatedKFs, std::set<std::string>& msUpdatedMPs, std::set<unsigned long int>& msErasedKFs, std::set<std::string>& msErasedMPs, std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& mOrbKeyFrames, std::map<std::string, ORB_SLAM3::MapPoint*>& mOrbMapPoints) {
+      static orbslam3_interfaces::msg::Map::SharedPtr OrbMapToRosMap(orb_map* opM, std::set<unsigned long int>& msUpdatedKFs, std::set<std::string>& msUpdatedMPs, std::set<unsigned long int>& msErasedKFs, std::set<std::string>& msErasedMPs, std::map<unsigned long int, ORB_SLAM3::KeyFrame*>& mOrbKeyFrames, std::map<std::string, ORB_SLAM3::MapPoint*>& mOrbMapPoints, const bool mbProcessMapPoints=false) {
         std::mutex mMutexNewMP;
         std::lock_guard<std::mutex> lock(mMutexNewMP);
         
@@ -266,6 +266,27 @@ namespace Converter {
             mvRosMPs.reserve(500);
             long int mpIter = 0;
             while(mpIter < 500 )
+            {
+                if(msUpdatedMPs.empty())
+                  break;
+                std::string mnId = *msUpdatedMPs.begin();
+                ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
+                if(pMPi)
+                {
+                    mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
+                }
+                msUpdatedMPs.erase(mnId);
+                mpIter++;
+            }
+
+            mpRosMap->msp_map_points = mvRosMPs;
+
+        } else if(!msUpdatedMPs.empty() && mbProcessMapPoints)
+        {
+            std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
+            mvRosMPs.reserve(2000);
+            long int mpIter = 0;
+            while(mpIter < 2000 )
             {
                 if(msUpdatedMPs.empty())
                   break;

@@ -38,7 +38,7 @@ void KeyFrameSubscriber::Run()
           {
             ProcessNewKeyFrame();
           }
-          else if(CheckNewKeyFrameUpdates() && mpObserver->mbMapIsUpToDate)
+          else if(CheckNewKeyFrameUpdates()) //&& mpObserver->mbMapIsUpToDate)
           {
             ProcessNewKeyFrameUpdate();
           }
@@ -405,7 +405,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
             ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
             if(mpExistingKF)
                 pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
-                
+          
+            //if(pKF && pKF->isBad())
+            //    pKF->SetBadFlag();
 
             //if(tempKF->mnNextTarget==0)
             //    mlpReadyKeyFrames.push_back(tempKF);
@@ -449,8 +451,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
           //if(mvbNewMPs[i])
           mpObserver->InjectMapPoint(tempMP, mpExistingMP, mbNew);
-          if(mpExistingMP->isBad())
+          if(mpExistingMP && mpExistingMP->isBad())
               mpExistingMP->SetBadFlag();
+          else if(tempMP && tempMP->isBad())
+              tempMP->SetBadFlag();
           //else
           //   mlpReadyMapPoints.push_back(tempMP); 
             //mpObserver->InjectMapPoint(tempMP, mMapMPs);
@@ -749,7 +753,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         //std::cout << pKF << "," << mFusedKFs[tempKF->mnId] << std::endl;
     }
     else
+    {
         pKF = tempKF;
+
+    }
     //ORB_SLAM3::KeyFrame* pKF = mpObserver->InjectKeyFrame(tempKF, mFusedKFs);
 
     // End of timer
@@ -817,6 +824,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     // If KF exists, forward it to target
     if(pKF)
     {
+        //if(pKF->isBad())
+        //    pKF->SetBadFlag();
         // Update reference for all modules
         if(pKF->GetMap())
             std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;

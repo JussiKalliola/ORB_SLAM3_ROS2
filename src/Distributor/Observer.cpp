@@ -335,7 +335,7 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     if(!pKF)
         return;
 
-    if(nFromModule==2)
+    if(nFromModule==2)// || nFromModule==3)
     {
         pKF->ComputeBoW();
         //mpKeyFrameDB->erase(pKF);
@@ -358,6 +358,11 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
     } else if (mnTaskModule == 1) {
         // in this case the system is mainly performing tracking
         // For now, tracking does not grab any KFs, only Maps 
+        if(nFromModule==2 || nFromModule==3)
+        {
+            mpKeyFrameDB->erase(pKF);
+            mpKeyFrameDB->add(pKF);
+        }
 
         mpAtlas->AddKeyFrame(pKF);
         mpTracker->UpdateReference(pKF);
