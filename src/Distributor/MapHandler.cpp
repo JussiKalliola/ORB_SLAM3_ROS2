@@ -12,7 +12,7 @@
 
 MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
-    maxUpdateN(5), maxUpdateGlobalN(10), mnLastGlobalAction(-1)
+    maxUpdateN(3), maxUpdateGlobalN(30), mnLastGlobalAction(-1)
 {
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
@@ -43,10 +43,10 @@ void MapHandler::Run()
     
     while(1)
     {
-        if(mpObserver->GetTaskModule() == 2 && CheckNewUpdates())
-        {
-            InsertNewPubLocalMap();
-        }
+        //if(mpObserver->GetTaskModule() == 2 && CheckNewUpdates())
+        //{
+        //    InsertNewPubLocalMap();
+        //}
         
         // Local map publish/subscription 
         if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()   && mpObserver->GetTaskModule()==2)
@@ -314,7 +314,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=10;
+            maxUpdateGlobalN=30;
             mRosAtlas->mb_last_batch = true;
             mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -329,7 +329,7 @@ void MapHandler::ProcessNewPubGlobalMap()
             
             // Make next update instant
             mnGlobalMapFreq_ms=0;
-            maxUpdateGlobalN=10;
+            maxUpdateGlobalN=30;
             mRosAtlas->mb_last_batch = true;
             mnAtlasBatchNumber=0;
             mlpAtlasPubQueue.pop_front();
@@ -552,7 +552,7 @@ void MapHandler::ProcessNewPubLocalMap()
 
     mRosMap->from_module_id = mpObserver->GetTaskModule();
 
-    if(maxUpdateN<10)
+    if(maxUpdateN<30)
     {
         maxUpdateN+=5;
         mnMapFreq_ms+=50;
@@ -1255,7 +1255,7 @@ void MapHandler::InsertNewPubLocalMap()
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=5;
+    maxUpdateN=3;
     mnPubIters=0;
 
     // Make next update instant
@@ -1339,7 +1339,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=5;
+    maxUpdateN=3;
     mnPubIters=0;
 
     // Make next update instant
@@ -1519,7 +1519,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
 
     // Make next update instant
     mnGlobalMapFreq_ms=0;
-    maxUpdateGlobalN=20;
+    maxUpdateGlobalN=30;
     
 }
 
