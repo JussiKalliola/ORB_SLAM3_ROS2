@@ -705,7 +705,7 @@ void Observer::onLMStopRequest(const bool bStopLM)
 void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds)
 {
   const unsigned int nTarget = pKF->mnNextTarget;
-  if (GetWorkerNumber() >= 1 && pSLAMNode) {
+  if (GetWorkerNumber() > 1 && pSLAMNode) {
       if(CheckIfWorkerExists(nTarget))
       {
           std::cout << "Worker exists, sending it to the device." << std::endl;
@@ -726,8 +726,8 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> m
       {
           if(nTarget==2)
               mpLocalMapper->InsertKeyFrame(pKF);
-          //else if(nTarget==3)
-          //    mpLoopCloser->InsertKeyFrame(pKF);
+          else if(nTarget==3)
+              mpLoopCloser->InsertKeyFrame(pKF);
 
       }
   }
@@ -745,7 +745,7 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> m
 void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF)
 {
   const unsigned int nTarget = pKF->mnNextTarget;
-  if (GetWorkerNumber() >= 1 && pSLAMNode) {
+  if (GetWorkerNumber() > 1 && pSLAMNode) {
       if(CheckIfWorkerExists(nTarget))
       {
           std::cout << "Worker exists, sending it to the device." << std::endl;
@@ -758,8 +758,8 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF)
       {
           if(nTarget==2)
               mpLocalMapper->InsertKeyFrame(pKF);
-          //else if(nTarget==3)
-          //    mpLoopCloser->InsertKeyFrame(pKF);
+          else if(nTarget==3)
+              mpLoopCloser->InsertKeyFrame(pKF);
 
       }
   }
