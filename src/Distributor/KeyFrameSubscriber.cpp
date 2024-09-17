@@ -802,15 +802,19 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
       //    delete tempMP;
       //}
       ORB_SLAM3::MapPoint* tempMP = mvpTempMPs[i];
+      bool mbNew = mvbNewMPs[i];
       if(!tempMP)
         continue;
 
       ORB_SLAM3::MapPoint* mpExistingMP = mpObserver->GetMapPoint(tempMP->mstrHexId); //mFusedMPs[mpRosMP->m_str_hex_id];
-      //if(!mpExistingMP)
-      //    continue;
+      if(!mpExistingMP)
+      {
+          mpExistingMP=static_cast<ORB_SLAM3::MapPoint*>(NULL);
+          mbNew = true;
+      }
       if(pKF)
           tempMP->SetReferenceKeyFrame(pKF);
-      mpObserver->InjectMapPoint(tempMP, mpExistingMP, mvbNewMPs[i]);
+      mpObserver->InjectMapPoint(tempMP, mpExistingMP, mbNew);
         //mpObserver->InjectMapPoint(tempMP, mMapMPs);
     }
 
