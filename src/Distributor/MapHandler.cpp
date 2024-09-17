@@ -849,7 +849,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
         //mlpAtlasSubQueue.clear();
         //mpLocalMapper->mbGBARunning = false;
         //if(mpObserver->GetTaskModule() == 1)
-        //mpLocalMapper->Release();
+        mpLocalMapper->Release();
 
         mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
     }

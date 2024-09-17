@@ -1,6 +1,6 @@
 #include "slam-wrapper-node.hpp"
 //#include "./Distributor.hpp"
-
+#include "rclcpp/subscription_options.hpp"
 #include "../Distributor/System.hpp"
 #include "../Distributor/Observer.hpp"
 #include "../Distributor/MapHandler.hpp"
@@ -474,7 +474,7 @@ void SlamWrapperNode::CreatePublishers() {
 
     int nTaskId = mpObserver->GetTaskModule();
 
-    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(5));
+    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(25));
     qosMap.best_effort();
     //qosMap.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosMap.deadline(rclcpp::Duration(0, 400000000)); // 200ms
@@ -492,7 +492,7 @@ void SlamWrapperNode::CreatePublishers() {
                                                    
 
     rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(25));
-    qosAtlas.reliable();
+    qosAtlas.best_effort();
     //qosAtlas.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
     //qosAtlas.lifespan(rclcpp::Duration(0, 100000000)); // 80ms
@@ -611,7 +611,7 @@ void SlamWrapperNode::CreateSubscribers() {
 
     int nTaskId = mpObserver->GetTaskModule();
     
-    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(5));
+    rclcpp::QoS qosMap = rclcpp::QoS(rclcpp::KeepLast(25));
     qosMap.best_effort();
     //if(nTaskId==3)
     //    qosMap.reliable();
@@ -634,11 +634,16 @@ void SlamWrapperNode::CreateSubscribers() {
                                                    
 
     rclcpp::QoS qosAtlas = rclcpp::QoS(rclcpp::KeepLast(25));
-    qosAtlas.reliable();
+    qosAtlas.best_effort();
     //qosAtlas.durability(rclcpp::DurabilityPolicy(0)); // Volatile
     //qosKF.deadline(rclcpp::Duration(0, 200000000)); // 200ms
     //qosAtlas.lifespan(rclcpp::Duration(0, 100000000)); // 150ms
+    // manually enable topic statistics via options
+    auto options = rclcpp::SubscriptionOptions();
+    options.topic_stats_options.state = rclcpp::TopicStatisticsState::Enable;
 
+    // configure the collection window and publish period (default 1s)
+    options.topic_stats_options.publish_period = std::chrono::seconds(10);
 
     if(nTaskId == 2)
     {
@@ -676,7 +681,7 @@ void SlamWrapperNode::CreateSubscribers() {
             "Map",
             qosMap, 
             //rclcpp::QoS(rclcpp::KeepLast(1), rmw_qos_profile_sensor_data),//rmw_qos_profile_sensor_data),
-            std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1));//, options2);
+            std::bind(&SlamWrapperNode::GrabMap, this, std::placeholders::_1), options);//, options2);
     }
 
     if(nTaskId!=3)
