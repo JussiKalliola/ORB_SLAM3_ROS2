@@ -397,13 +397,14 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
         if(pKF->mnNextTarget == 2) {
             // if the KF is meant to be inserted to LM
             // Insert to Local Mapping
-            mpAtlas->AddKeyFrame(pKF);
             if(!mpLocalMapper->AcceptKeyFrames())
             {
                 mpLocalMapper->InterruptBA();
-                mpLocalMapper->InsertKeyframeFromRos(pKF);
+                pKF->SetBadFlag();
+                //mpLocalMapper->InsertKeyframeFromRos(pKF);
             }else 
             {
+                mpAtlas->AddKeyFrame(pKF);
                 mpLocalMapper->InsertKeyframeFromRos(pKF);
 
             }
