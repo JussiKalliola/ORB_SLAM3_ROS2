@@ -1605,7 +1605,10 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
                   }
 
                   if(pKF->GetLastModule() == 1)
+                  {
+                      pKF->SetMbToBeErased(true);
                       pKF->SetBadFlag();
+                  }
                   else
                       pKF->SetLastModule(3);
                   //InsertNewUpdatedLocalKF(pKF);

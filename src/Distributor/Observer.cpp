@@ -400,6 +400,7 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
             if(!mpLocalMapper->AcceptKeyFrames())
             {
                 mpLocalMapper->InterruptBA();
+                pKF->SetMbToBeErased(true);
                 pKF->SetBadFlag();
                 //mpLocalMapper->InsertKeyframeFromRos(pKF);
             }else 
@@ -688,19 +689,19 @@ void Observer::onNewMapPoint(ORB_SLAM3::MapPoint* pMP)
 
 void Observer::onActiveMapReset(unsigned long int mnMapId)
 {
-  if(pSLAMNode)
+  if (GetWorkerNumber() > 1 && pSLAMNode) 
       pSLAMNode->publishResetActiveMap(mnMapId);
 }
 
 void Observer::onLMResetRequested()
 {
-  if(pSLAMNode)
+  if (GetWorkerNumber() > 1 && pSLAMNode) 
       pSLAMNode->publishLMResetRequested();
 }
 
 void Observer::onLMStopRequest(const bool bStopLM)
 {
-  if(pSLAMNode)
+  if (GetWorkerNumber() > 1 && pSLAMNode) 
       pSLAMNode->publishStopLM(bStopLM);
 
 }
@@ -784,13 +785,13 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF)
 
 void Observer::onLocalMapUpdated(ORB_SLAM3::Map* pM)
 {
-  if(GetWorkerNumber() >= 1 && pSLAMNode)
+  if(GetWorkerNumber() > 1 && pSLAMNode)
       mpMapHandler->InsertNewPubLocalMap(pM);
 }
 
 void Observer::onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds)
 {
-  if(GetWorkerNumber() >= 1 && CheckIfWorkerExists(3) && pSLAMNode)
+  if(GetWorkerNumber() > 1 && CheckIfWorkerExists(3) && pSLAMNode)
   {
       std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate = std::tuple<bool, bool, std::vector<unsigned long int>>(mbMerged, mbLoopClosure, mvMeergedIds);
       mpMapHandler->InsertNewPubGlobalMap(mtAtlasUpdate);
