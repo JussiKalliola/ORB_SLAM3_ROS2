@@ -277,6 +277,8 @@ void SlamWrapperNode::GrabAtlas(const orbslam3_interfaces::msg::Atlas::SharedPtr
     std::chrono::system_clock::time_point time_Now(std::chrono::nanoseconds(this->now().nanoseconds()));
     double timeLatency = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_Now - time_Start).count();
     vdLatencyAtlas_ms.push_back(timeLatency);
+
+    //mpLocalMapper_->RequestStop();
     
     RCLCPP_INFO(this->get_logger(), "Got Atlas Update, merge=%d, closure=%d, latency=%f", mpRosAtlas->mb_map_merge, mpRosAtlas->mb_loop_closer, timeLatency);
     
@@ -460,6 +462,7 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
         //mpKeyFrameSubscriber->ResetQueue(false);
         //mpKeyFramePublisher->ResetQueue();
     } else {
+      //mpLocalMapper_->Release();
       //mpLocalMapper_->mbGBARunning = false;
       //if(mpObserver->GetTaskModule() == 1)
       //    mpLocalMapper_->Release();

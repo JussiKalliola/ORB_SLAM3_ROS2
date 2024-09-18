@@ -81,7 +81,7 @@ namespace Converter {
           const std::vector<ORB_SLAM3::KeyFrame*>& mvpAllKeyFrames = opM->GetAllKeyFrames();
           for(ORB_SLAM3::KeyFrame* kf : mvpAllKeyFrames)
           {
-            if(kf)
+            if(kf && !kf->isBad())
             {
               //if(kf->GetLastModule() == 4)
               //  continue;
@@ -244,10 +244,10 @@ namespace Converter {
             for(std::set<unsigned long int>::iterator it = mspUpdatedKFIds.begin(); it != mspUpdatedKFIds.end(); ++it)
             {
                   ORB_SLAM3::KeyFrame* pKFi = mOrbKeyFrames[*it];
-                  if(pKFi)
+                  if(pKFi && !pKFi->isBad())
                   {
                       const orbslam3_interfaces::msg::KeyFrameUpdate& msgKf = Converter::KeyFrameConverter::ORBSLAM3KeyFrameToROSKeyFrameUpdate(pKFi, msUpdatedMPs, msErasedMPs, false); // = FormDefaultKeyFrameMessage();
-                                                                                                                                      mvRosKFUpdates.push_back(msgKf);
+                                                                                                                          mvRosKFUpdates.push_back(msgKf);
                       for(const auto& mpMsg : msgKf.mvp_map_points)
                       {
                           mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 
@@ -271,7 +271,7 @@ namespace Converter {
                   break;
                 std::string mnId = *msUpdatedMPs.begin();
                 ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
-                if(pMPi)
+                if(pMPi && !pMPi->isBad())
                 {
                     mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
                 }
@@ -292,7 +292,7 @@ namespace Converter {
                   break;
                 std::string mnId = *msUpdatedMPs.begin();
                 ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
-                if(pMPi)
+                if(pMPi && !pMPi->isBad())
                 {
                     mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
                 }

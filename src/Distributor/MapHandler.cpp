@@ -552,10 +552,10 @@ void MapHandler::ProcessNewPubLocalMap()
 
     mRosMap->from_module_id = mpObserver->GetTaskModule();
 
-    if(maxUpdateN<30)
+    if(maxUpdateN<15)
     {
-        maxUpdateN+=5;
-        mnMapFreq_ms+=50;
+        maxUpdateN+=3;
+        mnMapFreq_ms+=30;
     }
 
     
@@ -891,9 +891,11 @@ void MapHandler::ProcessNewSubLocalMap2()
 
     if(!pCurrentMap)
     {
+        mpObserver->UpdateLastResetTime();
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
+        mpLocalMapper->Release();
     } 
     //else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
     //{
@@ -1118,7 +1120,7 @@ bool MapHandler::CheckPubLocalMaps()
     {
         return true;
     }
-    else if(dCount>mnMapFreq_ms && msUpdatedLocalMPs.size()>0 && msUpdatedLocalKFs.empty()) {
+    else if(dCount>mnMapFreq_ms && msUpdatedLocalMPs.size()>500 && msUpdatedLocalKFs.empty()) {
         return true;
     }
 

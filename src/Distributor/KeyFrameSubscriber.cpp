@@ -172,9 +172,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     if(!pCurrentMap)
     {
+        mpObserver->UpdateLastResetTime();
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
+        mpLocalMapper->Release();
     } 
     //else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
     //{
@@ -232,9 +234,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     
     bool mbNewKF = true;
 
-    timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
-    if(timeSinceReset < 50)
-        return;
+    //timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
+    //if(timeSinceReset < 50)
+    //    return;
 
     // Convert ros msg to ORB_SLAM3 Objects
     ORB_SLAM3::KeyFrame* tempKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); //mpObserver->ConvertKeyFrame(pRosKF, mMaps);
@@ -544,9 +546,11 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     if(!pCurrentMap)
     {
+        mpObserver->UpdateLastResetTime();
         mpAtlas->CreateNewMap();
         pCurrentMap = mpAtlas->GetCurrentMap(); 
         pCurrentMap->attachDistributor(mpObserver);
+        mpLocalMapper->Release();
     } 
     //else if(pCurrentMap && pCurrentMap != mpAtlas->GetCurrentMap() && pCurrentMap->GetId() < mpAtlas->GetCurrentMap()->GetId()) 
     //{
@@ -608,9 +612,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     
     bool mbNewKF = true;
 
-    timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
-    if(timeSinceReset < 50)
-        return;
+    //timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
+    //if(timeSinceReset < 50)
+    //    return;
 
     // Convert ros msg to ORB_SLAM3 Objects
     ORB_SLAM3::KeyFrame* tempKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); //mpObserver->ConvertKeyFrame(pRosKF, mMaps);

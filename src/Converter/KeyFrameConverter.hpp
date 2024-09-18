@@ -525,7 +525,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
                     //if((pKf->GetLastModule() <= 2 && mp->GetLastModule() == 3))
                     //    continue;
@@ -553,7 +553,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
                         //if(mp->GetLastModule() == 4)
                         //    continue;
@@ -858,7 +858,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds not empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
                     if(mspUpdateMapPointIds.find(mp->mstrHexId) != mspUpdateMapPointIds.end())
                     {
@@ -877,7 +877,7 @@ namespace Converter {
             //std::cout << "mspUpdateMapPointIds empty" << std::endl;
             for (size_t i=0; i<mvpMapPoints.size(); ++i) {
                 ORB_SLAM3::MapPoint* mp = mvpMapPoints[i];
-                if(mp)
+                if(mp && !mp->isBad())
                 {
                         mp->PreSave();
                       //msgIndices.push_back(mvpIndices[i]);
