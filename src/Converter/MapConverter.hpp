@@ -73,7 +73,7 @@ namespace Converter {
           mvpErasedMPIds[std::distance(mspErasedMPIds.begin(),it)] = *it;
         }
         
-        std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << mspUpdatedMapPointIds.size() << std::endl;
+        //std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << mspUpdatedMapPointIds.size() << std::endl;
         std::vector<orbslam3_interfaces::msg::KeyFrameUpdate> mvRosKFUpdates;
         mvRosKFUpdates.reserve(opM->GetAllKeyFrames().size());
         //std::cout << "before all keyframes" << std::endl;
@@ -253,7 +253,7 @@ namespace Converter {
                           mspUpdatedMapPointIds.insert(mpMsg.m_str_hex_id); 
                           msUpdatedMPs.erase(mpMsg.m_str_hex_id);
                       }
-                      std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << msUpdatedMPs.size() << std::endl;
+                      //std::cout << " ************ (MAP) mspUpdateMapPointIds.size()=" << msUpdatedMPs.size() << std::endl;
                       pKFi->mnNextTarget=0;
                   }
 
@@ -430,12 +430,12 @@ namespace Converter {
 
         if(mpPrevMap)
         {
-          std::cout << "updating map..." << std::endl;
+          //std::cout << "updating map..." << std::endl;
           mpPrevMap->UpdateMap(mbFail, msOptKFs, msFixedKFs, mnId, mvpBackupMapPointsId, mvpBackupKeyFramesId, msUpdatedKFIds, msUpdatedMPIds, mvBackupKeyFrameOriginsId, mnBackupKFinitialID, mnBackupKFlowerID, mvpBackupReferenceMapPointsId, mbImuInitialized, mnMapChange, mnMapChangeNotified, mnInitKFid, mnMaxKFid, mnBigChangeIdx, mIsInUse, /*mHasTumbnail,*/ mbBad, msErasedKFIds, msErasedMPIds/*, mbIsInertial, mbIMU_BA1, mbIMU_BA2*/);
-          std::cout << "done with map update." << std::endl;
+          //std::cout << "done with map update." << std::endl;
           return mpPrevMap;
         } else {
-          std::cout << "Creating a new map..." << std::endl;
+          //std::cout << "Creating a new map..." << std::endl;
           return new orb_map(mbFail, msOptKFs, msFixedKFs, mnId, mvpBackupMapPointsId, mvpBackupKeyFramesId, mvBackupKeyFrameOriginsId, mnBackupKFinitialID, mnBackupKFlowerID, mvpBackupReferenceMapPointsId, mbImuInitialized, mnMapChange, mnMapChangeNotified, mnInitKFid, mnMaxKFid, mnBigChangeIdx, mIsInUse, mHasTumbnail, mbBad, mbIsInertial, mbIMU_BA1, mbIMU_BA2, msErasedKFIds, msErasedMPIds);
         }
 

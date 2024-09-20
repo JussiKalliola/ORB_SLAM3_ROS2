@@ -24,7 +24,7 @@ void KeyFrameSubscriber::Run()
 {
     mbFinished = false;
 
-    std::cout << "KeyFrameSubscriber Thread has been started." << std::endl;
+    //std::cout << "KeyFrameSubscriber Thread has been started." << std::endl;
     
     while(1)
     {
@@ -151,7 +151,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     }
   
     if(!pRosKF)
+    {
+        std::cout << "- KeyFrame Update is null. Returning..."
         return;
+    }
     
     double timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
     if(timeSinceReset < 50)
@@ -279,7 +282,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
 
-    std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
+    //std::cout << "Max MP ID=" << mpObserver->GetMaxMPId() << std::endl;
     ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
     
     // Start of a timer -------------
@@ -340,7 +343,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
             //}
         //}
     }
-    std::cout << " ================ KF=" << pRosKF->mn_id << ", MPs=" << mvpTempMPs.size() << " ============ " << std::endl;
+    //std::cout << " ================ KF=" << pRosKF->mn_id << ", MPs=" << mvpTempMPs.size() << " ============ " << std::endl;
     vnNewMPAmount.push_back(news);
     vnUpdateMPAmount.push_back(updates);
 
@@ -479,8 +482,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     {
         //if(mpObserver->GetTaskModule() == 1)
         //    mpTracker->UpdateReference(pKF);
-        if(pKF->GetMap())
-            std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
+        //if(pKF->GetMap())
+        //    std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
         mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, true);
     }
     
@@ -520,11 +523,15 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
         //}
 
-        std::cout << "processing new KF=" << pRosKF->mn_id << "." << std::endl;
+        //std::cout << "processing new KF=" << pRosKF->mn_id << "." << std::endl;
     }
   
     if(!pRosKF)
+    {
+        std::cout << "- New KeyFrame is null. Returning..."
+
         return;
+    }
 
     
     double timeSinceReset = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(std::chrono::system_clock::now() - mpObserver->GetLastResetTime()).count();
@@ -841,12 +848,12 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         //if(pKF->isBad())
         //    pKF->SetBadFlag();
         // Update reference for all modules
-        if(pKF->GetMap())
-            std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
+        //if(pKF->GetMap())
+        //    std::cout << " --- pKF->Map=" << pKF->GetMap()->GetId() << ", pRosKF->mp_map_id=" << pRosKF->mp_map_id << std::endl;
         mpObserver->ForwardKeyFrameToTarget(pKF, pRosKF->from_module_id, mbNewKF);
     }
     
-    std::cout << "Got a new keyframe. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
+    //std::cout << "Got a new keyframe. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndRos2OrbProcKF = std::chrono::steady_clock::now();
@@ -908,7 +915,7 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
         return;
     }
 
-    std::cout << "***** GOT KF ******" << std::endl;
+    //std::cout << "***** GOT KF ******" << std::endl;
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
         mlpRosKeyFrameQueue.push_back(pRosKF);

@@ -14,6 +14,7 @@ MapHandler::MapHandler()
   : mbFinished(false), mbFinishRequested(false), mnMapFreq_ms(0), mnGlobalMapFreq_ms(0), mnPubIters(0), mnAtlasBatchNumber(0), 
     maxUpdateN(3), maxUpdateGlobalN(30), mnLastGlobalAction(-1)
 {
+  
   mpNewRosMap = std::shared_ptr<orbslam3_interfaces::msg::Map>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
   mpNewRosAtlas = std::shared_ptr<orbslam3_interfaces::msg::Atlas>(NULL); //static_cast<orbslam3_interfaces::msg::Map>(NULL);
 
@@ -37,7 +38,7 @@ MapHandler::~MapHandler()
 // main function
 void MapHandler::Run()
 {
-    std::cout << "MapHandler Thread has been started." << std::endl;
+    //std::cout << "MapHandler Thread has been started." << std::endl;
 
     mbFinished = false;
     
@@ -56,7 +57,7 @@ void MapHandler::Run()
         
         if(!mpLocalMapper->mbGBARunning && !mpLocalMapper->IsLMRunning() && mpKeyFrameSubscriber->KeyFramesInQueue() == 0 && mpLocalMapper->KeyframesInQueue() == 0 && !msToBeErasedKFs.empty() && mpObserver->GetTaskModule() == 2)
         {
-            std::cout << "LocalMapper is empty and there is KFs to be optimized=" << msToBeErasedKFs.size() << std::endl;
+            //std::cout << "LocalMapper is empty and there is KFs to be optimized=" << msToBeErasedKFs.size() << std::endl;
             unsigned long int mnId = *msToBeErasedKFs.begin();
             msToBeErasedKFs.erase(mnId);
             ORB_SLAM3::KeyFrame* pUpdateKF = mpObserver->GetKeyFrame(mnId);
@@ -286,7 +287,7 @@ void MapHandler::ProcessNewPubGlobalMap()
 
             std::set<unsigned long int>& msAllErasedKFs = mpObserver->msAllErasedKFIds;
             std::set<std::string>& msAllErasedMPs = mpObserver->msAllErasedMPIds;
-            std::cout << "altas publish. msAllErasedMPs.size()=" << msAllErasedMPs.size() << ", msAllErasedKFs.size()=" << msAllErasedKFs.size() << std::endl;
+            //std::cout << "altas publish. msAllErasedMPs.size()=" << msAllErasedMPs.size() << ", msAllErasedKFs.size()=" << msAllErasedKFs.size() << std::endl;
             mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, s, msUpdatedGlobalMPs, msAllErasedKFs, msAllErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), false); 
 
 
@@ -304,7 +305,7 @@ void MapHandler::ProcessNewPubGlobalMap()
 
         }
         else {
-            std::cout << "altas publish. msAllErasedMPs.size()=" << msErasedMPs.size() << ", msAllErasedKFs.size()=" << msErasedKFs.size() << std::endl;
+            //std::cout << "altas publish. msAllErasedMPs.size()=" << msErasedMPs.size() << ", msAllErasedKFs.size()=" << msErasedKFs.size() << std::endl;
             mRosMap = Converter::MapConverter::OrbMapToRosMap(mpCurrentMap, msUpdatedGlobalKFs, msUpdatedGlobalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints(), false); 
 
             msUpdatedGlobalKFs.clear();
@@ -587,8 +588,6 @@ void MapHandler::ProcessNewPubLocalMap()
 
     if(!mRosMap->msp_keyframes.empty())
         pSLAMNode->publishMap(mRosMap);
-    else if(mRosMap->msp_keyframes.empty() && !mRosMap->msp_map_points.empty())
-        pSLAMNode->publishMap(mRosMap);
 
     {
         unique_lock<mutex> lock2(mMutexUpdates);
@@ -747,7 +746,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
     
     //mpLocalMapper_->Release();
     // Remove KFs and MPs
-    std::cout << "mvp_erased_keyframe_ids.size()=" << mpRosMap->mvp_erased_keyframe_ids.size() << ", mvp_erased_mappoint_ids.size()=" << mpRosMap->mvp_erased_mappoint_ids.size() << std::endl;
+    //std::cout << "mvp_erased_keyframe_ids.size()=" << mpRosMap->mvp_erased_keyframe_ids.size() << ", mvp_erased_mappoint_ids.size()=" << mpRosMap->mvp_erased_mappoint_ids.size() << std::endl;
     for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
     {
         unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];
@@ -831,7 +830,7 @@ void MapHandler::ProcessNewSubGlobalMap2()
 
     if(mpRosAtlas->mb_map_merge && pCurrentMap)
     {
-        std::cout << "Got Atlas Update. 8. Remove merged map." << std::endl;
+        //std::cout << "Got Atlas Update. 8. Remove merged map." << std::endl;
         mpAtlas->ChangeMap(pCurrentMap);
         pCurrentMap->SetCurrentMap();
     }
@@ -1121,9 +1120,6 @@ bool MapHandler::CheckPubLocalMaps()
     {
         return true;
     }
-    else if(dCount>mnMapFreq_ms && msUpdatedLocalMPs.size()>500 && msUpdatedLocalKFs.empty()) {
-        return true;
-    }
 
     return false;
 
@@ -1193,7 +1189,7 @@ void MapHandler::InsertNewPubLocalMap()
     //if(mpNewRosAtlas != NULL)
     //    return;
 
-    std::cout << "***** SEND LOCAL MAP ******" << std::endl;
+    //std::cout << "***** SEND LOCAL MAP ******" << std::endl;
 
     ORB_SLAM3::Map* pMap = mpAtlas->GetCurrentMap();
     const std::set<unsigned long int>& tempUpdatedKFs=pMap->GetUpdatedKFIds();
@@ -1254,17 +1250,25 @@ void MapHandler::InsertNewPubLocalMap()
     pMap->ClearUpdatedKFIds();
     
     // Make next update instant
-    mnMapFreq_ms=0;
+    if(pMap->KeyFramesInMap() < 10)
+    {
+      mnMapFreq_ms=0;
+      maxUpdateN=3;
+    }
+    else
+    {
+      mnMapFreq_ms=100;
+      maxUpdateN=6;
+    }
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=3;
     mnPubIters=0;
 
     // Make next update instant
     //mnMapFreq_ms=100;
 
-    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
+    //std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
     //mlpMapPubQueue.push_back(pMap);
 }
 
@@ -1278,7 +1282,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     //if(mpNewRosAtlas != NULL)
     //    return;
 
-    std::cout << "***** SEND LOCAL MAP ******" << std::endl;
+    //std::cout << "***** SEND LOCAL MAP ******" << std::endl;
 
     const std::set<unsigned long int>& tempUpdatedKFs=pMap->GetUpdatedKFIds();
     std::set<std::string> tempUpdatedMPs=pMap->GetUpdatedMPIds();
@@ -1338,17 +1342,25 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     pMap->ClearUpdatedKFIds();
     
     // Make next update instant
-    mnMapFreq_ms=0;
+    if(pMap->KeyFramesInMap() < 10)
+    {
+      mnMapFreq_ms=0;
+      maxUpdateN=3;
+    }
+    else
+    {
+      mnMapFreq_ms=100;
+      maxUpdateN=6;
+    }
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
-    maxUpdateN=3;
     mnPubIters=0;
 
     // Make next update instant
     //mnMapFreq_ms=100;
 
-    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
+    //std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
     //mlpMapPubQueue.push_back(pMap);
 }
 
@@ -1369,7 +1381,7 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
         return;
     }
     
-    std::cout << "***** GOT LOCAL MAP ******" << std::endl;
+    //std::cout << "***** GOT LOCAL MAP ******" << std::endl;
     
     //std::map<unsigned long int, orbslam3_interfaces::msg::KeyFrame::SharedPtr> mpKeyFrameQueue;
     //std::map<std::string, orbslam3_interfaces::msg::MapPoint::SharedPtr> mpMapPointQueue;
@@ -1388,7 +1400,7 @@ void MapHandler::InsertNewSubLocalMap(orbslam3_interfaces::msg::Map::SharedPtr p
 
 
 
-    std::cout << "***** mvp_erased_mappoint_ids.size()=" << pRosMap->mvp_erased_mappoint_ids.size() << "******" << std::endl;
+    //std::cout << "***** mvp_erased_mappoint_ids.size()=" << pRosMap->mvp_erased_mappoint_ids.size() << "******" << std::endl;
       //for(auto const& mnId : pRosMap->mvp_erased_mappoint_ids)
       //{
       //    mpObserver->EraseMapPoint(mnId);
@@ -1455,7 +1467,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
         mlpAtlasPubQueue.push_back(mtAtlasUpdate);
     }
 
-    std::cout << "***** SEND GLOBAL MAP ******" << std::endl;
+    //std::cout << "***** SEND GLOBAL MAP ******" << std::endl;
 
     if(std::get<0>(mtAtlasUpdate))
     {
@@ -1496,7 +1508,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     //if(std::get<0>(mtAtlasUpdate)){
     {
         unique_lock<mutex> lock(mMutexUpdates);
-        std::cout << "Current map ID=" << mpAtlas->GetCurrentMap()->GetId() << ", KFs in map=" << mpAtlas->GetCurrentMap()->GetAllKeyFrames().size() << ", MPs=" << mpAtlas->GetCurrentMap()->GetAllMapPoints().size() << ", number of maps in Atlas=" << mpAtlas->GetAllMaps().size() << std::endl;
+        //std::cout << "Current map ID=" << mpAtlas->GetCurrentMap()->GetId() << ", KFs in map=" << mpAtlas->GetCurrentMap()->GetAllKeyFrames().size() << ", MPs=" << mpAtlas->GetCurrentMap()->GetAllMapPoints().size() << ", number of maps in Atlas=" << mpAtlas->GetAllMaps().size() << std::endl;
         for(const auto& pKFi : mpAtlas->GetCurrentMap()->GetAllKeyFrames())
         {
             if(pKFi)
@@ -1518,7 +1530,7 @@ void MapHandler::InsertNewPubGlobalMap(std::tuple<bool, bool, std::vector<unsign
     //}
     //    mpObserver->EraseMap(std::get<2>(mtAtlasUpdate)[0]);
     
-    std::cout << "msUpdatedGlobalMPs=" << msUpdatedGlobalMPs.size() << ", msUpdatedGlobalKFs=" << msUpdatedGlobalKFs.size() << ", msErasedMPs.size()=" << msErasedMPs.size() << ", msErasedKFs.size()=" << msErasedKFs.size() << std::endl;
+    //std::cout << "msUpdatedGlobalMPs=" << msUpdatedGlobalMPs.size() << ", msUpdatedGlobalKFs=" << msUpdatedGlobalKFs.size() << ", msErasedMPs.size()=" << msErasedMPs.size() << ", msErasedKFs.size()=" << msErasedKFs.size() << std::endl;
 
     // Make next update instant
     mnGlobalMapFreq_ms=0;
@@ -1586,38 +1598,38 @@ void MapHandler::InsertNewSubGlobalMap(orbslam3_interfaces::msg::Atlas::SharedPt
       //mpLocalMapper->Release();
       if(pRosAtlas->mn_batch_number == 0)//if(pRosAtlas->mb_loop_closer)
       {
-          mpObserver->mbMapIsUpToDate = false;
-          mpObserver->mbReferenceUpdated=false;
-          //mpLocalMapper->RequestStop();
-          //ResetLocalQueue();
-          //mpLocalMapper->EmptyQueue();
-          std::cout << "msToBeErasedMPs.size()=" << msToBeErasedMPs.size() << ", msToBeErasedKFs.size()="<<msToBeErasedKFs.size() << std::endl;
-          
-          for(size_t i=0;i<pRosAtlas->mp_current_map.mvp_backup_keyframes_ids.size();++i)
-          {
-              long int mnId = static_cast<long int>(pRosAtlas->mp_current_map.mvp_backup_keyframes_ids[i]);
-              ORB_SLAM3::KeyFrame* pKF=mpObserver->GetKeyFrame(mnId);
-              std::cout << mnId << ", found=" << (pKF!=nullptr) << ". ";
-              if(pKF)
-              {
-                  if(mnId >= mpObserver->mnUpdateReferenceId)
-                  {
-                    mpObserver->mnUpdateReferenceId=mnId;
-                  }
+          //mpObserver->mbMapIsUpToDate = false;
+          //mpObserver->mbReferenceUpdated=false;
+          ////mpLocalMapper->RequestStop();
+          ////ResetLocalQueue();
+          ////mpLocalMapper->EmptyQueue();
+          //std::cout << "msToBeErasedMPs.size()=" << msToBeErasedMPs.size() << ", msToBeErasedKFs.size()="<<msToBeErasedKFs.size() << std::endl;
+          //
+          //for(size_t i=0;i<pRosAtlas->mp_current_map.mvp_backup_keyframes_ids.size();++i)
+          //{
+          //    long int mnId = static_cast<long int>(pRosAtlas->mp_current_map.mvp_backup_keyframes_ids[i]);
+          //    ORB_SLAM3::KeyFrame* pKF=mpObserver->GetKeyFrame(mnId);
+          //    //std::cout << mnId << ", found=" << (pKF!=nullptr) << ". ";
+          //    if(pKF)
+          //    {
+          //        if(mnId >= mpObserver->mnUpdateReferenceId)
+          //        {
+          //          mpObserver->mnUpdateReferenceId=mnId;
+          //        }
 
-                  if(pKF->GetLastModule() == 1)
-                  {
-                      pKF->SetMbToBeErased(true);
-                      pKF->SetBadFlag();
-                  }
-                  else
-                      pKF->SetLastModule(3);
-                  //InsertNewUpdatedLocalKF(pKF);
-              }
-          }
-          std::cout << "." << std::endl;
+          //        if(pKF->GetLastModule() == 1)
+          //        {
+          //            pKF->SetMbToBeErased(true);
+          //            pKF->SetBadFlag();
+          //        }
+          //        else
+          //            pKF->SetLastModule(3);
+          //        //InsertNewUpdatedLocalKF(pKF);
+          //    }
+          //}
+          //std::cout << "." << std::endl;
 
-          std::cout << " =!=!=!==!=!=!=!=!==! mnUpdateReferenceId=" << mpObserver->mnUpdateReferenceId << ", mbReferenceUpdated=" << mpObserver->mbReferenceUpdated << std::endl;
+          //std::cout << " =!=!=!==!=!=!=!=!==! mnUpdateReferenceId=" << mpObserver->mnUpdateReferenceId << ", mbReferenceUpdated=" << mpObserver->mbReferenceUpdated << std::endl;
 
           for(size_t i=0;i<pRosAtlas->mp_current_map.mvp_backup_map_points_ids.size();++i)
           {

@@ -180,7 +180,7 @@ int KeyFramePublisher::KeyFramesInQueue()
 void KeyFramePublisher::InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
-    std::cout << "***** SEND KF ******" << std::endl;
+    //std::cout << "***** SEND KF ******" << std::endl;
     std::set<std::string> msErasedMPIds = pKF->GetMap()->GetErasedMPIds();
 
     for(const auto& mStrId : msNewMapPointIds)
@@ -198,7 +198,7 @@ void KeyFramePublisher::InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF, std::set<std
 void KeyFramePublisher::InsertNewKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 {
     unique_lock<mutex> lock(mMutexNewKFs);
-    std::cout << "***** SEND KF ******" << std::endl;
+    //std::cout << "***** SEND KF ******" << std::endl;
     if(!mpObserver->CheckIfKeyFrameExists(pKF))
     {
       mpObserver->AddKeyFrame(pKF);
