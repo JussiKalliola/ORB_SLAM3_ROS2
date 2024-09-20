@@ -558,7 +558,7 @@ void MapHandler::ProcessNewPubLocalMap()
     if(maxUpdateN<15)
     {
         maxUpdateN+=5;
-        mnMapFreq_ms+=100;
+        mnMapFreq_ms+=50;
     }
 
     
@@ -1254,16 +1254,8 @@ void MapHandler::InsertNewPubLocalMap()
     pMap->ClearUpdatedKFIds();
     
     // Make next update instant
-    if(pMap->KeyFramesInMap() < 10)
-    {
-      mnMapFreq_ms=0;
-      maxUpdateN=3;
-    }
-    else
-    {
-      mnMapFreq_ms=100;
-      maxUpdateN=5;
-    }
+    mnMapFreq_ms=0;
+    maxUpdateN=3;
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
@@ -1346,16 +1338,8 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     pMap->ClearUpdatedKFIds();
     
     // Make next update instant
-    if(pMap->KeyFramesInMap() < 10)
-    {
-      mnMapFreq_ms=0;
-      maxUpdateN=3;
-    }
-    else
-    {
-      mnMapFreq_ms=100;
-      maxUpdateN=5;
-    }
+    mnMapFreq_ms=0;
+    maxUpdateN=3;
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
     //else
