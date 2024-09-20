@@ -359,7 +359,13 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
-    tempKF->PostLoad(mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
+    std::map<std::string, ORB_SLAM3::MapPoint*> mCopyFusedMPs; 
+    std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mCopyFusedKFs; 
+    
+    mCopyFusedMPs = mFusedMPs; 
+    mCopyFusedKFs = mFusedKFs; 
+
+    tempKF->PostLoad(mCopyFusedKFs, mCopyFusedMPs, mCameras, &bKFUnprocessed);
     tempKF->UpdateBestCovisibles();
 
     // End of timer
@@ -375,7 +381,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
         
-        tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
+        tempMP->PostLoad(mCopyFusedKFs, mCopyFusedMPs, &bKFUnprocessed);
         tempMP->ComputeDistinctiveDescriptors();
     }
 
@@ -408,7 +414,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
         // Here the data is injected into existing KF or the same one is returned. Function handles pointers etc.
         if(!mbNewKF && tempKF)
         {
-            ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
+            ORB_SLAM3::KeyFrame* mpExistingKF = mpObserver->GetKeyFrame(tempKF->mnId);//mFusedKFs[tempKF->mnId];
             if(mpExistingKF)
                 pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
           
@@ -734,7 +740,12 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
-    tempKF->PostLoad(mFusedKFs, mFusedMPs, mCameras, &bKFUnprocessed);
+    std::map<std::string, ORB_SLAM3::MapPoint*> mCopyFusedMPs; 
+    std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mCopyFusedKFs; 
+    
+    mCopyFusedMPs = mFusedMPs; 
+    mCopyFusedKFs = mFusedKFs; 
+    tempKF->PostLoad(mCopyFusedKFs, mCopyFusedMPs, mCameras, &bKFUnprocessed);
     tempKF->UpdateBestCovisibles();
 
     // End of timer
@@ -749,7 +760,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
-        tempMP->PostLoad(mFusedKFs, mFusedMPs, &bKFUnprocessed);
+        tempMP->PostLoad(mCopyFusedKFs, mCopyFusedMPs, &bKFUnprocessed);
         tempMP->ComputeDistinctiveDescriptors();
     }
 
@@ -764,7 +775,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     ORB_SLAM3::KeyFrame* pKF; 
     if(!mbNewKF)
     {
-        ORB_SLAM3::KeyFrame* mpExistingKF = mFusedKFs[tempKF->mnId];
+        ORB_SLAM3::KeyFrame* mpExistingKF = mpObserver->GetKeyFrame(tempKF->mnId);//mFusedKFs[tempKF->mnId];
         pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF, pRosKF->from_module_id);
         //pKF = mpObserver->InjectKeyFrame(tempKF, mpExistingKF);
         //std::cout << pKF << "," << mFusedKFs[tempKF->mnId] << std::endl;
