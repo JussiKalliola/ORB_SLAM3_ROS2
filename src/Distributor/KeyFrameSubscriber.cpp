@@ -152,7 +152,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
   
     if(!pRosKF)
     {
-        std::cout << "- KeyFrame Update is null. Returning..."
+        std::cout << "- KeyFrame Update is null. Returning...";
         return;
     }
     
@@ -528,7 +528,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
   
     if(!pRosKF)
     {
-        std::cout << "- New KeyFrame is null. Returning..."
+        std::cout << "- New KeyFrame is null. Returning...";
 
         return;
     }
