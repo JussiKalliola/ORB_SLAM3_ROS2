@@ -523,7 +523,7 @@ void MapHandler::ProcessNewPubLocalMap()
                 mRosMap->mb_first_batch = true;
 
             msUpdatedLocalKFs.clear();
-            //msUpdatedLocalMPs.clear();
+            msUpdatedLocalMPs.clear();
             //msErasedKFs.clear();
             //msErasedMPs.clear();
             
@@ -531,15 +531,16 @@ void MapHandler::ProcessNewPubLocalMap()
             //if(mpLocalMapper->mbGBARunning)
             //    maxUpdateN=15;
             //else
-        } else if(!msUpdatedLocalMPs.empty() && msUpdatedLocalKFs.empty()) 
-        {
-            mRosMap = Converter::MapConverter::OrbMapToRosMap(pMap, msUpdatedLocalKFs, msUpdatedLocalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints()); 
-            
-            if(mnPubIters == 0)
-                mRosMap->mb_first_batch = true;
-        
+        } 
+        //else if(!msUpdatedLocalMPs.empty() && msUpdatedLocalKFs.empty()) 
+        //{
+        //    mRosMap = Converter::MapConverter::OrbMapToRosMap(pMap, msUpdatedLocalKFs, msUpdatedLocalMPs, msErasedKFs, msErasedMPs, mpObserver->GetAllKeyFrames(), mpObserver->GetAllMapPoints()); 
+        //    
+        //    if(mnPubIters == 0)
+        //        mRosMap->mb_first_batch = true;
+        //
 
-        }
+        //}
 
     }
     //mRosMap.from_module_id = mnTaskModule; 

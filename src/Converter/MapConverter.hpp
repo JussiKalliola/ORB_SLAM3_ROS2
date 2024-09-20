@@ -260,49 +260,49 @@ namespace Converter {
             }
         }
 
-        if(msUpdatedKFs.empty() && !msUpdatedMPs.empty())
-        {
-            std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
-            mvRosMPs.reserve(500);
-            long int mpIter = 0;
-            while(mpIter < 500 )
-            {
-                if(msUpdatedMPs.empty())
-                  break;
-                std::string mnId = *msUpdatedMPs.begin();
-                ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
-                if(pMPi && !pMPi->isBad())
-                {
-                    mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
-                }
-                msUpdatedMPs.erase(mnId);
-                mpIter++;
-            }
+        //if(msUpdatedKFs.empty() && !msUpdatedMPs.empty())
+        //{
+        //    std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
+        //    mvRosMPs.reserve(500);
+        //    long int mpIter = 0;
+        //    while(mpIter < 500 )
+        //    {
+        //        if(msUpdatedMPs.empty())
+        //          break;
+        //        std::string mnId = *msUpdatedMPs.begin();
+        //        ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
+        //        if(pMPi && !pMPi->isBad())
+        //        {
+        //            mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
+        //        }
+        //        msUpdatedMPs.erase(mnId);
+        //        mpIter++;
+        //    }
 
-            mpRosMap->msp_map_points = mvRosMPs;
+        //    mpRosMap->msp_map_points = mvRosMPs;
 
-        } else if(!msUpdatedMPs.empty() && mbProcessMapPoints)
-        {
-            std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
-            mvRosMPs.reserve(2000);
-            long int mpIter = 0;
-            while(mpIter < 2000 )
-            {
-                if(msUpdatedMPs.empty())
-                  break;
-                std::string mnId = *msUpdatedMPs.begin();
-                ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
-                if(pMPi && !pMPi->isBad())
-                {
-                    mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
-                }
-                msUpdatedMPs.erase(mnId);
-                mpIter++;
-            }
+        //} else if(!msUpdatedMPs.empty() && mbProcessMapPoints)
+        //{
+        //    std::vector<orbslam3_interfaces::msg::MapPoint> mvRosMPs;
+        //    mvRosMPs.reserve(2000);
+        //    long int mpIter = 0;
+        //    while(mpIter < 2000 )
+        //    {
+        //        if(msUpdatedMPs.empty())
+        //          break;
+        //        std::string mnId = *msUpdatedMPs.begin();
+        //        ORB_SLAM3::MapPoint* pMPi = mOrbMapPoints[mnId];
+        //        if(pMPi && !pMPi->isBad())
+        //        {
+        //            mvRosMPs.emplace_back(MapPointConverter::ORBSLAM3MapPointToROS(pMPi, 0));
+        //        }
+        //        msUpdatedMPs.erase(mnId);
+        //        mpIter++;
+        //    }
 
-            mpRosMap->msp_map_points = mvRosMPs;
+        //    mpRosMap->msp_map_points = mvRosMPs;
 
-        }
+        //}
         mpRosMap->msp_keyframes = mvRosKFUpdates;
 
         //std::vector<std::string> mvpUpdatedMPIds(mspUpdatedMapPointIds.size()); 
