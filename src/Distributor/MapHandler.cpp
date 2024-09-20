@@ -418,7 +418,8 @@ void MapHandler::ProcessNewPubLocalMap()
             // First 20 kfs taken from covisible keyframes (KFs which needs the fastest updates)
             if(mnPubIters==0) //&& mpObserver->mpLastKeyFrame)
             {
-                mnMapFreq_ms=50;
+                //if(mnMapFreq_ms==0)
+                    //mnMapFreq_ms=50;
                 //std::vector<ORB_SLAM3::KeyFrame*> vpConnected = mpObserver->mpLastKeyFrame->GetVectorCovisibleKeyFrames();
                 //int iters = maxUpdateN;
                 //if(vpConnected.size() < maxUpdateN)
@@ -556,8 +557,8 @@ void MapHandler::ProcessNewPubLocalMap()
 
     if(maxUpdateN<15)
     {
-        maxUpdateN+=3;
-        mnMapFreq_ms+=30;
+        maxUpdateN+=5;
+        mnMapFreq_ms+=100;
     }
 
     
@@ -1258,7 +1259,7 @@ void MapHandler::InsertNewPubLocalMap()
     else
     {
       mnMapFreq_ms=100;
-      maxUpdateN=6;
+      maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
@@ -1350,7 +1351,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     else
     {
       mnMapFreq_ms=100;
-      maxUpdateN=6;
+      maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
     //    maxUpdateN=15;
