@@ -1260,7 +1260,7 @@ void MapHandler::InsertNewPubLocalMap()
     }
     else
     {
-      mnMapFreq_ms=200;
+      mnMapFreq_ms=100;
       maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
@@ -1352,7 +1352,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     }
     else
     {
-      mnMapFreq_ms=200;
+      mnMapFreq_ms=100;
       maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
