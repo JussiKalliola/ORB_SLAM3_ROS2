@@ -224,6 +224,22 @@ bool KeyFramePublisher::CheckNewKeyFrames()
 void KeyFramePublisher::ResetQueue()
 {
   unique_lock<mutex> lock(mMutexNewKFs);
+  while(!mlpKeyFrameQueue.empty())
+  {
+      ORB_SLAM3::KeyFrame* pKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL);
+      {
+          unique_lock<mutex> lock(mMutexNewKFs);
+          pKF = mlpKeyFrameQueue.front();
+          mlpKeyFrameQueue.pop_front();
+          if(pKF)
+          {
+              pKF->SetMbToBeErased(true);
+              pKF->SetBadFlag();
+          }
+      }
+
+  }
+
 
   mlpKeyFrameQueue.clear();
   msUpdatedMPs.clear();

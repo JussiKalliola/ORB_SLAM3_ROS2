@@ -456,11 +456,11 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
         }
         //mpLocalMapper_->mbGBARunning = true;
         mpLocalMapper_->RequestStop();
-        //mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
+        mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
         //mpLocalMapper_->RequestStop();
-        //mpMapHandler->ResetQueue();
-        //mpKeyFrameSubscriber->ResetQueue(false);
-        //mpKeyFramePublisher->ResetQueue();
+        mpMapHandler->ResetQueue();
+        mpKeyFrameSubscriber->ResetQueue(true);
+        mpKeyFramePublisher->ResetQueue();
     } else {
       //mpLocalMapper_->Release();
       //mpLocalMapper_->mbGBARunning = false;
