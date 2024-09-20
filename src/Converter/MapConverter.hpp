@@ -228,11 +228,12 @@ namespace Converter {
         }
 
         //std::set<unsigned long int> mspErasedKFIds = opM->GetErasedKFIds();
-        std::vector<unsigned long int> mvpErasedKFIds(msErasedKFs.size()); 
+        std::vector<unsigned long int> mvpErasedKFIds; 
+        mvpErasedKFIds.reserve(msErasedKFs.size());
 
         for(std::set<unsigned long int>::iterator it = msErasedKFs.begin(); it != msErasedKFs.end(); ++it)
         {
-          mvpErasedKFIds[std::distance(msErasedKFs.begin(),it)] = *it;
+          mvpErasedKFIds.push_back(*it);
         }
 
         std::vector<orbslam3_interfaces::msg::KeyFrameUpdate> mvRosKFUpdates;

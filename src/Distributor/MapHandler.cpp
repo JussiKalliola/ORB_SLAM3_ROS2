@@ -755,8 +755,10 @@ void MapHandler::ProcessNewSubGlobalMap2()
         if(pEraseKF) // && pEraseKF->GetToBeErased())
         {
             std::cout << "Global. Delete KF=" << mnId << std::endl;
-            mpKeyFrameDB->erase(pEraseKF);
+            pEraseKF->SetMbToBeErased(true);
+            pCurrentMap->EraseKeyFrame(pEraseKF);
             pEraseKF->SetBadFlag();
+            mpKeyFrameDB->erase(pEraseKF);
             mpObserver->EraseKeyFrame(mnId);
         }
     }
@@ -1258,7 +1260,7 @@ void MapHandler::InsertNewPubLocalMap()
     }
     else
     {
-      mnMapFreq_ms=100;
+      mnMapFreq_ms=200;
       maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
@@ -1350,7 +1352,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     }
     else
     {
-      mnMapFreq_ms=100;
+      mnMapFreq_ms=200;
       maxUpdateN=5;
     }
     //if(mpLocalMapper->mbGBARunning)
