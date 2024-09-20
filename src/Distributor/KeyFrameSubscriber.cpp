@@ -397,7 +397,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     ORB_SLAM3::KeyFrame* pKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); 
     {
-        unique_lock<std::mutex> lock(ORB_SLAM3::MapPoint::mGlobalMutex);
+        //unique_lock<std::mutex> lock(ORB_SLAM3::MapPoint::mGlobalMutex);
+        unique_lock<mutex> lock2(pCurrentMap->mMutexMapUpdate);
 
 
         // Start of a timer -------------

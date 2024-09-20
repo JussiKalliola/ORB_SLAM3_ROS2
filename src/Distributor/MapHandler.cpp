@@ -977,6 +977,7 @@ void MapHandler::ProcessNewSubLocalMap2()
     // Remove KFs and MPs
     if(mpAtlas->GetCurrentMap()->KeyFramesInMap() > 10)
     {
+        unique_lock<mutex> lock(pCurrentMap->mMutexMapUpdate);
         for(size_t i=0; i<mpRosMap->mvp_erased_keyframe_ids.size(); ++i)
         {
             unsigned long int mnId = mpRosMap->mvp_erased_keyframe_ids[i];

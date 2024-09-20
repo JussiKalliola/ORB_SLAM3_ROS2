@@ -158,26 +158,26 @@ int main(int argc, char **argv)
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
       auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName, strCameraTopic);
-      rclcpp::executors::MultiThreadedExecutor multiThreadExecutor;
-      
-      multiThreadExecutor.add_node(mono_node);
-      multiThreadExecutor.add_node(slam_node);
+      //rclcpp::executors::MultiThreadedExecutor multiThreadExecutor;
+      //
+      //multiThreadExecutor.add_node(mono_node);
+      //multiThreadExecutor.add_node(slam_node);
 
       // Spin monocular slam node
-      //std::thread spin_mono([&]() {
-      //  rclcpp::spin(mono_node);
-      //});
-      //
-      //// Spin SLAM publisher&Subscriber
-      //std::thread spin_slam([&]() {
-      //  rclcpp::spin(slam_node);
-      //});
-      //
-      //// Join threads
-      //spin_mono.join();
-      //spin_slam.join();
+      std::thread spin_mono([&]() {
+        rclcpp::spin(mono_node);
+      });
       
-      multiThreadExecutor.spin();
+      // Spin SLAM publisher&Subscriber
+      std::thread spin_slam([&]() {
+        rclcpp::spin(slam_node);
+      });
+      
+      // Join threads
+      spin_mono.join();
+      spin_slam.join();
+      
+      //multiThreadExecutor.spin();
     } else {
       rclcpp::spin(slam_node);
     }
