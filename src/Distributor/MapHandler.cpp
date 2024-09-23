@@ -461,9 +461,11 @@ void MapHandler::ProcessNewPubLocalMap()
             // Others can be updated in order
             else { 
                 ORB_SLAM3::KeyFrame* mpLastKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); 
+                int maxTries = 50;
+                int tries = 0;
                 while(!mpLastKF)
                 {
-                    if(msUpdatedLocalKFs.empty())
+                    if(msUpdatedLocalKFs.empty()||tries>=maxTries)
                         break;
                     mpLastKF=mpObserver->GetKeyFrame(*msUpdatedLocalKFs.rbegin());
                     if(mpLastKF)
@@ -473,11 +475,15 @@ void MapHandler::ProcessNewPubLocalMap()
                         break;
                     } else
                         msUpdatedLocalKFs.erase(*msUpdatedLocalKFs.rbegin());
+
+                    tries++;
                 }
+
+                tries = 0;
 
                 while(s.size()<maxUpdateN)
                 {
-                    if(msUpdatedLocalKFs.empty())
+                    if(msUpdatedLocalKFs.empty()||tries>=maxTries)
                         break;
                     const std::vector<ORB_SLAM3::KeyFrame*>& mvpCovisibleKFs = mpLastKF->GetVectorCovisibleKeyFrames();
                     for(const auto& tempKF : mvpCovisibleKFs)
@@ -503,6 +509,8 @@ void MapHandler::ProcessNewPubLocalMap()
                             msUpdatedLocalKFs.erase(*it);
 
                     }
+
+                    tries++;
 
                 }
                 

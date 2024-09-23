@@ -407,12 +407,14 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
             // Insert to Local Mapping
             if(!mpLocalMapper->AcceptKeyFrames())
             {
+                std::cout << "!mpLocalMapper->AcceptKeyFrames()" << std::endl;
                 mpLocalMapper->InterruptBA();
                 pKF->SetMbToBeErased(true);
                 pKF->SetBadFlag();
                 //mpLocalMapper->InsertKeyframeFromRos(pKF);
             }else 
             {
+                std::cout << "Inserting keyframe to ros" << std::endl;
                 mpAtlas->AddKeyFrame(pKF);
                 mpLocalMapper->InsertKeyframeFromRos(pKF);
 

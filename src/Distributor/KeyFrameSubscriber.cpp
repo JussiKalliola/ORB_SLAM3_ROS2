@@ -522,7 +522,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
         //}
 
-        //std::cout << "processing new KF=" << pRosKF->mn_id << "." << std::endl;
+        std::cout << "processing new KF=" << pRosKF->mn_id << "." << std::endl;
     }
   
     if(!pRosKF)
@@ -624,10 +624,10 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     // Convert ros msg to ORB_SLAM3 Objects
     ORB_SLAM3::KeyFrame* tempKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); //mpObserver->ConvertKeyFrame(pRosKF, mMaps);
+    ORB_SLAM3::KeyFrame* mpCopyKF = mpObserver->GetKeyFrame(pRosKF->mn_id);//mFusedKFs[pRosKF->mn_id];
     
-    if(mpObserver->CheckIfKeyFrameExists(pRosKF->mn_id)) //mFusedKFs.find(pRosKF->mn_id) != mFusedKFs.end())
+    if(mpCopyKF) //mFusedKFs.find(pRosKF->mn_id) != mFusedKFs.end())
     {
-      ORB_SLAM3::KeyFrame* mpCopyKF = mpObserver->GetKeyFrame(pRosKF->mn_id);//mFusedKFs[pRosKF->mn_id];
       tempKF = new ORB_SLAM3::KeyFrame(*mpCopyKF);
       mpObserver->ConvertKeyFrame(pRosKF, tempKF);
       mbNewKF=false;
@@ -661,6 +661,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     mpObserver->UpdateMaxMPId(ORB_SLAM3::MapPoint::nNextId);
 
     ORB_SLAM3::MapPoint::nNextId=mpObserver->GetMaxMPId()+1;
+    std::cout << "max mp updated..." << std::endl;
 
     
     // Start of a timer -------------
@@ -680,11 +681,9 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
         mpRosMP->mp_map_id = mpAtlas->GetCurrentMap()->GetId();
         ORB_SLAM3::MapPoint* tempMP = static_cast<ORB_SLAM3::MapPoint*>(NULL);
-        if(mpObserver->CheckIfMapPointExists(mpRosMP->m_str_hex_id))//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
+        ORB_SLAM3::MapPoint* mpCopyMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id); //mFusedMPs[mpRosMP->m_str_hex_id];
+        if(mpCopyMP)//mFusedMPs.find(mpRosMP->m_str_hex_id) != mFusedMPs.end())
         {
-          ORB_SLAM3::MapPoint* mpCopyMP = mpObserver->GetMapPoint(mpRosMP->m_str_hex_id); //mFusedMPs[mpRosMP->m_str_hex_id];
-          if(!mpCopyMP)
-              continue;
           ORB_SLAM3::MapPoint* mpExistingMP = new ORB_SLAM3::MapPoint(*mpCopyMP);
           tempMP = mpObserver->ConvertMapPoint(mpRosMP, mpExistingMP);
           mpExistingMP->SetWorldPos(tempMP->GetWorldPos());
@@ -725,6 +724,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     double timeConvMP = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_EndConvMP - time_StartConvMP).count();
     vdRos2OrbConvMP_ms.push_back(timeConvMP);
     
+    std::cout << "conversions done..." << std::endl;
     //std::cout << "Got a new keyframe. 2. New data is fused with old data." << std::endl;
 
     // Start of a timer -------------
@@ -750,6 +750,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         mpObserver->LoadMapPoint(tempMP);
     }
 
+    std::cout << "postloads done..." << std::endl;
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadMP = std::chrono::steady_clock::now();
 
@@ -827,6 +828,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
         //mpObserver->InjectMapPoint(tempMP, mMapMPs);
     }
 
+    std::cout << "injections done..." << std::endl;
     // End of timer
     std::chrono::steady_clock::time_point time_EndInjectMP = std::chrono::steady_clock::now();
 
@@ -853,6 +855,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     
     //std::cout << "Got a new keyframe. 6. KF is forwarded to the target. KF is COMPLETE." << std::endl;
 
+    std::cout << "ending process..." << std::endl;
     // End of timer
     std::chrono::steady_clock::time_point time_EndRos2OrbProcKF = std::chrono::steady_clock::now();
 
@@ -913,11 +916,11 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
         return;
     }
 
-    //std::cout << "***** GOT KF ******" << std::endl;
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
         mlpRosKeyFrameQueue.push_back(pRosKF);
     }
+    std::cout << "***** GOT KF ******" << std::endl;
 }
 
 void KeyFrameSubscriber::ResetQueue(const bool bAll)
