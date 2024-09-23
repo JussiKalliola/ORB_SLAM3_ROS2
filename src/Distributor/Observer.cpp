@@ -47,12 +47,15 @@ Observer::~Observer()
 
 void Observer::AddMapPoint(ORB_SLAM3::MapPoint* pMP)
 {
-    unique_lock<std::mutex> lock(mMutexMapPoint); 
-    if(pMP->mnId > mnMaxMPId)
-      mnMaxMPId=pMP->mnId;
-    //std::cout << "adding mappoint=" << pMP->mstrHexId << std::endl;
-    mOrbMapPoints[pMP->mstrHexId] = pMP;
-    msOrbMapPoints.insert(pMP);
+        if(pMP->mnId > mnMaxMPId)
+          mnMaxMPId=pMP->mnId;
+        //std::cout << "adding mappoint=" << pMP->mstrHexId << std::endl;
+    {
+        unique_lock<std::mutex> lock(mMutexMapPoint); 
+
+        mOrbMapPoints[pMP->mstrHexId] = pMP;
+        msOrbMapPoints.insert(pMP);
+    }
 }
 
 void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
@@ -66,7 +69,9 @@ void Observer::EraseMapPoint(ORB_SLAM3::MapPoint* pMP)
 void Observer::EraseMapPoint(std::string mnId)
 {
     unique_lock<std::mutex> lock(mMutexMapPoint); 
-    msOrbMapPoints.erase(mOrbMapPoints[mnId]);
+    ORB_SLAM3::MapPoint* pDeleteMP=mOrbMapPoints[mnId];
+    if(pDeleteMP)
+        msOrbMapPoints.erase(pDeleteMP);
     mOrbMapPoints.erase(mnId);
     msAllErasedMPIds.insert(mnId);
 }
@@ -177,11 +182,12 @@ std::map<unsigned long int, ORB_SLAM3::Map*>& Observer::GetAllMaps()
 
 void Observer::AddKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 {
-    unique_lock<std::mutex> lock(mMutexKeyFrame); 
-    std::cout << "adding keyframe=" << pKF->mnId << std::endl;
-    mOrbKeyFrames[pKF->mnId] = pKF;
-    msOrbKeyFrames.insert(pKF);
-    
+    {
+        unique_lock<std::mutex> lock(mMutexKeyFrame); 
+        mOrbKeyFrames[pKF->mnId] = pKF;
+        msOrbKeyFrames.insert(pKF);
+    }
+
     std::set<ORB_SLAM3::MapPoint*> MPs = pKF->GetMapPoints();
 
     set<ORB_SLAM3::MapPoint*>::iterator itr;
@@ -189,7 +195,7 @@ void Observer::AddKeyFrame(ORB_SLAM3::KeyFrame* pKF)
     // Displaying set elements
     for (itr = MPs.begin(); itr != MPs.end(); itr++) 
     {
-        if(*itr && !CheckIfMapPointExists(*itr))
+        if(*itr)
             AddMapPoint(*itr);
     }
 
@@ -198,7 +204,9 @@ void Observer::AddKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 void Observer::EraseKeyFrame(unsigned long int mnId)
 {
     unique_lock<std::mutex> lock(mMutexKeyFrame); 
-    msOrbKeyFrames.erase(mOrbKeyFrames[mnId]);
+    ORB_SLAM3::KeyFrame* pDeleteKF=mOrbKeyFrames[mnId];
+    if(pDeleteKF)
+        msOrbKeyFrames.erase(pDeleteKF);
     mOrbKeyFrames.erase(mnId);
     msAllErasedKFIds.insert(mnId);
 }
@@ -528,6 +536,25 @@ ORB_SLAM3::MapPoint* Observer::ConvertMapPoint(const std::shared_ptr<orbslam3_in
     return tempMP;
 }
 
+void Observer::LoadMapPoint(ORB_SLAM3::MapPoint* pMP)
+{
+    unique_lock<std::mutex> lock(mMutexKeyFrame); 
+    unique_lock<std::mutex> lock2(mMutexMapPoint); 
+    bool bKFUnprocessed = false;
+
+    pMP->PostLoad(mOrbKeyFrames, mOrbMapPoints, &bKFUnprocessed);
+    pMP->ComputeDistinctiveDescriptors();
+}
+
+void Observer::LoadKeyFrame(ORB_SLAM3::KeyFrame* pKF, std::map<unsigned int, ORB_SLAM3::GeometricCamera*>& mCameras)
+{ 
+    unique_lock<std::mutex> lock(mMutexMapPoint); 
+    unique_lock<std::mutex> lock2(mMutexKeyFrame); 
+    bool bKFUnprocessed = false;
+    pKF->PostLoad(mOrbKeyFrames, mOrbMapPoints, mCameras, &bKFUnprocessed);
+    pKF->UpdateBestCovisibles();
+}
+
 
 ORB_SLAM3::KeyFrame* Observer::ConvertKeyFrame(const std::shared_ptr<orbslam3_interfaces::msg::KeyFrame>& mpRosKF, ORB_SLAM3::KeyFrame* mpExistingKF)
 {
@@ -672,11 +699,7 @@ void Observer::onNewMap(ORB_SLAM3::Map* pM)
 
 void Observer::onNewKeyFrame(ORB_SLAM3::KeyFrame* pKF)
 {
-    if(!CheckIfKeyFrameExists(pKF))
-    {
-        AddKeyFrame(pKF);
-    }
-
+    AddKeyFrame(pKF);
 }
 
 void Observer::onNewMapPoint(ORB_SLAM3::MapPoint* pMP)

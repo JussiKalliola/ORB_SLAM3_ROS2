@@ -54,6 +54,8 @@ class Observer : public ORB_SLAM3::Distributor
     ORB_SLAM3::KeyFrame* ConvertKeyFrame(const std::shared_ptr<orbslam3_interfaces::msg::KeyFrame>& mpRosKF, ORB_SLAM3::KeyFrame* mpExistingKF);
     void ConvertKeyFrame(const std::shared_ptr<orbslam3_interfaces::msg::KeyFrameUpdate>& mpRosKF, ORB_SLAM3::KeyFrame* mpExistingKF);
 
+    void LoadKeyFrame(ORB_SLAM3::KeyFrame* pKF, std::map<unsigned int, ORB_SLAM3::GeometricCamera*>& mCameras);
+    void LoadMapPoint(ORB_SLAM3::MapPoint* pMP);
     
     // ORB SLAM3 functions
     void AddMapPoint(ORB_SLAM3::MapPoint* pMP);

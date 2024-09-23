@@ -359,14 +359,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
 
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
-    std::map<std::string, ORB_SLAM3::MapPoint*> mCopyFusedMPs; 
-    std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mCopyFusedKFs; 
-    
-    mCopyFusedMPs = mFusedMPs; 
-    mCopyFusedKFs = mFusedKFs; 
 
-    tempKF->PostLoad(mCopyFusedKFs, mCopyFusedMPs, mCameras, &bKFUnprocessed);
-    tempKF->UpdateBestCovisibles();
+    mpObserver->LoadKeyFrame(tempKF, mCameras);
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadKF = std::chrono::steady_clock::now();
@@ -380,9 +374,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
-        
-        tempMP->PostLoad(mCopyFusedKFs, mCopyFusedMPs, &bKFUnprocessed);
-        tempMP->ComputeDistinctiveDescriptors();
+        mpObserver->LoadMapPoint(tempMP);
     }
 
     // End of timer
@@ -404,7 +396,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrameUpdate()
     ORB_SLAM3::KeyFrame* pKF = static_cast<ORB_SLAM3::KeyFrame*>(NULL); 
     {
         //unique_lock<std::mutex> lock(ORB_SLAM3::MapPoint::mGlobalMutex);
-        unique_lock<mutex> lock2(pCurrentMap->mMutexMapUpdate);
+        //unique_lock<mutex> lock2(pCurrentMap->mMutexMapUpdate);
 
 
         // Start of a timer -------------
@@ -740,13 +732,8 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
 
     // Postloads -> Reassign pointers etc to temporary data
     bool bKFUnprocessed = false;
-    std::map<std::string, ORB_SLAM3::MapPoint*> mCopyFusedMPs; 
-    std::map<long unsigned int, ORB_SLAM3::KeyFrame*> mCopyFusedKFs; 
     
-    mCopyFusedMPs = mFusedMPs; 
-    mCopyFusedKFs = mFusedKFs; 
-    tempKF->PostLoad(mCopyFusedKFs, mCopyFusedMPs, mCameras, &bKFUnprocessed);
-    tempKF->UpdateBestCovisibles();
+    mpObserver->LoadKeyFrame(tempKF, mCameras);
 
     // End of timer
     std::chrono::steady_clock::time_point time_EndPostLoadKF = std::chrono::steady_clock::now();
@@ -760,8 +747,7 @@ void KeyFrameSubscriber::ProcessNewKeyFrame()
     
     for(ORB_SLAM3::MapPoint* tempMP : mvpTempMPs)
     {
-        tempMP->PostLoad(mCopyFusedKFs, mCopyFusedMPs, &bKFUnprocessed);
-        tempMP->ComputeDistinctiveDescriptors();
+        mpObserver->LoadMapPoint(tempMP);
     }
 
     // End of timer
