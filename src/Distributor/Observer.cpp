@@ -816,14 +816,11 @@ void Observer::onLocalMapUpdated(ORB_SLAM3::Map* pM)
 
 void Observer::onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds)
 {
-  if(GetWorkerNumber() > 1 && CheckIfWorkerExists(3) && pSLAMNode)
+  if(GetWorkerNumber() > 1 && pSLAMNode)
   {
       std::tuple<bool, bool, std::vector<unsigned long int>> mtAtlasUpdate = std::tuple<bool, bool, std::vector<unsigned long int>>(mbMerged, mbLoopClosure, mvMeergedIds);
       mpMapHandler->InsertNewPubGlobalMap(mtAtlasUpdate);
-  } else 
-  {
-      onLocalMapUpdated(mpAtlas->GetCurrentMap());
-  }
+  } 
 }
 
 //} // namespave TempDistributor

@@ -910,11 +910,11 @@ void KeyFrameSubscriber::InsertNewKeyFrame(orbslam3_interfaces::msg::KeyFrame::S
 
 
 
-    if(mpLocalMapper->isStopped())
-    {
-        mpAtlas->GetCurrentMap()->EraseKeyFrame(pRosKF->mn_id);
-        return;
-    }
+    //if(mpLocalMapper->isStopped())
+    //{
+    //    mpAtlas->GetCurrentMap()->EraseKeyFrame(pRosKF->mn_id);
+    //    return;
+    //}
 
     {
         unique_lock<mutex> lock(mMutexNewRosKFs);
@@ -934,8 +934,24 @@ void KeyFrameSubscriber::ResetQueue(const bool bAll)
       mpRosKeyFrameUpdateQueue.clear();
   } else 
   {
-      mlpRosKeyFrameUpdateQueue.clear();
-      mpRosKeyFrameUpdateQueue.clear();
+      auto iter = mlpRosKeyFrameUpdateQueue.begin();
+      auto end  = mlpRosKeyFrameUpdateQueue.end();
+
+      while(iter != end)
+      {
+          auto pKFUpdate = *iter;
+          if(pKFUpdate->target != 3)
+          {
+              iter = mlpRosKeyFrameUpdateQueue.erase(iter);
+              mpRosKeyFrameUpdateQueue.erase(pKFUpdate->mn_id);
+          } else 
+          {
+              ++iter;
+          }
+      }
+
+      //mlpRosKeyFrameUpdateQueue.clear();
+      //mpRosKeyFrameUpdateQueue.clear();
   }
 
 }

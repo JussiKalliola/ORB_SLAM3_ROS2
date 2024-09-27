@@ -428,39 +428,14 @@ void SlamWrapperNode::stopLMCallback(orbslam3_interfaces::msg::Bool::SharedPtr b
     RCLCPP_INFO(this->get_logger(), "Received msg from /LocalMapping/Stop");
     if(bMsg->data)
     {
-        //mpTracker_->mbStep = true;
-        if(!mpLocalMapper_->mbGBARunning)
-        {
-            //for(const auto& mnId : mpMapHandler->msToBeErasedKFs)
-            //{
-            //    ORB_SLAM3::KeyFrame* pKFi = mpObserver->GetKeyFrame(mnId);
-            //    if(pKFi)
-            //    {
-            //      pKFi->SetBadFlag();
-            //      mpObserver->EraseKeyFrame(pKFi);
-            //    }
-            //}
-
-            //for(const auto& mnId : mpMapHandler->msToBeErasedMPs)
-            //{
-            //    ORB_SLAM3::MapPoint* pMPi = mpObserver->GetMapPoint(mnId);
-            //    if(pMPi)
-            //    {
-            //      pMPi->SetBadFlag();
-            //      mpObserver->EraseMapPoint(pMPi);
-            //    }
-            //}
-
-            //mpMapHandler->msToBeErasedKFs.clear();
-            //mpMapHandler->msToBeErasedMPs.clear();
-        }
         //mpLocalMapper_->mbGBARunning = true;
         mpLocalMapper_->RequestStop();
         mpLocalMapper_->EmptyQueue(); // Proccess keyframes in the queue
         //mpLocalMapper_->RequestStop();
-        mpMapHandler->ResetQueue();
-        mpKeyFrameSubscriber->ResetQueue(true);
-        mpKeyFramePublisher->ResetQueue();
+        //mpMapHandler->ResetQueue();
+        if(mpObserver->GetTaskModule()  == 3)
+            mpKeyFrameSubscriber->ResetQueue(false);
+        //mpKeyFramePublisher->ResetQueue();
     } else {
       //mpLocalMapper_->Release();
       //mpLocalMapper_->mbGBARunning = false;

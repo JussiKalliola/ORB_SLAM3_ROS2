@@ -1356,7 +1356,7 @@ void MapHandler::InsertNewPubLocalMap(ORB_SLAM3::Map* pMap)
     // Make next update instant
     //mnMapFreq_ms=100;
 
-    //std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
+    std::cout << "Insert new pub local map, updated KFs=" << msUpdatedLocalKFs.size() << ", MPs=" << msUpdatedLocalMPs.size() << ", in map=" << pMap->GetUpdatedKFIds().size() << std::endl;
     //mlpMapPubQueue.push_back(pMap);
 }
 
