@@ -41,6 +41,11 @@ protected:
 
     std::set<int> msWorkers;
 
+    
+    std::mutex mMutexIm;
+    cv::Mat m_latestIm;
+    builtin_interfaces::msg::Time m_latestStamp;
+
 private:
     using ImageMsg = sensor_msgs::msg::Image;
 

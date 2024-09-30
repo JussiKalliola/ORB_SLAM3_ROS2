@@ -43,8 +43,8 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<S
 
 
   //// Timer 20fps
-  //timer_ = this->create_wall_timer(
-  //    50ms, std::bind(&MonocularSlamNode::timer_callback, this));
+  timer_ = this->create_wall_timer(
+      50ms, std::bind(&MonocularSlamNode::timer_callback, this));
   //StopTimer();
 
   //RCLCPP_INFO(this->get_logger(), "Reading ROS2 bag...");
@@ -83,63 +83,88 @@ void MonocularSlamNode::StartTimer()
 
 void MonocularSlamNode::timer_callback()
 {
-  if(!mbTimerRunning)
-  {
-    std::cout << "Timer has not started" << std::endl;
-    return;
-  }
-
-  while (reader_->has_next()) {
-    rosbag2_storage::SerializedBagMessageSharedPtr bagMsg = reader_->read_next();
-
-    if (bagMsg->topic_name != "/cam0/image_raw") {
-      continue;
-    }
-
-    rclcpp::SerializedMessage serialized_msg(*bagMsg->serialized_data);
-    ImageMsg::SharedPtr msg = std::make_shared<ImageMsg>();
-
-    serialization_.deserialize_message(&serialized_msg, msg.get());
-
+   
     // Start of a timer -------------
     std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
-    // Copy the ros image message to cv::Mat.
-    try
+
+    cv::Mat curIm;
+    builtin_interfaces::msg::Time curStamp;
+
     {
-        m_cvImPtr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+        unique_lock<mutex> lock(mMutexIm);
+        curIm = m_latestIm.clone();
+        curStamp = m_latestStamp;
+
+        m_latestIm.release();
     }
-    catch (cv_bridge::Exception& e)
-    {
-        RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+
+    
+    if(curIm.empty())
         return;
-    }
+
+    m_SLAM->TrackMonocular(curIm, Utility::StampToSec(curStamp));
 
 
-    cv::Mat im = m_cvImPtr->image;
-    if(mstrDatasetName=="TUM")
-    {
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
-        // clahe
-        clahe->apply(im,im);
-
-    }
-    // publisher_node_->publishMessage("Was able to grab image.");
-    //std::cout<<"one frame has been sent"<<std::endl;
-    //thread t1(&ORB_SLAM3::System::TrackMonocular, 
-    //    m_SLAM, 
-    //    m_cvImPtr->image, 
-    //    Utility::StampToSec(msg->header.stamp),
-    //    vector<ORB_SLAM3::IMU::Point>(),
-    //    std::string("asd"));
-    //t1.join();
-    m_SLAM->TrackMonocular(im, Utility::StampToSec(msg->header.stamp));
-
-    // End of timer
     std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
     double timeTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
     vdTrackingTimes_ms.push_back(timeTrack);
-    break;
-  }
+  //if(!mbTimerRunning)
+  //{
+  //  std::cout << "Timer has not started" << std::endl;
+  //  return;
+  //}
+
+  //while (reader_->has_next()) {
+  //  rosbag2_storage::SerializedBagMessageSharedPtr bagMsg = reader_->read_next();
+
+  //  if (bagMsg->topic_name != "/cam0/image_raw") {
+  //    continue;
+  //  }
+
+  //  rclcpp::SerializedMessage serialized_msg(*bagMsg->serialized_data);
+  //  ImageMsg::SharedPtr msg = std::make_shared<ImageMsg>();
+
+  //  serialization_.deserialize_message(&serialized_msg, msg.get());
+
+  //  // Start of a timer -------------
+  //  std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
+  //  // Copy the ros image message to cv::Mat.
+  //  try
+  //  {
+  //      m_cvImPtr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+  //  }
+  //  catch (cv_bridge::Exception& e)
+  //  {
+  //      RCLCPP_ERROR(this->get_logger(), "cv_bridge exception: %s", e.what());
+  //      return;
+  //  }
+
+
+  //  cv::Mat im = m_cvImPtr->image;
+  //  if(mstrDatasetName=="TUM")
+  //  {
+  //      cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE(3.0, cv::Size(8, 8));
+  //      // clahe
+  //      clahe->apply(im,im);
+
+  //  }
+  //  // publisher_node_->publishMessage("Was able to grab image.");
+  //  //std::cout<<"one frame has been sent"<<std::endl;
+  //  //thread t1(&ORB_SLAM3::System::TrackMonocular, 
+  //  //    m_SLAM, 
+  //  //    m_cvImPtr->image, 
+  //  //    Utility::StampToSec(msg->header.stamp),
+  //  //    vector<ORB_SLAM3::IMU::Point>(),
+  //  //    std::string("asd"));
+  //  //t1.join();
+  //  m_SLAM->TrackMonocular(im, Utility::StampToSec(msg->header.stamp));
+
+  //  // End of timer
+  //  std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
+  //  double timeTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
+  //  vdTrackingTimes_ms.push_back(timeTrack);
+  //  break;
+  //}
 }
 
 void MonocularSlamNode::workerCallback(std_msgs::msg::Int32::SharedPtr msg) {
@@ -171,7 +196,7 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
 {
     
     // Start of a timer -------------
-    std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
+    //std::chrono::steady_clock::time_point time_Start = std::chrono::steady_clock::now();
     // Copy the ros image message to cv::Mat.
     try
     {
@@ -192,6 +217,13 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
         clahe->apply(im,im);
 
     }
+
+    {
+        unique_lock<mutex> lock(mMutexIm);
+        m_latestIm = im;
+        m_latestStamp = msg->header.stamp;
+    }
+
     // publisher_node_->publishMessage("Was able to grab image.");
     //std::cout<<"one frame has been sent"<<std::endl;
     //thread t1(&ORB_SLAM3::System::TrackMonocular, 
@@ -201,10 +233,11 @@ void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
     //    vector<ORB_SLAM3::IMU::Point>(),
     //    std::string("asd"));
     //t1.join();
-    m_SLAM->TrackMonocular(im, Utility::StampToSec(msg->header.stamp));
+
+    //m_SLAM->TrackMonocular(im, Utility::StampToSec(msg->header.stamp));
 
     // End of timer
-    std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
-    double timeTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
-    vdTrackingTimes_ms.push_back(timeTrack);
+    //std::chrono::steady_clock::time_point time_End = std::chrono::steady_clock::now();
+    //double timeTrack = std::chrono::duration_cast<std::chrono::duration<double,std::milli> >(time_End - time_Start).count();
+    //vdTrackingTimes_ms.push_back(timeTrack);
 }
