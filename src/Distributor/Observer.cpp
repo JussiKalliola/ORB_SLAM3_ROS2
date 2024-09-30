@@ -357,13 +357,16 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
 
     // Just update state and do not insert to any module
     if(mnTaskModule == 0) {
-        if(nFromModule == 3)
+        mpAtlas->AddKeyFrame(pKF);
+        if(nFromModule==2 || nFromModule==3)
         {
             mpKeyFrameDB->erase(pKF);
             mpKeyFrameDB->add(pKF);
         }
 
     } else if (mnTaskModule == 1) {
+        mpAtlas->AddKeyFrame(pKF);
+        mpTracker->UpdateReference(pKF);
         // in this case the system is mainly performing tracking
         // For now, tracking does not grab any KFs, only Maps 
         if(nFromModule==2 || nFromModule==3)
@@ -372,8 +375,6 @@ void Observer::ForwardKeyFrameToTarget(ORB_SLAM3::KeyFrame* pKF, const unsigned 
             mpKeyFrameDB->add(pKF);
         }
 
-        mpAtlas->AddKeyFrame(pKF);
-        mpTracker->UpdateReference(pKF);
         //if(!mbReferenceUpdated && mnTaskModule==1 && mnUpdateReferenceId>=0)
         //{
         //    std::cout << " =!=!=!==!=!=!=!=!==! UPDATING REFERENCE: mnUpdateReferenceId=" << mnUpdateReferenceId << ", mbReferenceUpdated=" << mbReferenceUpdated<< std::endl;
@@ -740,6 +741,7 @@ void Observer::onLMStopRequest(const bool bStopLM)
 void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> msNewMapPointIds)
 {
   const unsigned int nTarget = pKF->mnNextTarget;
+  AddKeyFrame(pKF);
   if (GetWorkerNumber() > 1 && pSLAMNode) {
       if(CheckIfWorkerExists(nTarget))
       {
@@ -780,6 +782,7 @@ void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF, std::set<std::string> m
 void Observer::onKeyframeAdded(ORB_SLAM3::KeyFrame* pKF)
 {
   const unsigned int nTarget = pKF->mnNextTarget;
+  AddKeyFrame(pKF);
   if (GetWorkerNumber() > 1 && pSLAMNode) {
       if(CheckIfWorkerExists(nTarget))
       {

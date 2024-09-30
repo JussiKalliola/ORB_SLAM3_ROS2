@@ -24,15 +24,21 @@ void KeyFramePublisher::Run()
   
   while(1)
   {
-    // Then new keyframes
-    // Here, write some logic which checks if the updated KF was in map
-    // if so, do not publish again.
-    if(CheckNewKeyFrames())
+    if(mpObserver->GetWorkerNumber()>1)
     {
-      ProcessNewKeyFrame();
-    }
+        // Then new keyframes
+        // Here, write some logic which checks if the updated KF was in map
+        // if so, do not publish again.
+        if(CheckNewKeyFrames())
+        {
+          ProcessNewKeyFrame();
+        }
 
-    usleep(1000);
+        usleep(1000);
+    } else 
+    {
+        usleep(10000);
+    }
     if(CheckFinish())
         break;
   }

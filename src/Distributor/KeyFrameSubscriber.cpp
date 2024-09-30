@@ -28,54 +28,30 @@ void KeyFrameSubscriber::Run()
     
     while(1)
     {
-      if(!mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA())//  && !mpLocalMapper->IsLMRunning())
+      if(mpObserver->GetWorkerNumber()>1)
       {
-          // Then new keyframes
-          // Here, write some logic which checks if the updated KF was in map
-          // if so, do not publish again.
-          // second check if there is new maps
-          if(CheckNewKeyFrames())
+          if(!mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA())//  && !mpLocalMapper->IsLMRunning())
           {
-            ProcessNewKeyFrame();
+              // Then new keyframes
+              // Here, write some logic which checks if the updated KF was in map
+              // if so, do not publish again.
+              // second check if there is new maps
+              if(CheckNewKeyFrames())
+              {
+                ProcessNewKeyFrame();
+              }
+              else if(CheckNewKeyFrameUpdates()) //&& mpObserver->mbMapIsUpToDate)
+              {
+                ProcessNewKeyFrameUpdate();
+              }
           }
-          else if(CheckNewKeyFrameUpdates()) //&& mpObserver->mbMapIsUpToDate)
-          {
-            ProcessNewKeyFrameUpdate();
-          }
-          
-          //if((!CheckNewKeyFrameUpdates() && !mlpReadyMapPoints.empty()) || mlpReadyMapPoints.size() >= 1000 )
-          //{
-          //    for(const auto& pMP : mlpReadyMapPoints)
-          //    {
-          //        //std::cout << "adding ready MP" << std::endl;
-          //        ORB_SLAM3::MapPoint* existingMP = mpObserver->GetMapPoint(pMP->mstrHexId);
-          //        if(existingMP)
-          //        {
-          //          mpObserver->InjectMapPoint(pMP, existingMP, false);
-          //        }
-          //    }
+          usleep(1000);
 
-          //    mlpReadyMapPoints.clear();
-          //}
-
-          //if((!CheckNewKeyFrameUpdates()&& !mlpReadyMapPoints.empty()) || mlpReadyKeyFrames.size() >= 50)
-          //{
-          //    for(const auto& pKF : mlpReadyKeyFrames)
-          //    {
-          //        ORB_SLAM3::KeyFrame* existingKF = mpObserver->GetKeyFrame(pKF->mnId);
-          //        if(existingKF)
-          //        {
-          //          //std::cout << "adding ready KF" << std::endl;
-          //          ORB_SLAM3::KeyFrame* pInjectedKF = mpObserver->InjectKeyFrame(pKF, existingKF, existingKF->GetLastModule());
-          //          mpObserver->ForwardKeyFrameToTarget(pInjectedKF, pInjectedKF->GetLastModule(), false);
-          //        }
-          //    }
-          //    mlpReadyKeyFrames.clear();
-
-          //}
+      } else 
+      {
+          usleep(10000);
       }
 
-      usleep(1000);
       if(CheckFinish())
           break;
     }

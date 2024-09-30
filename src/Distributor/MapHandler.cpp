@@ -48,48 +48,55 @@ void MapHandler::Run()
         //{
         //    InsertNewPubLocalMap();
         //}
-        
-        // Local map publish/subscription 
-        if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()   && mpObserver->GetTaskModule()==2)
-            ProcessNewPubLocalMap();
-        else if(CheckSubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()  && !mpLocalMapper->IsLMRunning())
-            ProcessNewSubLocalMap2();
-        
-        if(!mpLocalMapper->mbGBARunning && !mpLocalMapper->IsLMRunning() && mpKeyFrameSubscriber->KeyFramesInQueue() == 0 && mpLocalMapper->KeyframesInQueue() == 0 && !msToBeErasedKFs.empty() && mpObserver->GetTaskModule() == 2)
+        if(mpObserver->GetWorkerNumber() > 1)
         {
-            //std::cout << "LocalMapper is empty and there is KFs to be optimized=" << msToBeErasedKFs.size() << std::endl;
-            unsigned long int mnId = *msToBeErasedKFs.begin();
-            msToBeErasedKFs.erase(mnId);
-            ORB_SLAM3::KeyFrame* pUpdateKF = mpObserver->GetKeyFrame(mnId);
-            if(pUpdateKF)
+            
+            // Local map publish/subscription 
+            if(CheckPubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()   && mpObserver->GetTaskModule()==2)
+                ProcessNewPubLocalMap();
+            else if(CheckSubLocalMaps() && !mpLoopCloser->CheckIfRunning() && !mpLoopCloser->isRunningGBA()  && !mpLocalMapper->IsLMRunning())
+                ProcessNewSubLocalMap2();
+            
+            if(!mpLocalMapper->mbGBARunning && !mpLocalMapper->IsLMRunning() && mpKeyFrameSubscriber->KeyFramesInQueue() == 0 && mpLocalMapper->KeyframesInQueue() == 0 && !msToBeErasedKFs.empty() && mpObserver->GetTaskModule() == 2)
             {
-                pUpdateKF->SetLastModule(3);
-                //mpKeyFrameDB->erase(pUpdateKF);
-                //mpAtlas->GetCurrentMap()->EraseKeyFrame(pUpdateKF);
-                //mpKeyFrameDB->erase(pUpdateKF);
-                pUpdateKF->mbLCDone = true;
-                pUpdateKF->mnNextTarget=3;
-                mpLocalMapper->InsertKeyframeFromRos(pUpdateKF);
-                //break;
-            } 
-            //else
-            //{
-            //    msErasedKFs.insert(mnId);
-            //}
-        }
+                //std::cout << "LocalMapper is empty and there is KFs to be optimized=" << msToBeErasedKFs.size() << std::endl;
+                unsigned long int mnId = *msToBeErasedKFs.begin();
+                msToBeErasedKFs.erase(mnId);
+                ORB_SLAM3::KeyFrame* pUpdateKF = mpObserver->GetKeyFrame(mnId);
+                if(pUpdateKF)
+                {
+                    pUpdateKF->SetLastModule(3);
+                    //mpKeyFrameDB->erase(pUpdateKF);
+                    //mpAtlas->GetCurrentMap()->EraseKeyFrame(pUpdateKF);
+                    //mpKeyFrameDB->erase(pUpdateKF);
+                    pUpdateKF->mbLCDone = true;
+                    pUpdateKF->mnNextTarget=3;
+                    mpLocalMapper->InsertKeyframeFromRos(pUpdateKF);
+                    //break;
+                } 
+                //else
+                //{
+                //    msErasedKFs.insert(mnId);
+                //}
+            }
 
-        // Global map (Atlas - map merging, full map update, loop closing) publish/subscription 
-        if(CheckPubGlobalMaps())
-            ProcessNewPubGlobalMap();
-        else if(CheckSubGlobalMaps())
-            ProcessNewSubGlobalMap2();
+            // Global map (Atlas - map merging, full map update, loop closing) publish/subscription 
+            if(CheckPubGlobalMaps())
+                ProcessNewPubGlobalMap();
+            else if(CheckSubGlobalMaps())
+                ProcessNewSubGlobalMap2();
+
+            usleep(1000);
+        } else 
+        {
+            usleep(10000);
+        }
        
 
 
 
-      usleep(1000);
-      if(CheckFinish())
-          break;
+        if(CheckFinish())
+            break;
     }
 
     SetFinish();

@@ -96,6 +96,7 @@ class Observer : public ORB_SLAM3::Distributor
     std::chrono::system_clock::time_point GetLastResetTime();
     void UpdateLastResetTime();
 
+    int GetWorkerNumber();
 
     void AttachORBSLAMSystem(ORB_SLAM3::System* mSLAM);
     void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
@@ -133,7 +134,6 @@ class Observer : public ORB_SLAM3::Distributor
 
     
   protected:  
-    int GetWorkerNumber();
     bool CheckIfWorkerExists(const unsigned int mnTargetID);
     
     std::set<unsigned int> mspWorkers; 
