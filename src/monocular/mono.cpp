@@ -32,6 +32,10 @@ int main(int argc, char **argv)
       exit(1);
     }
 
+    string strCameraTopic = "camera";
+    if(argc >= 4)
+        strCameraTopic = argv[5];
+
     strSaveToPath += "monocular/";
 
 
@@ -49,7 +53,7 @@ int main(int argc, char **argv)
     
     auto publisher_node_ = std::make_shared<SLAMPublisher>();
     
-    auto node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, publisher_node_);
+    auto node = std::make_shared<MonocularSlamNode>(&SLAM, strSaveToPath, publisher_node_, strCameraTopic);
     std::cout << "============================ " << std::endl;\
 
     rclcpp::spin(node);

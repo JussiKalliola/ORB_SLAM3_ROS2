@@ -17,7 +17,7 @@
 class MonocularSlamNode : public rclcpp::Node
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, std::shared_ptr<SLAMPublisher> publisher_node);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, const std::string path, std::shared_ptr<SLAMPublisher> publisher_node, std::string cameraTopic);
 
     ~MonocularSlamNode();
 
@@ -33,6 +33,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr m_image_subscriber;
     
     std::string savePath;
+    std::string strCameraTopic;
 
     std::shared_ptr<SLAMPublisher> publisher_node_;
 };
