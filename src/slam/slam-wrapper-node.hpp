@@ -33,7 +33,7 @@ class KeyFrameSubscriber;
 class SlamWrapperNode : public rclcpp::Node 
 {
   public:
-    SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<System> pDistSystem, bool subscribe_to_slam, const std::string path="./", const std::string strResultFilename="KeyFrameTrajectory.txt");
+    SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<System> pDistSystem, bool subscribe_to_slam, rclcpp::NodeOptions nOptions, const std::string path="./", const std::string strResultFilename="KeyFrameTrajectory.txt");
 
     ~SlamWrapperNode();
     

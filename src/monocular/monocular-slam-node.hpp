@@ -6,6 +6,8 @@
 
 #include "../slam/slam-wrapper-node.hpp"
 
+#include "rosgraph_msgs/msg/clock.hpp"
+
 #include <cv_bridge/cv_bridge.h>
 
 #include "System.h"
@@ -20,9 +22,17 @@
 class MonocularSlamNode : public rclcpp::Node
 {
 public:
-    MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName);
+    MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName, rclcpp::NodeOptions nOptions);
 
     ~MonocularSlamNode();
+
+protected:
+
+    // sim clock related
+    rclcpp::Time start_time;
+    rclcpp::TimerBase::SharedPtr clock_timer_;
+    void clock_callback();
+    rclcpp::Publisher<rosgraph_msgs::msg::Clock>::SharedPtr publisher_clock_;
 
 private:
     using ImageMsg = sensor_msgs::msg::Image;

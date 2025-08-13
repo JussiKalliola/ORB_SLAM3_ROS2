@@ -15,7 +15,7 @@
 #include <boost/archive/text_iarchive.hpp>
 
 
-SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<System> pDistSystem, bool subscribe_to_slam, const std::string path, const std::string strResultFilename ) : Node("SlamWrapperNode") {
+SlamWrapperNode::SlamWrapperNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<System> pDistSystem, bool subscribe_to_slam, rclcpp::NodeOptions nOptions, const std::string path, const std::string strResultFilename ) : Node("SlamWrapperNode", nOptions) {
     
     char* systemId = std::getenv("SLAM_SYSTEM_ID");
     

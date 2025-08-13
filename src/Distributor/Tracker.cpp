@@ -1,5 +1,7 @@
 #include "./Tracker.hpp"
 
+#include "../slam/slam-wrapper-node.hpp"
+
 #include "stdio.h"
 #include "string.h"
 #include "sys/times.h"
@@ -63,10 +65,10 @@ void Tracker::Run()
       vllCurrentPRAM_kb.push_back(GetCurrentPMemory());
       vllTotalPRAM_kb.push_back(GetTotalPMemory());
 
-      vtTimes.push_back(std::chrono::steady_clock::now());
+      vtTimes.push_back((double)(pSLAMNode->now().seconds()));
 
 
-      usleep(100000);
+      usleep(50000);
       if(CheckFinish())
           break;
     }
@@ -247,3 +249,10 @@ bool Tracker::isFinished()
     unique_lock<mutex> lock(mMutexFinish);
     return mbFinished;
 }
+
+
+void Tracker::AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node)
+{
+    pSLAMNode = slam_node;
+}
+

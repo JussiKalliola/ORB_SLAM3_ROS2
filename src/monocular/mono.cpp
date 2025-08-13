@@ -124,7 +124,12 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::MONOCULAR, visualization, strSaveToPath, mpDistObserver, mbOnlyTrack);
 
-    slam_node = std::make_shared<SlamWrapperNode>(&SLAM, mpDistSystem, subscribe_to_slam, strSaveToPath, strResultFileName); 
+    // Init node here since clock needs to be published before creating this
+    // Tracking node defines the simulation clock for other nodes (and omnet++)
+    rclcpp::NodeOptions slamNodeOptions;
+    slamNodeOptions.parameter_overrides({rclcpp::Parameter("use_sim_time", true)});
+
+    slam_node = std::make_shared<SlamWrapperNode>(&SLAM, mpDistSystem, subscribe_to_slam, slamNodeOptions, strSaveToPath, strResultFileName); 
 
     // Start distribution thread
     //std::thread* mptDistribution = new thread(&Distributor::Run,mpDistributor);
@@ -144,7 +149,11 @@ int main(int argc, char **argv)
 
     // If this system needs to subscribe to sensor data stream.
     if(main_system) {
-      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName);
+      // Main node is the one which defines simulation time.
+      rclcpp::NodeOptions mainNodeOptions;
+      mainNodeOptions.parameter_overrides({rclcpp::Parameter("use_sim_time", false), rclcpp::Parameter("clock_type", RCL_ROS_TIME)});
+
+      auto mono_node = std::make_shared<MonocularSlamNode>(&SLAM, slam_node, strSaveToPath, strResultFileName, strDatasetName, mainNodeOptions);
       rclcpp::executors::MultiThreadedExecutor multiThreadExecutor;
       
       multiThreadExecutor.add_node(mono_node);

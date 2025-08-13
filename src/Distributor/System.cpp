@@ -56,9 +56,8 @@ void System::LoopClosingStats2File()
     f << "#Start time[ms], Total[ms]"<< endl; // vdDataQuery_ms, vdEstSim3_ms thse might be different sized vectors;
     for(int i=0; i<mpLoopCloser->vdPRTotal_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLoopCloser->vtStartTimePR_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLoopCloser->vdPRTotal_ms[i] << endl; 
+        double timestamp = mpLoopCloser->vtStartTimePR_ms[i];
+        f << timestamp << "," << mpLoopCloser->vdPRTotal_ms[i] << endl; 
     }
 
     f.close();
@@ -70,9 +69,8 @@ void System::LoopClosingStats2File()
     f << "#Start time[ms], Merge Maps[ms], Welding BA[ms], Merge Opt.Ess.[ms], Total[ms], #KFs, #MPs" << endl; // vdDataQuery_ms, vdEstSim3_ms thse might be different sized vectors;
     for(int i=0; i<mpLoopCloser->vdMergeTotal_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLoopCloser->vtStartTimeMerge_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLoopCloser->vdMergeMaps_ms[i] << "," << mpLoopCloser->vdWeldingBA_ms[i] << "," << mpLoopCloser->vdMergeOptEss_ms[i] << "," << mpLoopCloser->vdMergeTotal_ms[i] << "," << mpLoopCloser->vnMergeKFs[i] << "," << mpLoopCloser->vnMergeMPs[i] << endl; 
+        double timestamp = mpLoopCloser->vtStartTimeMerge_ms[i];
+        f << timestamp << "," << mpLoopCloser->vdMergeMaps_ms[i] << "," << mpLoopCloser->vdWeldingBA_ms[i] << "," << mpLoopCloser->vdMergeOptEss_ms[i] << "," << mpLoopCloser->vdMergeTotal_ms[i] << "," << mpLoopCloser->vnMergeKFs[i] << "," << mpLoopCloser->vnMergeMPs[i] << endl; 
     }
 
 
@@ -87,9 +85,8 @@ void System::LoopClosingStats2File()
     f << "#Start time[ms], Fusion[ms], Opt.Ess.[ms], Total[ms]" << endl; // vdDataQuery_ms, vdEstSim3_ms thse might be different sized vectors;
     for(int i=0; i<mpLoopCloser->vdLoopTotal_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLoopCloser->vtStartTimeLoop_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLoopCloser->vdLoopFusion_ms[i] << "," << mpLoopCloser->vdLoopOptEss_ms[i] << "," << mpLoopCloser->vdLoopTotal_ms[i] << endl; 
+        double timestamp = mpLoopCloser->vtStartTimeLoop_ms[i];
+        f << timestamp << "," << mpLoopCloser->vdLoopFusion_ms[i] << "," << mpLoopCloser->vdLoopOptEss_ms[i] << "," << mpLoopCloser->vdLoopTotal_ms[i] << endl; 
     }
 
 
@@ -103,9 +100,8 @@ void System::LoopClosingStats2File()
     f << "#Start time[ms], GBA[ms], Update map[ms], Total[ms]" << endl; // vdDataQuery_ms, vdEstSim3_ms thse might be different sized vectors;
     for(int i=0; i<mpLoopCloser->vdFGBATotal_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLoopCloser->vtStartTimeFGBA_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLoopCloser->vdGBA_ms[i] << "," << mpLoopCloser->vdUpdateMap_ms[i] << "," << mpLoopCloser->vdFGBATotal_ms[i]<< endl; 
+        double timestamp = mpLoopCloser->vtStartTimeFGBA_ms[i];
+        f << timestamp << "," << mpLoopCloser->vdGBA_ms[i] << "," << mpLoopCloser->vdUpdateMap_ms[i] << "," << mpLoopCloser->vdFGBATotal_ms[i]<< endl; 
     }
 
 
@@ -120,12 +116,11 @@ void System::LocalMapStats2File()
     f.open(fileName);
     f << fixed << setprecision(6);
 
-    f << "#Start time[ms], Stereo rect[ms], MP culling[ms], MP creation[ms], LBA[ms], KF culling[ms], Total[ms]" << endl;
+    f << "#Start time[ms], Insert KF[MS], MP culling[ms], MP creation[ms], LBA[ms], KF culling[ms], Total[ms]" << endl;
     for(int i=0; i<mpLocalMapper->vdLMTotal_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLocalMapper->vtStartTimeLM_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLocalMapper->vdKFInsert_ms[i] << "," << mpLocalMapper->vdMPCulling_ms[i] << ","
+        double timestamp = mpLocalMapper->vtStartTimeLM_ms[i];
+        f << timestamp << "," << mpLocalMapper->vdKFInsert_ms[i] << "," << mpLocalMapper->vdMPCulling_ms[i] << ","
           << mpLocalMapper->vdMPCreation_ms[i] << "," << mpLocalMapper->vdLBASync_ms[i] << ","
           << mpLocalMapper->vdKFCullingSync_ms[i] <<  "," << mpLocalMapper->vdLMTotal_ms[i] << endl;
     }
@@ -139,9 +134,8 @@ void System::LocalMapStats2File()
     f << "#Start time[ms], LBA time[ms], KF opt[#], KF fixed[#], MP[#], Edges[#]" << endl;
     for(int i=0; i<mpLocalMapper->vdLBASync_ms.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpLocalMapper->vtStartTimeLBA_ms[i];
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpLocalMapper->vdLBASync_ms[i] << "," << mpLocalMapper->vnLBA_KFopt[i] << ","
+        double timestamp = mpLocalMapper->vtStartTimeLBA_ms[i];
+        f << timestamp << "," << mpLocalMapper->vdLBASync_ms[i] << "," << mpLocalMapper->vnLBA_KFopt[i] << ","
           << mpLocalMapper->vnLBA_KFfixed[i] << "," << mpLocalMapper->vnLBA_MPs[i] << ","
           << mpLocalMapper->vnLBA_edges[i] << endl;
     }
@@ -154,7 +148,7 @@ void System::TrackStats2File()
 {
     ofstream f;
     string sysId(std::getenv("SLAM_SYSTEM_ID"));
-
+    std::string fileName="";
     if(mpObserver->GetTaskModule() == 1)
     {
         std::string fileName=mStrStatSavePath + "LostTrackStats.txt";
@@ -165,61 +159,30 @@ void System::TrackStats2File()
 
         for(int i=0;i<mpTracker->vtLostTrackTime_ms.size(); ++i)
         {
-            std::chrono::steady_clock::time_point time_StartAction = mpTracker->vtLostTrackTime_ms[i];
-            long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-            f << timeSinceStart << endl;
+            double timestamp = mpTracker->vtLostTrackTime_ms[i];
+            f << timestamp << endl;
         }
 
 
         f.close();
 
     }
-    //std::string fileName=mStrStatSavePath + "LostTrackStats-" + sysId + ".txt";
-    //f.open(fileName);
-    //f << fixed << setprecision(6);
 
-    //f << "#Start time[ms], Image Rect[ms], Image Resize[ms], ORB ext[ms], Stereo match[ms], IMU preint[ms], Pose pred[ms], LM track[ms], KF dec[ms], Total[ms]" << endl;
 
-    //for(int i=0; i<mpTracker->vtStartTime_ms.size(); ++i)
-    //{
-    //    std::chrono::steady_clock::time_point time_StartAction = mpTracker->vtStartTime_ms[i];
-    //    long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
 
-    //    double stereo_rect = 0.0;
-    //    if(!mpTracker->vdRectStereo_ms.empty())
-    //    {
-    //        stereo_rect = mpTracker->vdRectStereo_ms[i];
-    //    }
+    fileName=mStrStatSavePath + "TrackingStats-" + sysId + ".txt";
+    f.open(fileName);
+    f << fixed << setprecision(6);
+    f << "Time from start [ms], ORB Extract[ms], Pose Pred[ms], LM Track[ms], New KF[ms], Total[ms]" << endl;
 
-    //    double resize_image = 0.0;
-    //    if(!mpTracker->vdResizeImage_ms.empty())
-    //    {
-    //        resize_image = mpTracker->vdResizeImage_ms[i];
-    //    }
+    for(int i=0;i<mpTracker->vdTrackTotal_ms.size(); ++i)
+    {
+        double timestamp = mpTracker->vtStartTimeTR_ms[i];  
+        f << timestamp << "," << mpTracker->vdORBExtract_ms[i] << "," << mpTracker->vdPosePred_ms[i] << "," << mpTracker->vdLMTrack_ms[i] << "," << mpTracker->vdNewKF_ms[i] << "," << mpTracker->vdTrackTotal_ms[i] << endl;
+    }
 
-    //    double orb_extract = 0.0;
-    //    if(mpTracker->vdORBExtract_ms.size() > i)
-    //    {
-    //      
-    //    }
 
-    //    double stereo_match = 0.0;
-    //    if(!mpTracker->vdStereoMatch_ms.empty())
-    //    {
-    //        stereo_match = mpTracker->vdStereoMatch_ms[i];
-    //    }
-
-    //    double imu_preint = 0.0;
-    //    if(!mpTracker->vdIMUInteg_ms.empty())
-    //    {
-    //        imu_preint = mpTracker->vdIMUInteg_ms[i];
-    //    }
-
-    //    f << timeSinceStart << "," << stereo_rect << "," << resize_image << "," << mpTracker->vdORBExtract_ms[i] << "," << stereo_match << "," << imu_preint << ","
-    //      << mpTracker->vdPosePred_ms[i] <<  "," << mpTracker->vdLMTrack_ms[i] << "," << mpTracker->vdNewKF_ms[i] << "," << mpTracker->vdTrackTotal_ms[i] << endl;
-    //}
-
-    //f.close();
+    f.close();
 }
 
 void System::SystemStats2File()
@@ -234,13 +197,13 @@ void System::SystemStats2File()
 
     for(int i=0; i<mpSystemTracker->vdProcessUsageCPU_pct.size(); ++i)
     {
-        std::chrono::steady_clock::time_point time_StartAction = mpSystemTracker->vtTimes[i];  
-        long int timeSinceStart = std::chrono::duration_cast<std::chrono::duration<long int,std::milli> >( time_StartAction - time_GlobalSystemStart).count();
-        f << timeSinceStart << "," << mpSystemTracker->vdProcessUsageCPU_pct[i] << "," << mpSystemTracker->vdTotalUsageCPU_pct[i] << "," <<  mpSystemTracker->vnProcessVRAM_kb[i] << "," << mpSystemTracker->vllCurrentVRAM_kb[i] << "," << mpSystemTracker->vllTotalVRAM_kb[i] << "," << mpSystemTracker->vnProcessPRAM_kb[i] << "," << mpSystemTracker->vllCurrentPRAM_kb[i] << "," << mpSystemTracker->vllTotalPRAM_kb[i] << endl;
+        double timestamp = mpSystemTracker->vtTimes[i];  
+        f << timestamp << "," << mpSystemTracker->vdProcessUsageCPU_pct[i] << "," << mpSystemTracker->vdTotalUsageCPU_pct[i] << "," <<  mpSystemTracker->vnProcessVRAM_kb[i] << "," << mpSystemTracker->vllCurrentVRAM_kb[i] << "," << mpSystemTracker->vllTotalVRAM_kb[i] << "," << mpSystemTracker->vnProcessPRAM_kb[i] << "," << mpSystemTracker->vllCurrentPRAM_kb[i] << "," << mpSystemTracker->vllTotalPRAM_kb[i] << endl;
     }
 
     f.close();
 }
+
 
 void System::TimeStats2File()
 {
@@ -387,83 +350,31 @@ void System::TimeStats2File()
 
 
 
-double calcAverage(vector<double> v_times)
+template <typename T>
+double calcAverage(vector<T> v_times)
+{
+    double accum = 0;
+    size_t total = 0;
+    for(double value : v_times)
+    {
+        accum += static_cast<double>(value); //value;
+        total++;
+    }
+
+    return total > 0 ? accum / static_cast<double>(total) : 0.0;
+}
+
+template <typename T>
+double calcDeviation(vector<T> v_times, double average)
 {
     double accum = 0;
     for(double value : v_times)
     {
-        accum += value;
+        double diff = static_cast<double>(value) - average;
+        accum += pow(diff, 2);
     }
-
-    return accum / v_times.size();
-}
-
-double calcDeviation(vector<double> v_times, double average)
-{
-    double accum = 0;
-    for(double value : v_times)
-    {
-        accum += pow(value - average, 2);
-    }
-    return sqrt(accum / v_times.size());
-}
-
-double calcAverage(vector<int> v_times)
-{
-    double accum = 0;
-    int total = 0;
-    for(double value : v_times)
-    {
-        if(value == 0)
-            continue;
-        accum += value;
-        total++;
-    }
-
-    return accum / total;
-}
-
-double calcDeviation(vector<int> v_values, double average)
-{
-    double accum = 0;
-    int total = 0;
-    for(double value : v_values)
-    {
-        if(value == 0)
-            continue;
-        accum += pow(value - average, 2);
-        total++;
-    }
-    return sqrt(accum / total);
-}
-
-double calcAverage(vector<long long> v_times)
-{
-    double accum = 0;
-    int total = 0;
-    for(double value : v_times)
-    {
-        if(value == 0)
-            continue;
-        accum += value;
-        total++;
-    }
-
-    return accum / total;
-}
-
-double calcDeviation(vector<long long> v_values, double average)
-{
-    double accum = 0;
-    int total = 0;
-    for(double value : v_values)
-    {
-        if(value == 0)
-            continue;
-        accum += pow(value - average, 2);
-        total++;
-    }
-    return sqrt(accum / total);
+    
+    return v_times.empty() ? 0.0 : std::sqrt(accum / static_cast<double>(v_times.size()));
 }
 
 
@@ -474,207 +385,207 @@ void System::PrintTimeStats()
     /*              PUBLISH                         */
     /************************************************/
 
-    std::cout << std::endl << "TIME STATS in ms (mean$\\pm$std)" << std::endl;
-    //f << " TIME STATS in ms (mean$\\pm$std)" << std::endl;
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "Publish" << std::setprecision(5) << std::endl << std::endl;
-    //f << "---------------------------" << std::endl;
-    //f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
+    //std::cout << std::endl << "TIME STATS in ms (mean$\\pm$std)" << std::endl;
+    ////f << " TIME STATS in ms (mean$\\pm$std)" << std::endl;
+    //std::cout << "---------------------------" << std::endl;
+    //std::cout << "Publish" << std::setprecision(5) << std::endl << std::endl;
+    ////f << "---------------------------" << std::endl;
+    ////f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
     double average, deviation;
-    std::cout << "KeyFrame" << std::endl;
-    average = calcAverage(mpKeyFramePublisher->vdOrb2RosConvKF_ms);
-    deviation = calcDeviation(mpKeyFramePublisher->vdOrb2RosConvKF_ms, average);
-    std::cout << "KF ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //std::cout << "KeyFrame" << std::endl;
+    //average = calcAverage(mpKeyFramePublisher->vdOrb2RosConvKF_ms);
+    //deviation = calcDeviation(mpKeyFramePublisher->vdOrb2RosConvKF_ms, average);
+    //std::cout << "KF ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    average = calcAverage(mpKeyFramePublisher->vdPreSaveKF_ms);
-    deviation = calcDeviation(mpKeyFramePublisher->vdPreSaveKF_ms, average);
-    std::cout << "KF PreSave: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(mpKeyFramePublisher->vdPreSaveMP_ms);
-    deviation = calcDeviation(mpKeyFramePublisher->vdPreSaveMP_ms, average);
-    std::cout << "MPs PreSave: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpKeyFramePublisher->vdPreSaveKF_ms);
+    //deviation = calcDeviation(mpKeyFramePublisher->vdPreSaveKF_ms, average);
+    //std::cout << "KF PreSave: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
     //
-    average = calcAverage(mpKeyFramePublisher->vdOrb2RosProcKF_ms);
-    deviation = calcDeviation(mpKeyFramePublisher->vdOrb2RosProcKF_ms, average);
-    std::cout << "Total KeyFrame: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpKeyFramePublisher->vdPreSaveMP_ms);
+    //deviation = calcDeviation(mpKeyFramePublisher->vdPreSaveMP_ms, average);
+    //std::cout << "MPs PreSave: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    ////
+    //average = calcAverage(mpKeyFramePublisher->vdOrb2RosProcKF_ms);
+    //deviation = calcDeviation(mpKeyFramePublisher->vdOrb2RosProcKF_ms, average);
+    //std::cout << "Total KeyFrame: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    //average = calcAverage(mpObserver->vdOrb2RosConvMP_ms);
-    //deviation = calcDeviation(mpObserver->vdOrb2RosConvMP_ms, average);
-    //std::cout << "MapPoint ORB_SLAM3->ROS2 (Conversion): " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    ////average = calcAverage(mpObserver->vdOrb2RosConvMP_ms);
+    ////deviation = calcDeviation(mpObserver->vdOrb2RosConvMP_ms, average);
+    ////std::cout << "MapPoint ORB_SLAM3->ROS2 (Conversion): " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    std::cout<<std::endl;
-    std::cout << "Local Map" << std::endl;
-    average = calcAverage(mpMapHandler->vdOrb2RosConvMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdOrb2RosConvMap_ms, average);
-    std::cout << "Map ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //std::cout<<std::endl;
+    //std::cout << "Local Map" << std::endl;
+    //average = calcAverage(mpMapHandler->vdOrb2RosConvMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdOrb2RosConvMap_ms, average);
+    //std::cout << "Map ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    average = calcAverage(mpMapHandler->vdPreSaveMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdPreSaveMap_ms, average);
-    std::cout << "Map PreSave: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpMapHandler->vdPreSaveMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPreSaveMap_ms, average);
+    //std::cout << "Map PreSave: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    average = calcAverage(mpMapHandler->vdOrb2RosProcMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdOrb2RosProcMap_ms, average);
-    std::cout << "Total Map: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    std::cout<<std::endl;
-    std::cout << "Global Map" << std::endl;
-    average = calcAverage(mpMapHandler->vdOrb2RosConvAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdOrb2RosConvAtlas_ms, average);
-    std::cout << "Atlas ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpMapHandler->vdOrb2RosProcMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdOrb2RosProcMap_ms, average);
+    //std::cout << "Total Map: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //std::cout<<std::endl;
+    //std::cout << "Global Map" << std::endl;
+    //average = calcAverage(mpMapHandler->vdOrb2RosConvAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdOrb2RosConvAtlas_ms, average);
+    //std::cout << "Atlas ORB_SLAM3->ROS2: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
-    average = calcAverage(mpMapHandler->vdPreSaveAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdPreSaveAtlas_ms, average);
-    std::cout << "Atlas PreSave: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-
-    average = calcAverage(mpMapHandler->vdOrb2RosProcAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdOrb2RosProcAtlas_ms, average);
-    std::cout << "Total Atlas: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    std::cout << std::endl << std::endl;
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "KeyFrames published: " << mpKeyFramePublisher->vdOrb2RosProcKF_ms.size() << std::endl;
-    std::cout << "Local Maps published: " << mpMapHandler->vdOrb2RosProcMap_ms.size() << std::endl;
-    std::cout << "Global Maps published: " << mpMapHandler->vdOrb2RosProcAtlas_ms.size() << std::endl;
-
-    /************************************************/
-    /*              SUBSCRIPTION                    */
-    /************************************************/
-
-    // Subscription time stats
-    std::cout << std::endl << std::endl << std::endl;
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "Subscription" << std::endl << std::endl;
-
-    std::cout << "KeyFrame" << std::endl;
-    average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbConvKF_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbConvKF_ms, average);
-    std::cout << "KF ROS2->ORB_SLAM3: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbConvMP_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbConvMP_ms, average);
-    std::cout << "MPs ROS2->ORB_SLAM3: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(mpKeyFrameSubscriber->vdPostLoadKF_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdPostLoadKF_ms, average);
-    std::cout << "KF PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(mpKeyFrameSubscriber->vdPostLoadMP_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdPostLoadMP_ms, average);
-    std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(mpKeyFrameSubscriber->vdInjectKF_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdInjectKF_ms, average);
-    std::cout << "KF Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(mpKeyFrameSubscriber->vdInjectMP_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdInjectMP_ms, average);
-    std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbProcKF_ms);
-    deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbProcKF_ms, average);
-    std::cout << "Total KeyFrame: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    std::cout << std::endl;
-        
-    std::cout << "Local Map" << std::endl;
-    average = calcAverage(mpMapHandler->vdPostLoadMPMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdPostLoadMPMap_ms, average);
-    std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdPostLoadKFMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdPostLoadKFMap_ms, average);
-    std::cout << "KFs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdRos2OrbDataConvMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdRos2OrbDataConvMap_ms, average);
-    std::cout << "KFs+MPs Conversion: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(mpMapHandler->vdInjectMPMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdInjectMPMap_ms, average);
-    std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdInjectKFMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdInjectKFMap_ms, average);
-    std::cout << "KFs Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    average = calcAverage(mpMapHandler->vdUpdateMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdUpdateMap_ms, average);
-    std::cout << "Map update (conversion, postload, injection): " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;    
-        
-    average = calcAverage(mpMapHandler->vdRos2OrbProcMap_ms);
-    deviation = calcDeviation(mpMapHandler->vdRos2OrbProcMap_ms, average);
-    std::cout << "Total Map: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    std::cout << std::endl;
-    
-    std::cout << "Global Map" << std::endl;
-
-    average = calcAverage(mpMapHandler->vdPostLoadMPAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdPostLoadMPAtlas_ms, average);
-    std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdPostLoadKFAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdPostLoadKFAtlas_ms, average);
-    std::cout << "KFs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdRos2OrbDataConvAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdRos2OrbDataConvAtlas_ms, average);
-    std::cout << "KFs+MPs Conversion: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(mpMapHandler->vdInjectMPAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdInjectMPAtlas_ms, average);
-    std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-        
-    average = calcAverage(mpMapHandler->vdInjectKFAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdInjectKFAtlas_ms, average);
-    std::cout << "KFs Injection: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    average = calcAverage(mpMapHandler->vdUpdateAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdUpdateAtlas_ms, average);
-    std::cout << "Atlas update (conversion, postload, injection): " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;    
-
-    average = calcAverage(mpMapHandler->vdRos2OrbProcAtlas_ms);
-    deviation = calcDeviation(mpMapHandler->vdRos2OrbProcAtlas_ms, average);
-    std::cout << "Total Atlas: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-
-    std::cout << std::endl << std::endl;
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "KeyFrames received: " << mpKeyFrameSubscriber->vdRos2OrbProcKF_ms.size() << std::endl;
-    std::cout << "Local Maps received: " << mpMapHandler->vdRos2OrbProcMap_ms.size() << std::endl;
-    std::cout << "Global Maps received: " << mpMapHandler->vdRos2OrbProcAtlas_ms.size() << std::endl;
+    //average = calcAverage(mpMapHandler->vdPreSaveAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPreSaveAtlas_ms, average);
+    //std::cout << "Atlas PreSave: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 
 
-    std::cout << std::endl <<std::endl << std::endl;
+    //average = calcAverage(mpMapHandler->vdOrb2RosProcAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdOrb2RosProcAtlas_ms, average);
+    //std::cout << "Total Atlas: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //std::cout << std::endl << std::endl;
+    //std::cout << "---------------------------" << std::endl;
+    //std::cout << "KeyFrames published: " << mpKeyFramePublisher->vdOrb2RosProcKF_ms.size() << std::endl;
+    //std::cout << "Local Maps published: " << mpMapHandler->vdOrb2RosProcMap_ms.size() << std::endl;
+    //std::cout << "Global Maps published: " << mpMapHandler->vdOrb2RosProcAtlas_ms.size() << std::endl;
+
+    ///************************************************/
+    ///*              SUBSCRIPTION                    */
+    ///************************************************/
+
+    //// Subscription time stats
+    //std::cout << std::endl << std::endl << std::endl;
+    //std::cout << "---------------------------" << std::endl;
+    //std::cout << "Subscription" << std::endl << std::endl;
+
+    //std::cout << "KeyFrame" << std::endl;
+    //average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbConvKF_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbConvKF_ms, average);
+    //std::cout << "KF ROS2->ORB_SLAM3: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbConvMP_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbConvMP_ms, average);
+    //std::cout << "MPs ROS2->ORB_SLAM3: " << average << "$\\pm$" << deviation << std::endl;
+
+    //average = calcAverage(mpKeyFrameSubscriber->vdPostLoadKF_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdPostLoadKF_ms, average);
+    //std::cout << "KF PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //average = calcAverage(mpKeyFrameSubscriber->vdPostLoadMP_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdPostLoadMP_ms, average);
+    //std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //average = calcAverage(mpKeyFrameSubscriber->vdInjectKF_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdInjectKF_ms, average);
+    //std::cout << "KF Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //average = calcAverage(mpKeyFrameSubscriber->vdInjectMP_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdInjectMP_ms, average);
+    //std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //average = calcAverage(mpKeyFrameSubscriber->vdRos2OrbProcKF_ms);
+    //deviation = calcDeviation(mpKeyFrameSubscriber->vdRos2OrbProcKF_ms, average);
+    //std::cout << "Total KeyFrame: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //std::cout << std::endl;
+    //    
+    //std::cout << "Local Map" << std::endl;
+    //average = calcAverage(mpMapHandler->vdPostLoadMPMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPostLoadMPMap_ms, average);
+    //std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdPostLoadKFMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPostLoadKFMap_ms, average);
+    //std::cout << "KFs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdRos2OrbDataConvMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdRos2OrbDataConvMap_ms, average);
+    //std::cout << "KFs+MPs Conversion: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //average = calcAverage(mpMapHandler->vdInjectMPMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdInjectMPMap_ms, average);
+    //std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdInjectKFMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdInjectKFMap_ms, average);
+    //std::cout << "KFs Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpMapHandler->vdUpdateMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdUpdateMap_ms, average);
+    //std::cout << "Map update (conversion, postload, injection): " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;    
+    //    
+    //average = calcAverage(mpMapHandler->vdRos2OrbProcMap_ms);
+    //deviation = calcDeviation(mpMapHandler->vdRos2OrbProcMap_ms, average);
+    //std::cout << "Total Map: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //std::cout << std::endl;
+    //
+    //std::cout << "Global Map" << std::endl;
+
+    //average = calcAverage(mpMapHandler->vdPostLoadMPAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPostLoadMPAtlas_ms, average);
+    //std::cout << "MPs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdPostLoadKFAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdPostLoadKFAtlas_ms, average);
+    //std::cout << "KFs PostLoad: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdRos2OrbDataConvAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdRos2OrbDataConvAtlas_ms, average);
+    //std::cout << "KFs+MPs Conversion: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //average = calcAverage(mpMapHandler->vdInjectMPAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdInjectMPAtlas_ms, average);
+    //std::cout << "MPs Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //    
+    //average = calcAverage(mpMapHandler->vdInjectKFAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdInjectKFAtlas_ms, average);
+    //std::cout << "KFs Injection: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(mpMapHandler->vdUpdateAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdUpdateAtlas_ms, average);
+    //std::cout << "Atlas update (conversion, postload, injection): " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;    
+
+    //average = calcAverage(mpMapHandler->vdRos2OrbProcAtlas_ms);
+    //deviation = calcDeviation(mpMapHandler->vdRos2OrbProcAtlas_ms, average);
+    //std::cout << "Total Atlas: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+
+    //std::cout << std::endl << std::endl;
+    //std::cout << "---------------------------" << std::endl;
+    //std::cout << "KeyFrames received: " << mpKeyFrameSubscriber->vdRos2OrbProcKF_ms.size() << std::endl;
+    //std::cout << "Local Maps received: " << mpMapHandler->vdRos2OrbProcMap_ms.size() << std::endl;
+    //std::cout << "Global Maps received: " << mpMapHandler->vdRos2OrbProcAtlas_ms.size() << std::endl;
+
+
+    //std::cout << std::endl <<std::endl << std::endl;
 
 
     /************************************************/
@@ -740,27 +651,27 @@ void System::PrintTimeStats()
     /*                    NETWORK                   */
     /************************************************/
 
-    std::cout << std::endl << "NETWORK STATS (mean$\\pm$std)" << std::endl;
-    //f << " TIME STATS in ms (mean$\\pm$std)" << std::endl;
-    std::cout << "---------------------------" << std::endl;
-    std::cout << "Latency in ms" << std::setprecision(5) << std::endl;
-    //f << "---------------------------" << std::endl;
-    //f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
+    //std::cout << std::endl << "NETWORK STATS (mean$\\pm$std)" << std::endl;
+    ////f << " TIME STATS in ms (mean$\\pm$std)" << std::endl;
+    //std::cout << "---------------------------" << std::endl;
+    //std::cout << "Latency in ms" << std::setprecision(5) << std::endl;
+    ////f << "---------------------------" << std::endl;
+    ////f << "Tracking" << std::setprecision(5) << std::endl << std::endl;
 
-    average = calcAverage(pSLAMNode->vdLatencyKF_ms);
-    deviation = calcDeviation(pSLAMNode->vdLatencyKF_ms, average);
-    std::cout << "KFs: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    
-    average = calcAverage(pSLAMNode->vdLatencyMap_ms);
-    deviation = calcDeviation(pSLAMNode->vdLatencyMap_ms, average);
-    std::cout << "Maps: " << average << "$\\pm$" << deviation << std::endl;
-    //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
-    
-    average = calcAverage(pSLAMNode->vdLatencyAtlas_ms);
-    deviation = calcDeviation(pSLAMNode->vdLatencyAtlas_ms, average);
-    std::cout << "Atlas: " << average << "$\\pm$" << deviation << std::endl;
+    //average = calcAverage(pSLAMNode->vdLatencyKF_ms);
+    //deviation = calcDeviation(pSLAMNode->vdLatencyKF_ms, average);
+    //std::cout << "KFs: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //
+    //average = calcAverage(pSLAMNode->vdLatencyMap_ms);
+    //deviation = calcDeviation(pSLAMNode->vdLatencyMap_ms, average);
+    //std::cout << "Maps: " << average << "$\\pm$" << deviation << std::endl;
+    ////f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
+    //
+    //average = calcAverage(pSLAMNode->vdLatencyAtlas_ms);
+    //deviation = calcDeviation(pSLAMNode->vdLatencyAtlas_ms, average);
+    //std::cout << "Atlas: " << average << "$\\pm$" << deviation << std::endl;
     //f << "Stereo Rectification: " << average << "$\\pm$" << deviation << std::endl;
 }
 
@@ -771,9 +682,9 @@ void System::ShutDown()
     //mpKeyFramePublisher->RequestFinish();
     mpSystemTracker->RequestFinish();
 
-    //TrackStats2File();
-    //LoopClosingStats2File();
-    //LocalMapStats2File();
+    TrackStats2File();
+    LoopClosingStats2File();
+    LocalMapStats2File();
     //TimeStats2File();
     SystemStats2File();
 
@@ -828,6 +739,7 @@ void System::AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node)
     mpObserver->AttachSLAMNode(slam_node);
     mpMapHandler->AttachSLAMNode(slam_node);
     mpKeyFramePublisher->AttachSLAMNode(slam_node);
+    mpSystemTracker->AttachSLAMNode(slam_node);
 }
 
 

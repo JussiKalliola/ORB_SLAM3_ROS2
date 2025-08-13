@@ -5,7 +5,7 @@
 
 using std::placeholders::_1;
 
-MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName) : Node("MonocularSlamNode") 
+MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<SlamWrapperNode> slam_node, const std::string path, const std::string strResultFilename, const std::string strDatasetName, rclcpp::NodeOptions nOptions) : Node("MonocularSlamNode", nOptions) 
 {
   RCLCPP_INFO(this->get_logger(), "Initializing Monocular SLAM node.");
   m_SLAM = pSLAM;
@@ -14,6 +14,19 @@ MonocularSlamNode::MonocularSlamNode(ORB_SLAM3::System* pSLAM, std::shared_ptr<S
   savePath = path;
   mstrResultFilename = strResultFilename;
   mstrDatasetName = strDatasetName;
+
+
+  // sim clock related
+  start_time = this->now();
+  publisher_clock_ = this->create_publisher<rosgraph_msgs::msg::Clock>("/clock", rclcpp::QoS(1).best_effort().durability_volatile());
+  RCLCPP_INFO_STREAM(this->get_logger(), "Start the /clock timer.");
+  this->clock_callback();
+  clock_timer_ = rclcpp::create_timer(
+      this,
+      this->get_clock(),
+      10ms, //16.667ms,
+      std::bind(&MonocularSlamNode::clock_callback, this)
+  );
 
     // std::cout << "slam changed" << std::endl;
   RCLCPP_INFO(this->get_logger(), "Creating a subscriber for a topic /camera");
@@ -33,6 +46,22 @@ MonocularSlamNode::~MonocularSlamNode()
   //m_SLAM->Shutdown();
   // Save camera trajectory
 }
+
+
+
+void MonocularSlamNode::clock_callback()
+{
+    auto clock_msg = rosgraph_msgs::msg::Clock();
+
+    auto cur_time = this->now();
+    rclcpp::Duration elapsed = cur_time - start_time;
+
+    clock_msg.clock.sec = (int)(elapsed.seconds());
+    clock_msg.clock.nanosec = (long int)((elapsed.seconds() - clock_msg.clock.sec)*1e9);
+    publisher_clock_->publish(clock_msg);
+
+}
+
 
 void MonocularSlamNode::GrabImage(const ImageMsg::SharedPtr msg)
 {

@@ -101,6 +101,7 @@ class Observer : public ORB_SLAM3::Distributor
     void onGlobalMapUpdated(bool mbMerged, bool mbLoopClosure, std::vector<unsigned long int> mvMeergedIds) override;
     int KeyFramesInQueue() override;
     int MapsInQueue() override;
+    double getCurrentTime() override;
 
 
 

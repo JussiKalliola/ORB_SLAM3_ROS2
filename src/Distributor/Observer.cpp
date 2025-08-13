@@ -416,9 +416,17 @@ int Observer::MapsInQueue()
     return mpMapHandler->LocalMapsInQueue();
 }
 
+
+double Observer::getCurrentTime()
+{
+    //unique_lock<std::mutex> lock(mMutexNewKFs);
+    return (double)(pSLAMNode->now().seconds());
+    //return 0;
+}
+
+
 void Observer::onNewMap(ORB_SLAM3::Map* pM)
 {
-    std::cout << "Observer::onNewMap" << std::endl;
     AddMap(pM);
 }
 

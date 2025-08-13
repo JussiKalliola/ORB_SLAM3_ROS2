@@ -6,6 +6,8 @@
 #include <mutex>
 #include "stdlib.h"
 
+class SlamWrapperNode;
+
 class Tracker 
 {
   public:  
@@ -18,6 +20,8 @@ class Tracker
     void RequestFinish();
     bool isFinished();
 
+    void AttachSLAMNode(std::shared_ptr<SlamWrapperNode> slam_node);
+
     vector<double> vdProcessUsageCPU_pct;
     vector<double> vdTotalUsageCPU_pct;
 
@@ -29,7 +33,7 @@ class Tracker
     vector<long long> vllCurrentPRAM_kb;
     vector<long long> vllTotalPRAM_kb;
 
-    vector<std::chrono::steady_clock::time_point> vtTimes;
+    vector<double> vtTimes;
 
 
   protected:  
@@ -55,6 +59,7 @@ class Tracker
     unsigned long long lastTotalUser, lastTotalUserLow, lastTotalSys, lastTotalIdle;
     int numProcessors;
 
+    std::shared_ptr<SlamWrapperNode> pSLAMNode;
 };
 //}
 
